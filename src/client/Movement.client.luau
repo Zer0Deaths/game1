@@ -8,15 +8,10 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-
-local BASE_FOV = 70
-local SPRINT_FOV = 80
 
 local wantSprint = false
 local stamina = 100
@@ -54,8 +49,6 @@ fill.BackgroundColor3 = Color3.fromRGB(235, 228, 200)
 fill.BorderSizePixel = 0
 fill.Parent = back
 
-local fovTarget = BASE_FOV
-
 RunService.RenderStepped:Connect(function(dt)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -83,8 +76,6 @@ RunService.RenderStepped:Connect(function(dt)
 			exhausted = false
 		end
 	end
-	player:SetAttribute("Stamina", stamina) -- local only; CameraBob reads it
-	player:SetAttribute("Sprinting", sprinting)
 
 	local walk = math.max(Config.MIN_WALK_SPEED, Config.WALK_SPEED - weight * Config.SPEED_PER_WEIGHT)
 	humanoid.WalkSpeed = if sprinting then walk * Config.SPRINT_MULTIPLIER else walk
@@ -95,11 +86,4 @@ RunService.RenderStepped:Connect(function(dt)
 	fill.Size = UDim2.fromScale(stamina / 100, 1)
 	fill.BackgroundColor3 = if exhausted then Color3.fromRGB(255, 120, 70) else Color3.fromRGB(235, 228, 200)
 	back.Visible = stamina < 99.5
-
-	-- Field of view widens a little at a sprint.
-	local wanted = if sprinting then SPRINT_FOV else BASE_FOV
-	if wanted ~= fovTarget then
-		fovTarget = wanted
-		TweenService:Create(camera, TweenInfo.new(0.35, Enum.EasingStyle.Sine), { FieldOfView = wanted }):Play()
-	end
 end)
