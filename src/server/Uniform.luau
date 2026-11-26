@@ -130,6 +130,7 @@ local function dress(character: Model)
 		label.Parent = gui
 		gui.Parent = chest
 	end
+	print(`[Uniform] dressed {character.Name} in the crew suit`)
 end
 
 function Uniform.init()
