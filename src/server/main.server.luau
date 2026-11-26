@@ -9,8 +9,9 @@ local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local LevelGen = require(ReplicatedStorage.Shared.LevelGen)
-local LevelBuilder = require(script.Parent.LevelBuilder)
+-- WaitForChild instead of a dot: if Rojo is mid-sync, this waits instead of crashing.
+local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LevelGen"))
+local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
 
 -- Dark, foggy, indoor lighting. Only the ceiling panels light the level.
 Lighting.ClockTime = 0
