@@ -22,6 +22,7 @@ local Uniform = require(script.Parent:WaitForChild("Uniform"))
 local Tenant = require(script.Parent:WaitForChild("Tenant"))
 local Lampjaw = require(script.Parent:WaitForChild("Lampjaw"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
+local CrewService = require(script.Parent:WaitForChild("CrewService"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
@@ -122,6 +123,7 @@ local function buildLevel(seed: number)
 	RunManager.startRun(lift)
 end
 
+CrewService.init()
 ArtefactService.init()
 ShiftService.init()
 Tenant.init()

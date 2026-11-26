@@ -5,7 +5,7 @@ return {
 	BASE_QUOTA = 300, -- money needed in the first run
 	QUOTA_GROWTH = 1.4, -- each met quota multiplies the next one by this
 	ARTEFACT_COUNT = 26, -- artefacts scattered per level
-	MAX_CARRY = 4, -- artefacts one player can hold at once
+	MAX_CARRY = 4, -- artefacts one player can hold at once (the shop's bigger pack adds to this)
 	WALK_SPEED = 16, -- Roblox default
 	MIN_WALK_SPEED = 6, -- slowest you can get from carrying heavy loot
 	SPEED_PER_WEIGHT = 1.1, -- studs/s lost per point of carried weight
@@ -85,6 +85,18 @@ return {
 	-- Shared map (M key): fills in wherever anyone on the server has looked.
 	MAP_SIGHT_CELLS = 2, -- how far down an open corridor you "see" for the map
 	MAP_UPDATE_SECONDS = 0.5,
+
+	-- Crews: a 16-player server is split into up to 4 crews of 4. Each crew
+	-- has its own quota and bank; everyone shares the same level.
+	CREW_COUNT = 4,
+	CREW_SIZE = 4,
+	CREW_NAMES = { "Night Shift", "Graveyard", "Skeleton Crew", "Overtime" },
+	CREW_COLOURS = {
+		Color3.fromRGB(255, 196, 110), -- amber
+		Color3.fromRGB(140, 200, 255), -- pale blue
+		Color3.fromRGB(170, 230, 140), -- green
+		Color3.fromRGB(240, 140, 200), -- pink
+	},
 
 	-- The Shift
 	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
