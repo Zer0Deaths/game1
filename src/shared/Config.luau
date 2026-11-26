@@ -66,6 +66,22 @@ return {
 		killCooldown = 6, -- seconds it lingers after taking someone
 	},
 
+	-- LAMPJAW: lives in the flickering light fittings. It takes over one
+	-- flickering light near a player (that light strobes red and buzzes);
+	-- linger under it and it takes you. Counter: watch the lights, move fast.
+	LAMPJAW = {
+		enabled = true,
+		reach = 6, -- studs from the centre of the light, measured flat
+		grabAfter = 0.9, -- seconds under its light before it takes you (walking past is just safe; carrying loot isn't)
+		grabAfterNearShift = 0.6, -- ...while the Shift warning is on
+		holdMin = 12, -- seconds it stays in one light
+		holdMax = 20,
+		restMin = 8, -- seconds between lights
+		restMax = 14,
+		restNearShift = 3, -- much shorter rest while the Shift warning is on
+		nearCells = 4, -- picks a flickering light within this many cells of someone
+	},
+
 	-- The Shift
 	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
 	SHIFT_MAX_SECONDS = 120,
