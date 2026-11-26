@@ -6,12 +6,15 @@
 -- Tweak the numbers in LOOK while playtesting; they are first guesses.
 
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 local Atmosphere = {}
 
 local LOOK = {
-	ambient = Color3.fromRGB(28, 25, 14), -- light in places no lamp reaches
+	ambient = Config.AMBIENT, -- light in places no lamp reaches (shared with StartupLight)
 	exposure = 0.25, -- overall brightness boost
 
 	hazeColor = Color3.fromRGB(150, 128, 70), -- the yellow murk far away
