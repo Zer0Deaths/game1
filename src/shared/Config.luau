@@ -32,23 +32,16 @@ return {
 	START_AMBIENT_HOLD = 12, -- seconds at full START_AMBIENT
 	START_AMBIENT_FADE = 8, -- seconds to fade down to AMBIENT
 
-	-- First-person arms (Arms.client). Offsets are in studs from the camera:
-	-- X = out to the side, Y = up (negative = lower), Z = forward (negative = further away).
+	-- First-person arms (Arms.client). Your real avatar arms are shown in
+	-- first person and lifted forward at the shoulder so you can see them.
+	-- The walk/run animation swings them; these angles are in degrees.
 	ARMS = {
-		x = 1.1, -- how far apart the hands sit
-		y = -0.95, -- height of the arms (lower = less on screen)
-		z = -1.3, -- distance in front of the eyes
-		pitch = 20, -- degrees the forearms tilt up into view
-		yaw = 10, -- degrees the forearms angle inward
-		stepRate = 0.35, -- swing radians per stud walked (lower = slower swing)
-		swing = 0.07, -- walking: forward/back swing in studs
-		swingTilt = 3, -- walking: wrist tilt in degrees
-		sprintSwing = 0.12, -- sprinting: forward/back swing in studs
-		sprintRaise = 0.08, -- sprinting: arms come up a little
-		sprintPull = 0.15, -- sprinting: arms pull in closer (leaning into the run)
-		sprintPitch = 8, -- sprinting: extra upward tilt in degrees
-		hideDrop = 1.2, -- standing still: how far the arms sink out of view
-		ease = 8, -- how quickly arms settle into position (higher = snappier)
+		idleRaise = 55, -- standing still: arms lowered, mostly out of view
+		walkRaise = 88, -- walking: how far forward the arms lift
+		sprintRaise = 100, -- sprinting: a bit higher, leaning into the run
+		inward = 14, -- angle the arms in towards the centre
+		lookFollow = 0.5, -- how much the arms follow looking up/down (0 = not at all)
+		ease = 7, -- how quickly arms settle (higher = snappier)
 	},
 
 	-- The Shift
