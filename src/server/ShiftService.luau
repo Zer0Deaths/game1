@@ -101,7 +101,12 @@ local function doShift()
 
 	local started = os.clock()
 	local oldExit = current.exit
-	LevelGen.shift(current, protectedCells(current), math.random(1, 2 ^ 30))
+	local protected = protectedCells(current)
+	local protectedCount = 0
+	for _ in protected do
+		protectedCount += 1
+	end
+	local changed = LevelGen.shift(current, protected, math.random(1, 2 ^ 30))
 	LevelBuilder.buildStructure(current, model)
 	if current.exit.x ~= oldExit.x or current.exit.z ~= oldExit.z then
 		if onExitMoved then
@@ -110,7 +115,11 @@ local function doShift()
 	end
 	local count = (workspace:GetAttribute("ShiftCount") or 0) + 1
 	workspace:SetAttribute("ShiftCount", count)
-	print(`[Shift] #{count} rebuilt in {math.round((os.clock() - started) * 1000)} ms`)
+	print(
+		`[Shift] #{count}: {changed} walls changed, {protectedCount} of {current.width * current.depth} cells protected, `
+			.. `lift {if current.exit.x ~= oldExit.x or current.exit.z ~= oldExit.z then "moved" else "stayed"}, `
+			.. `rebuilt in {math.round((os.clock() - started) * 1000)} ms`
+	)
 
 	task.wait(math.max(0, Config.SHIFT_BLACKOUT_SECONDS - 0.4 - (os.clock() - started)))
 

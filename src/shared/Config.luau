@@ -29,6 +29,6 @@ return {
 	SHIFT_MAX_SECONDS = 120,
 	SHIFT_WARNING_SECONDS = 5, -- hum rises, lights stutter
 	SHIFT_BLACKOUT_SECONDS = 3, -- total darkness while the maze rewires
-	SHIFT_SAFE_RADIUS = 1, -- cells around each player that never change (1 = 3x3)
+	SHIFT_SAFE_RADIUS = 0, -- 0 = only the cell you stand in keeps its walls; 1 = 3x3 (too safe: changes happened out of sight)
 	SHIFT_NOT_BEFORE_END = 25, -- no Shift this close to the end of a run
 }
