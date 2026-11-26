@@ -30,14 +30,14 @@ ContextActionService:BindAction("Sprint", onSprint, true, Enum.KeyCode.LeftShift
 ContextActionService:SetTitle("Sprint", "Sprint")
 ContextActionService:SetPosition("Sprint", UDim2.new(1, -230, 1, -95))
 
--- Stamina bar: thin strip near the bottom, fades out when full.
+-- Stamina bar: thin strip bottom-left under the carry text, fades out when full.
 local gui = Instance.new("ScreenGui")
 gui.Name = "Stamina"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 local back = Instance.new("Frame")
-back.AnchorPoint = Vector2.new(0.5, 1)
-back.Position = UDim2.new(0.5, 0, 1, -62)
+back.AnchorPoint = Vector2.new(0, 1)
+back.Position = UDim2.new(0, 20, 1, -20)
 back.Size = UDim2.fromOffset(240, 6)
 back.BackgroundColor3 = Color3.fromRGB(20, 18, 12)
 back.BackgroundTransparency = 0.3

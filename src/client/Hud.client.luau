@@ -54,26 +54,28 @@ local timerLabel = label({
 	TextSize = 20,
 })
 
--- Bottom: what you are carrying.
+-- Bottom-left: what you are carrying. Kept out of the centre of the
+-- screen so it never sits under a "Pick up" prompt.
 local carryLabel = label({
 	Name = "Carry",
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -78),
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 20, 1, -32),
 	Size = UDim2.fromOffset(420, 22),
 	TextSize = 18,
+	TextXAlignment = Enum.TextXAlignment.Left,
 })
 
 -- Toasts: small messages stacking above the carry line.
 local toastHolder = Instance.new("Frame")
 toastHolder.Name = "Toasts"
 toastHolder.BackgroundTransparency = 1
-toastHolder.AnchorPoint = Vector2.new(0.5, 1)
-toastHolder.Position = UDim2.new(0.5, 0, 1, -104)
+toastHolder.AnchorPoint = Vector2.new(0, 1)
+toastHolder.Position = UDim2.new(0, 20, 1, -58) -- bottom-left above the carry line, clear of prompts
 toastHolder.Size = UDim2.fromOffset(520, 120)
 toastHolder.Parent = gui
 local layout = Instance.new("UIListLayout")
 layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = toastHolder
 
@@ -98,6 +100,7 @@ local function toast(text: string, kind: string)
 		LayoutOrder = toastCount,
 		Size = UDim2.fromOffset(520, 22),
 		TextSize = 17,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = text,
 		TextColor3 = if kind == "money" then GREEN elseif kind == "warn" then RED else PALE,
 	})
