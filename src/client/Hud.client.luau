@@ -42,7 +42,7 @@ local quotaLabel = label({
 	Name = "Quota",
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 8),
-	Size = UDim2.fromOffset(360, 26),
+	Size = UDim2.fromOffset(460, 26),
 	TextSize = 22,
 	TextColor3 = AMBER,
 })
@@ -63,6 +63,17 @@ local carryLabel = label({
 	Size = UDim2.fromOffset(420, 22),
 	TextSize = 18,
 	TextXAlignment = Enum.TextXAlignment.Left,
+})
+
+-- Bottom-right: your own money (spent in the safehouse shop).
+local cashLabel = label({
+	Name = "Cash",
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -20, 1, -32),
+	Size = UDim2.fromOffset(240, 22),
+	TextSize = 18,
+	TextColor3 = GREEN,
+	TextXAlignment = Enum.TextXAlignment.Right,
 })
 
 -- Toasts: small messages stacking above the carry line.
@@ -134,9 +145,10 @@ Notify.OnClientEvent:Connect(function(text: string, kind: string)
 end)
 
 RunService.Heartbeat:Connect(function()
-	local quota = workspace:GetAttribute("RunQuota") or 0
-	local banked = workspace:GetAttribute("RunBanked") or 0
-	quotaLabel.Text = `QUOTA  ${banked} / ${quota}`
+	local crew = player:GetAttribute("Crew") or 1
+	local quota = workspace:GetAttribute(`Crew{crew}Quota`) or 0
+	local banked = workspace:GetAttribute(`Crew{crew}Banked`) or 0
+	quotaLabel.Text = `{string.upper(Config.CREW_NAMES[crew] or "CREW")}  ${banked} / ${quota}`
 	quotaLabel.TextColor3 = if banked >= quota and quota > 0 then GREEN else AMBER
 
 	local endsAt = workspace:GetAttribute("RunEndsAt")
@@ -149,12 +161,14 @@ RunService.Heartbeat:Connect(function()
 		timerLabel.TextColor3 = PALE
 	end
 
+	cashLabel.Text = `CASH  ${player:GetAttribute("Cash") or 0}`
+
 	local count = player:GetAttribute("CarryCount") or 0
 	local weight = player:GetAttribute("CarryWeight") or 0
 	if count == 0 then
 		carryLabel.Text = "Hands empty  ·  [Shift] sprint"
 	else
 		local load = if weight >= 10 then "very heavy" elseif weight >= 5 then "heavy" elseif weight >= 2 then "loaded" else "light"
-		carryLabel.Text = `Carrying {count}/{Config.MAX_CARRY}  ·  {load}  ·  [G] drop  [Shift] sprint`
+		carryLabel.Text = `Carrying {count}/{Config.MAX_CARRY + (player:GetAttribute("CarryBonus") or 0)}  ·  {load}  ·  [G] drop  [Shift] sprint`
 	end
 end)

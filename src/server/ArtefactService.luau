@@ -122,8 +122,9 @@ local function pickUp(player: Player, tool: Tool)
 	if not humanoid or humanoid.Health <= 0 or tool.Parent ~= worldFolder then
 		return
 	end
-	if #ArtefactService.carried(player) >= Config.MAX_CARRY then
-		Remotes.Notify:FireClient(player, `Hands full ({Config.MAX_CARRY} max). Drop something with G.`, "warn")
+	local maxCarry = Config.MAX_CARRY + ((player:GetAttribute("CarryBonus") or 0) :: number)
+	if #ArtefactService.carried(player) >= maxCarry then
+		Remotes.Notify:FireClient(player, `Hands full ({maxCarry} max). Drop something with G.`, "warn")
 		return
 	end
 	local handle = handleOf(tool)
