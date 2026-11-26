@@ -53,12 +53,26 @@ RunService.RenderStepped:Connect(function(dt)
 	)
 end)
 
--- Roll and tilt, applied after the default camera has done its work.
+-- Roll and tilt. Roblox's camera reads its own last CFrame to decide
+-- where it's looking, so a tilt left in place gets fed back in and builds
+-- up every frame (the camera slowly drags down). To stop that, we take
+-- last frame's tilt OFF just before Roblox's camera runs, then put this
+-- frame's tilt ON just after. The camera never sees our offset.
+local MAX_TILT = math.rad(1.5) -- head tips down under a full load
+local MAX_ROLL = math.rad(1.5) -- side-to-side rock per step under load
+local applied = CFrame.identity
+
+RunService:BindToRenderStep("WeightLeanUndo", Enum.RenderPriority.Camera.Value - 1, function()
+	camera.CFrame *= applied:Inverse()
+	applied = CFrame.identity
+end)
+
 RunService:BindToRenderStep("WeightLean", Enum.RenderPriority.Camera.Value + 1, function()
 	local stamina = player:GetAttribute("Stamina") or 100
 	local tired = math.clamp((40 - stamina) / 40, 0, 1)
-	local breathe = math.sin(os.clock() * 2.2) * tired * math.rad(0.8)
-	local roll = math.sin(t) * math.rad(0.6 + load * 2.4) * strength
-	local tilt = -math.rad(load * 3) + breathe -- head tips down under load
-	camera.CFrame *= CFrame.Angles(tilt, 0, roll)
+	local breathe = math.sin(os.clock() * 2.2) * tired * math.rad(0.5)
+	local roll = math.sin(t) * (math.rad(0.3) + MAX_ROLL * load) * strength
+	local tilt = -MAX_TILT * load + breathe
+	applied = CFrame.Angles(tilt, 0, roll)
+	camera.CFrame *= applied
 end)
