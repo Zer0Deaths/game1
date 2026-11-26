@@ -7,8 +7,20 @@ return {
 	ARTEFACT_COUNT = 26, -- artefacts scattered per level
 	MAX_CARRY = 4, -- artefacts one player can hold at once
 	WALK_SPEED = 16, -- Roblox default
-	MIN_WALK_SPEED = 8, -- slowest you can get from carrying heavy loot
-	SPEED_PER_WEIGHT = 0.7, -- studs/s lost per point of carried weight
+	MIN_WALK_SPEED = 6, -- slowest you can get from carrying heavy loot
+	SPEED_PER_WEIGHT = 1.1, -- studs/s lost per point of carried weight
+	JUMP_HEIGHT = 7.2, -- Roblox default
+	MIN_JUMP_HEIGHT = 2.5, -- fully loaded you can barely hop
+	JUMP_PER_WEIGHT = 0.35,
+
+	-- Sprint (Left Shift). Stamina runs 0..100.
+	SPRINT_MULTIPLIER = 1.6,
+	STAMINA_DRAIN = 18, -- per second while sprinting, empty-handed
+	STAMINA_DRAIN_PER_WEIGHT = 3, -- extra drain per point of weight
+	STAMINA_REGEN = 22, -- per second while not sprinting, empty-handed
+	STAMINA_REGEN_PER_WEIGHT = 0.08, -- regen is divided by (1 + weight * this)
+	STAMINA_REGEN_DELAY = 0.8, -- pause after sprinting before regen starts
+	EXHAUSTED_UNTIL = 30, -- run dry and you can't sprint again until this
 	LIFT_RADIUS = 6, -- how close to the lift centre counts as "inside"
 	INTERMISSION_SECONDS = 8, -- pause between runs to show the result
 }

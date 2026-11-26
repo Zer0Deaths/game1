@@ -149,9 +149,9 @@ RunService.Heartbeat:Connect(function()
 	local count = player:GetAttribute("CarryCount") or 0
 	local weight = player:GetAttribute("CarryWeight") or 0
 	if count == 0 then
-		carryLabel.Text = "Hands empty"
+		carryLabel.Text = "Hands empty  ·  [Shift] sprint"
 	else
-		local slowed = weight * Config.SPEED_PER_WEIGHT >= 1
-		carryLabel.Text = `Carrying {count}/{Config.MAX_CARRY}{if slowed then "  ·  slowed" else ""}  ·  [G] drop`
+		local load = if weight >= 10 then "very heavy" elseif weight >= 5 then "heavy" elseif weight >= 2 then "loaded" else "light"
+		carryLabel.Text = `Carrying {count}/{Config.MAX_CARRY}  ·  {load}  ·  [G] drop  [Shift] sprint`
 	end
 end)
