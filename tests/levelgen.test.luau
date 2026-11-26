@@ -21,6 +21,10 @@ for seed = 1, 300 do
 		check(layout.cells[layout.width][z].wallEast, `seed {seed}: east border open`)
 	end
 	check(layout.cells[1][1].light == "on", `seed {seed}: spawn dark`)
+	local ex = layout.exit
+	check(not (ex.x == 1 and ex.z == 1), `seed {seed}: exit on spawn`)
+	local dist = LevelGen.distancesFrom(layout, 1, 1)
+	check(dist[ex.x * 1000 + ex.z] ~= nil and dist[ex.x * 1000 + ex.z] >= 8, `seed {seed}: exit too close`)
 end
 
 -- Same seed must give the same level.

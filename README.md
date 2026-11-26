@@ -38,9 +38,19 @@ File naming: `name.server.luau` = Script, `name.client.luau` = LocalScript, `nam
 Code changes pulled from GitHub show up in Studio automatically while `rojo serve` is running.
 Save the place in Studio (File > Save to Roblox) to keep non-code stuff like maps and parts; Rojo only manages the folders above.
 
-## Optional: make it look and sound right
+## How to play (current build)
 
-- **Better lights:** in Studio, select **Lighting** in Explorer and set **Technology** to **Future**, then save the place. Scripts can't change this setting. Phones fall back to a cheaper mode on their own.
+- Find artefacts in the maze and pick them up (**E**, or tap the prompt). You can carry 4. Heavy ones slow you down.
+- Drop the one in your hand with **G** (or the Drop button on phones).
+- The compass at the top points to the **exit lift**. The further away you are, the more it wanders.
+- Walk into the lift to deposit everything you carry. The money goes to the shared quota at the top.
+- Beat the quota before the timer ends and the next run asks for more. Miss it and the quota resets.
+- Die and your loot drops where you fell.
+
+Tuning numbers (timer, quota, carry limit, speeds) are in `src/shared/Config.luau`.
+
+## Optional: make it sound right
+
 - **Fluorescent hum:** upload `assets/fluorescent-hum.ogg` (Window > Asset Manager > Bulk Import), copy its asset ID, then select **Workspace**, add a string attribute `HumSoundId`, paste the ID and save the place.
 
 ## What's in the code
@@ -51,5 +61,9 @@ Save the place in Studio (File > Save to Roblox) to keep non-code stuff like map
 - `src/server/Atmosphere.luau` sets the look: haze, colour grading, bloom, hallway reverb. Tweak the numbers in `LOOK`.
 - `src/client/main.client.luau` makes flickering lights stutter in bursts on each player's device.
 - `src/client/CameraBob.client.luau` adds a gentle head bob while walking.
+- `src/shared/Artefacts.luau` lists the 8 artefact types: value, weight, look.
+- `src/server/ArtefactService.luau` spawns artefacts and handles pickup, drop, carry weight and death drops.
+- `src/server/ExitLift.luau` builds the deposit lift. `src/server/RunManager.luau` runs the quota, timer and deposits.
+- `src/client/Hud.client.luau` (quota, timer, carry, messages), `Compass.client.luau` (lift compass), `Controls.client.luau` (drop key).
 - `src/client/Ambience.client.luau` loops the fluorescent hum once a sound ID is set (`src/shared/SoundIds.luau`).
 - `tests/levelgen.test.luau` checks 300 seeds can always reach every cell. Optional, needs the [Luau CLI](https://github.com/luau-lang/luau/releases): `luau tests/levelgen.test.luau`.

@@ -13,6 +13,9 @@ local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
 
 local Atmosphere = require(script.Parent:WaitForChild("Atmosphere"))
+local ArtefactService = require(script.Parent:WaitForChild("ArtefactService"))
+local ExitLift = require(script.Parent:WaitForChild("ExitLift"))
+local RunManager = require(script.Parent:WaitForChild("RunManager"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
@@ -52,7 +55,14 @@ local function buildLevel(seed: number)
 	end
 	local started = os.clock()
 	currentLayout = LevelGen.generate(seed)
-	currentLevel = LevelBuilder.build(currentLayout :: LevelGen.Layout, workspace)
+	local layout = currentLayout :: LevelGen.Layout
+	currentLevel = LevelBuilder.build(layout, workspace)
+	ArtefactService.spawnAll(layout, currentLevel :: Model, LevelBuilder.cellCenter)
+	local lift = ExitLift.build(
+		LevelBuilder.cellCenter(layout.exit.x, layout.exit.z),
+		LevelBuilder.HEIGHT,
+		currentLevel :: Model
+	)
 	local partCount = 0
 	for _, d in (currentLevel :: Model):GetDescendants() do
 		if d:IsA("BasePart") then
@@ -66,7 +76,14 @@ local function buildLevel(seed: number)
 			task.spawn(moveToSpawn, player.Character)
 		end
 	end
+	RunManager.startRun(lift)
 end
+
+ArtefactService.init()
+RunManager.init(function()
+	-- Next run: brand new level. Setting the attribute triggers the rebuild below.
+	workspace:SetAttribute("LevelSeed", math.random(1, 999999))
+end)
 
 Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(moveToSpawn)
