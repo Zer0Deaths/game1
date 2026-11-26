@@ -85,4 +85,18 @@ function Atmosphere.apply()
 	SoundService.AmbientReverb = Enum.ReverbType.Hallway
 end
 
+-- Per-level-type haze and colour grade (see LevelTypes.luau).
+function Atmosphere.applyTheme(haze: { colour: Color3, decay: Color3, density: number }, tint: Color3)
+	local atmo = Lighting:FindFirstChild("LiminalHaze") :: Atmosphere?
+	if atmo then
+		atmo.Color = haze.colour
+		atmo.Decay = haze.decay
+		atmo.Density = haze.density
+	end
+	local grade = Lighting:FindFirstChild("LiminalGrade") :: ColorCorrectionEffect?
+	if grade then
+		grade.TintColor = tint
+	end
+end
+
 return Atmosphere

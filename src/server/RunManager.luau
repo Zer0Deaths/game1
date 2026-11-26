@@ -41,7 +41,7 @@ function RunManager.startRun(lift: Vector3)
 	workspace:SetAttribute("RunState", "playing")
 	for _, p in Players:GetPlayers() do
 		local crew = p:GetAttribute("Crew") or 1
-		Remotes.Notify:FireClient(p, `Run {workspace:GetAttribute("RunNumber")}: {Config.CREW_NAMES[crew]}, deposit ${workspace:GetAttribute(`Crew{crew}Quota`)} at the exit lift`, "banner")
+		Remotes.Notify:FireClient(p, `Run {workspace:GetAttribute("RunNumber")}, {workspace:GetAttribute("LevelName") or "The Carpet"}: {Config.CREW_NAMES[crew]}, deposit ${workspace:GetAttribute(`Crew{crew}Quota`)} at the exit lift`, "banner")
 	end
 end
 
