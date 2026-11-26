@@ -5,7 +5,6 @@
 -- Properties window set the attribute "LevelSeed" to any number.
 -- The level rebuilds instantly and everyone is moved to the spawn.
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -13,16 +12,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LevelGen"))
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
 
--- Dark, foggy, indoor lighting. Only the ceiling panels light the level.
-Lighting.ClockTime = 0
-Lighting.Brightness = 0
-Lighting.Ambient = Color3.fromRGB(24, 22, 14)
-Lighting.OutdoorAmbient = Color3.fromRGB(24, 22, 14)
-Lighting.EnvironmentDiffuseScale = 0
-Lighting.EnvironmentSpecularScale = 0
-Lighting.FogColor = Color3.fromRGB(30, 27, 16)
-Lighting.FogStart = 10
-Lighting.FogEnd = 110
+local Atmosphere = require(script.Parent:WaitForChild("Atmosphere"))
+
+-- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
+Atmosphere.apply()
 
 -- The default Baseplate and SpawnLocation would poke into the level.
 -- This only removes them while the game runs; your saved place is untouched.
