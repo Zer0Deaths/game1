@@ -21,8 +21,26 @@ local R15_ARMS = {
 }
 local R6_ARMS = { "Right Arm", "Left Arm" }
 
+-- A shoulder is either a classic Motor6D (we rotate its C0) or, with
+-- Roblox's newer avatar joints, an AnimationConstraint (we rotate the
+-- torso-side attachment instead, which has the same effect).
 -- r6: R6 shoulders bend around their own Z axis instead of X.
-type Shoulder = { motor: Motor6D, base: CFrame, side: number, raise: number, r6: boolean }
+type Shoulder = {
+	motor: Motor6D?,
+	attachment: Attachment?,
+	base: CFrame,
+	side: number,
+	raise: number,
+	r6: boolean,
+}
+
+local function setFrame(s: Shoulder, cf: CFrame)
+	if s.motor then
+		s.motor.C0 = cf
+	elseif s.attachment then
+		s.attachment.CFrame = cf
+	end
+end
 
 local shoulders: { Shoulder } = {}
 local armParts: { BasePart } = {}
@@ -30,9 +48,7 @@ local generation = 0
 
 local function restore()
 	for _, s in shoulders do
-		if s.motor.Parent then
-			s.motor.C0 = s.base
-		end
+		setFrame(s, s.base)
 	end
 	table.clear(shoulders)
 	table.clear(armParts)
@@ -58,17 +74,24 @@ local function setup(character: Model)
 		then { { "Torso", "Right Shoulder", 1 }, { "Torso", "Left Shoulder", -1 } }
 		else { { "RightUpperArm", "RightShoulder", 1 }, { "LeftUpperArm", "LeftShoulder", -1 } }
 	local newShoulders: { Shoulder } = {}
+	local kinds = {}
 	for _, info in joints do
 		local holder = character:WaitForChild(info[1] :: string, 10)
-		local motor = holder and holder:WaitForChild(info[2] :: string, 10)
-		if motor and motor:IsA("Motor6D") then
-			table.insert(newShoulders, {
-				motor = motor,
-				base = motor.C0,
-				side = info[3] :: number,
-				raise = math.rad(A.idleRaise),
-				r6 = r6,
-			})
+		local joint = holder and holder:WaitForChild(info[2] :: string, 10)
+		table.insert(kinds, if joint then joint.ClassName else "missing")
+		local entry: Shoulder? = nil
+		if joint and joint:IsA("Motor6D") then
+			entry = { motor = joint, base = joint.C0, side = info[3] :: number, raise = math.rad(A.idleRaise), r6 = r6 }
+		elseif joint and joint:IsA("AnimationConstraint") then
+			-- Use whichever end of the joint sits on the torso, not the arm.
+			local a0, a1 = joint.Attachment0, joint.Attachment1
+			local torsoSide = if a0 and a0.Parent ~= holder then a0 elseif a1 and a1.Parent ~= holder then a1 else nil
+			if torsoSide then
+				entry = { attachment = torsoSide, base = torsoSide.CFrame, side = info[3] :: number, raise = math.rad(A.idleRaise), r6 = r6 }
+			end
+		end
+		if entry then
+			table.insert(newShoulders, entry)
 		end
 	end
 	if mine ~= generation then
@@ -76,7 +99,7 @@ local function setup(character: Model)
 	end
 	armParts = found
 	shoulders = newShoulders
-	print(`[Arms] rig={if r6 then "R6" else "R15"} arm parts={#armParts} shoulders={#shoulders}`)
+	print(`[Arms] rig={if r6 then "R6" else "R15"} arm parts={#armParts} shoulders={#shoulders} joints={table.concat(kinds, ",")}`)
 end
 
 player.CharacterAdded:Connect(setup)
@@ -120,11 +143,12 @@ RunService:BindToRenderStep("FirstPersonArms", Enum.RenderPriority.Camera.Value 
 		s.raise += (wanted - s.raise) * blend
 		if s.r6 then
 			-- R6: the right shoulder lifts forward with +Z, the left with -Z.
-			s.motor.C0 = s.base * CFrame.Angles(0, 0, (s.raise + pitch) * s.side)
+			setFrame(s, s.base * CFrame.Angles(0, 0, (s.raise + pitch) * s.side))
 		else
-			s.motor.C0 = s.base
-				* CFrame.Angles(0, math.rad(A.inward) * s.side, 0)
-				* CFrame.Angles(s.raise + pitch, 0, 0)
+			setFrame(
+				s,
+				s.base * CFrame.Angles(0, math.rad(A.inward) * s.side, 0) * CFrame.Angles(s.raise + pitch, 0, 0)
+			)
 		end
 	end
 end)
