@@ -279,6 +279,12 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 
 	LevelBuilder.buildStructure(layout, model)
 
+	-- If the place uses StreamingEnabled (new places do by default), parts
+	-- only reach players gradually, so walls and lights could pop in over
+	-- several seconds. Persistent sends the whole level to everyone up front.
+	-- It's ~800 simple parts, so this is cheap.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+
 	model.Parent = parent
 	return model
 end
