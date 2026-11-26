@@ -2,6 +2,8 @@
 -- They live in ReplicatedStorage.Remotes (made at runtime, not by Rojo).
 --   DropArtefact  client -> server  "drop what I'm holding"
 --   Notify        server -> client  (text, kind) for toasts and banners
+--   MapSync       server -> client  ("reset", width, depth) or ("cells", {entries}) for the shared map
+--   MapRequest    client -> server  "send me the whole map" (on join)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -23,4 +25,6 @@ end
 return {
 	DropArtefact = event("DropArtefact"),
 	Notify = event("Notify"),
+	MapSync = event("MapSync"),
+	MapRequest = event("MapRequest"),
 }
