@@ -42,6 +42,7 @@ Save the place in Studio (File > Save to Roblox) to keep non-code stuff like map
 
 - Find artefacts in the maze and pick them up (**E**, or tap the prompt). You can carry 4. Heavy ones slow you down.
 - Drop the one in your hand with **G** (or the Drop button on phones).
+- Sprint with **Left Shift** (L3 on gamepad, Sprint button on phones). Stamina drains faster and comes back slower the more you carry. Carried loot shows on your back.
 - The compass at the top points to the **exit lift**. The further away you are, the more it wanders.
 - Walk into the lift to deposit everything you carry. The money goes to the shared quota at the top.
 - Beat the quota before the timer ends and the next run asks for more. Miss it and the quota resets.
@@ -51,7 +52,13 @@ Tuning numbers (timer, quota, carry limit, speeds) are in `src/shared/Config.lua
 
 ## Optional: make it sound right
 
-- **Fluorescent hum:** upload `assets/fluorescent-hum.ogg` (Window > Asset Manager > Bulk Import), copy its asset ID, then select **Workspace**, add a string attribute `HumSoundId`, paste the ID and save the place.
+Sound files live in `assets/`: `fluorescent-hum.ogg`, `footstep-carpet.ogg`, `footstep-hard.ogg`, `footstep-metal.ogg`. Roblox only plays uploaded sounds, so:
+
+1. In Studio: **Window > Asset Manager > Bulk Import**, select all four files.
+2. Right-click each one > **Copy Asset ID**.
+3. Send the IDs to Claude, or set them yourself: select **Workspace**, add string attributes `HUM`, `STEP_CARPET`, `STEP_HARD`, `STEP_METAL`, paste each ID, and save the place.
+
+Until then the hum is silent and footsteps use Roblox's default sound.
 
 ## What's in the code
 

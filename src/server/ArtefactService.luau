@@ -48,12 +48,57 @@ function ArtefactService.refreshCarry(player: Player)
 	for _, tool in items do
 		weight += tool:GetAttribute("Weight") or 0
 	end
+	-- Speed, jump and stamina are applied on the player's own device by
+	-- Movement.client, which reads these attributes.
 	player:SetAttribute("CarryCount", #items)
 	player:SetAttribute("CarryWeight", weight)
-	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		humanoid.WalkSpeed = math.max(Config.MIN_WALK_SPEED, Config.WALK_SPEED - weight * Config.SPEED_PER_WEIGHT)
+	ArtefactService.updateBackLoad(player)
+end
+
+-- Show loot that isn't in your hand strapped to your back, so everyone
+-- can see who is hauling what. Purely visual copies, welded to the torso.
+function ArtefactService.updateBackLoad(player: Player)
+	local character = player.Character
+	local torso = character and (character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")) :: BasePart?
+	if not character or not torso then
+		return
 	end
+	local old = character:FindFirstChild("BackLoad")
+	if old then
+		old:Destroy()
+	end
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if not backpack then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "BackLoad"
+	local stackHeight = 0
+	for _, tool in backpack:GetChildren() do
+		if not tool:IsA("Tool") or not tool:GetAttribute("Artefact") then
+			continue
+		end
+		local copy = handleOf(tool):Clone()
+		copy.Name = tool.Name
+		for _, child in copy:GetChildren() do
+			child:Destroy() -- drop the pickup prompt
+		end
+		copy.Anchored = false
+		copy.CanCollide = false
+		copy.CanQuery = false
+		copy.Massless = true
+		-- Stack items up the back, biggest side flat against the spine.
+		local depth = torso.Size.Z / 2 + math.min(copy.Size.X, copy.Size.Z) / 2 + 0.1
+		local lift = -torso.Size.Y / 2 + stackHeight + copy.Size.Y / 2
+		copy.CFrame = torso.CFrame * CFrame.new(0, lift, depth)
+		stackHeight += copy.Size.Y * 0.85
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = torso
+		weld.Part1 = copy
+		weld.Parent = copy
+		copy.Parent = folder
+	end
+	folder.Parent = character
 end
 
 -- Put a tool on the floor at a position, ready to be picked up.
@@ -205,8 +250,15 @@ local function onCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	ArtefactService.refreshCarry(player)
 	-- Track changes in hand/hotbar so speed always matches the load.
-	character.ChildAdded:Connect(function()
-		ArtefactService.refreshCarry(player)
+	character.ChildAdded:Connect(function(child)
+		if child:IsA("Tool") then
+			ArtefactService.refreshCarry(player)
+		end
+	end)
+	character.ChildRemoved:Connect(function(child)
+		if child:IsA("Tool") then
+			ArtefactService.refreshCarry(player)
+		end
 	end)
 	humanoid.Died:Connect(function()
 		-- Your loot spills on the floor where you die. Someone can come back for it.
@@ -220,12 +272,19 @@ local function onCharacter(player: Player, character: Model)
 		end
 		player:SetAttribute("CarryCount", 0)
 		player:SetAttribute("CarryWeight", 0)
+		local backLoad = character:FindFirstChild("BackLoad")
+		if backLoad then
+			backLoad:Destroy()
+		end
 	end)
 end
 
 function ArtefactService.init()
+	game:GetService("StarterPlayer").EnableMouseLockOption = false
 	Remotes.DropArtefact.OnServerEvent:Connect(dropHeld)
 	local function onPlayer(player: Player)
+		-- Left Shift is our sprint key, so Roblox's Shift Lock has to go.
+		player.DevEnableMouseLock = false
 		player.CharacterAdded:Connect(function(character)
 			onCharacter(player, character)
 		end)
