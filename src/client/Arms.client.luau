@@ -71,6 +71,12 @@ RunService:BindToRenderStep("FirstPersonArms", Enum.RenderPriority.Camera.Value 
 
 	for _, part in armParts do
 		part.LocalTransparencyModifier = 0
+		-- Suit details attached to the arm (tape) show too.
+		for _, child in part:GetChildren() do
+			if child:IsA("BasePart") then
+				child.LocalTransparencyModifier = 0
+			end
+		end
 	end
 
 	local v = root.AssemblyLinearVelocity

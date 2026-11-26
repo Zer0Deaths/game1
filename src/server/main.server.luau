@@ -18,6 +18,7 @@ local ExitLift = require(script.Parent:WaitForChild("ExitLift"))
 local RunManager = require(script.Parent:WaitForChild("RunManager"))
 local ShiftService = require(script.Parent:WaitForChild("ShiftService"))
 local Remotes = require(script.Parent:WaitForChild("Remotes"))
+local Uniform = require(script.Parent:WaitForChild("Uniform"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
@@ -26,6 +27,9 @@ Atmosphere.apply()
 -- unbuilt level, then being teleported in, left players in the dark for
 -- the first few seconds while the lighting caught up.
 Players.CharacterAutoLoads = false
+
+-- Everyone wears the SHIFT crew suit, not their own avatar.
+Uniform.init()
 
 -- The default Baseplate and SpawnLocation would poke into the level.
 -- This only removes them while the game runs; your saved place is untouched.
