@@ -275,8 +275,8 @@ export type ShiftOptions = {
 --
 -- The exit lift moves to a fresh unprotected cell far from players,
 -- unless someone is standing near it.
--- Returns the list of cells that changed (for rebuilding).
-function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: number, options: ShiftOptions?)
+-- Returns how many walls changed (opened or closed).
+function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: number, options: ShiftOptions?): number
 	local opts: ShiftOptions = options or {} :: ShiftOptions
 	local loopChance = opts.loopChance or 0.18
 	local newRooms = opts.newRooms or 2
@@ -311,6 +311,15 @@ function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: 
 	for x = 1, W do
 		for z = 1, D do
 			parent[x * 1000 + z] = x * 1000 + z
+		end
+	end
+
+	-- Remember every inner wall so we can count what changed.
+	local before: { [number]: boolean } = {}
+	for x = 1, W do
+		for z = 1, D do
+			before[(x * 1000 + z) * 2] = cells[x][z].wallEast
+			before[(x * 1000 + z) * 2 + 1] = cells[x][z].wallSouth
 		end
 	end
 
@@ -467,6 +476,19 @@ function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: 
 		end
 	end
 	cells[layout.exit.x][layout.exit.z].light = "on"
+
+	local changed = 0
+	for x = 1, W do
+		for z = 1, D do
+			if before[(x * 1000 + z) * 2] ~= cells[x][z].wallEast then
+				changed += 1
+			end
+			if before[(x * 1000 + z) * 2 + 1] ~= cells[x][z].wallSouth then
+				changed += 1
+			end
+		end
+	end
+	return changed
 end
 
 return LevelGen

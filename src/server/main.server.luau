@@ -22,6 +22,11 @@ local Remotes = require(script.Parent:WaitForChild("Remotes"))
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
 
+-- Nobody spawns until the level (and its lights) exist. Spawning into an
+-- unbuilt level, then being teleported in, left players in the dark for
+-- the first few seconds while the lighting caught up.
+Players.CharacterAutoLoads = false
+
 -- The default Baseplate and SpawnLocation would poke into the level.
 -- This only removes them while the game runs; your saved place is untouched.
 for _, name in { "Baseplate", "SpawnLocation" } do
@@ -48,7 +53,12 @@ local function moveToSpawn(character: Model)
 		character.AncestryChanged:Wait()
 	end
 	task.wait() -- let Roblox finish its own spawn placement first
-	character:PivotTo(spawnCFrame())
+	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	-- Normally you already spawn on the level's SpawnLocation; only move
+	-- people who are somewhere else (e.g. after the level was rebuilt).
+	if root and (root.Position - spawnCFrame().Position).Magnitude > 12 then
+		character:PivotTo(spawnCFrame())
+	end
 end
 
 local function buildLevel(seed: number)
@@ -60,6 +70,20 @@ local function buildLevel(seed: number)
 	local layout = currentLayout :: LevelGen.Layout
 	currentLevel = LevelBuilder.build(layout, workspace)
 	ArtefactService.spawnAll(layout, currentLevel :: Model, LevelBuilder.cellCenter)
+
+	-- Invisible spawn pad in the start cell, so characters appear inside
+	-- the lit level instead of being teleported in.
+	local spawnPad = Instance.new("SpawnLocation")
+	spawnPad.Name = "LevelSpawn"
+	spawnPad.Anchored = true
+	spawnPad.CanCollide = false
+	spawnPad.CanTouch = false
+	spawnPad.Transparency = 1
+	spawnPad.Size = Vector3.new(6, 0.2, 6)
+	spawnPad.Position = LevelBuilder.cellCenter(layout.spawn.x, layout.spawn.z) + Vector3.new(0, 0.1, 0)
+	spawnPad.Neutral = true
+	spawnPad.Duration = 0 -- no spawn forcefield bubble
+	spawnPad.Parent = currentLevel
 	local function placeLift(l: LevelGen.Layout): Vector3
 		local old = (currentLevel :: Model):FindFirstChild("ExitLift")
 		if old then
@@ -108,6 +132,16 @@ if typeof(startSeed) ~= "number" then
 	workspace:SetAttribute("LevelSeed", startSeed)
 end
 buildLevel(startSeed :: number)
+
+-- Level is built and lit: now let people spawn.
+Players.CharacterAutoLoads = true
+for _, player in Players:GetPlayers() do
+	if not player.Character then
+		task.spawn(function()
+			player:LoadCharacter()
+		end)
+	end
+end
 
 workspace:GetAttributeChangedSignal("LevelSeed"):Connect(function()
 	local seed = workspace:GetAttribute("LevelSeed")

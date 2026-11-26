@@ -70,16 +70,18 @@ print(if failures == 0 then "ALL PASSED" else `{failures} FAILURES`)
 -- THE SHIFT: protected cells keep every wall, the maze stays connected,
 -- and the exit lands somewhere valid.
 local shiftFailures = 0
+local minChanged = math.huge
 for seed = 1, 200 do
 	local layout = LevelGen.generate(seed)
 	local rng = LevelGen.makeRng(seed * 7)
 	for round = 1, 5 do
-		-- 1-4 "players", each protecting their cell and neighbours.
+		-- 1-4 "players", each protecting their cell (radius 0 or 1, alternating).
 		local protected = {}
+		local r = round % 2
 		for _ = 1, rng.int(1, 4) do
 			local px, pz = rng.int(1, layout.width), rng.int(1, layout.depth)
-			for dx = -1, 1 do
-				for dz = -1, 1 do
+			for dx = -r, r do
+				for dz = -r, r do
 					local x, z = px + dx, pz + dz
 					if x >= 1 and x <= layout.width and z >= 1 and z <= layout.depth then
 						protected[x * 1000 + z] = true
@@ -95,7 +97,9 @@ for seed = 1, 200 do
 				before[`{x},{z},{d[1]},{d[2]}`] = LevelGen.hasWall(layout, x, z, d[1], d[2])
 			end
 		end
-		LevelGen.shift(layout, protected, seed * 100 + round)
+		local changed = LevelGen.shift(layout, protected, seed * 100 + round)
+		check(changed >= 20, `shift seed {seed} round {round}: only {changed} walls changed`)
+		minChanged = math.min(minChanged, changed)
 		local total = layout.width * layout.depth
 		if LevelGen.reachableCount(layout) ~= total then
 			shiftFailures += 1
@@ -111,5 +115,5 @@ for seed = 1, 200 do
 		check(layout.cells[ex.x][ex.z].light == "on", `shift seed {seed}: exit dark`)
 	end
 end
-print(`shift rounds checked: 1000, maze splits: {shiftFailures}`)
+print(`shift rounds checked: 1000, maze splits: {shiftFailures}, fewest walls changed: {minChanged}`)
 print(if failures == 0 then "ALL PASSED (incl. shift)" else `{failures} FAILURES`)
