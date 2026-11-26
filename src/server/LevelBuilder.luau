@@ -53,70 +53,32 @@ function LevelBuilder.cellCenter(x: number, z: number): Vector3
 	return Vector3.new((x - 0.5) * s, 0, (z - 0.5) * s)
 end
 
-function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
+-- Walls, skirting, pillars and light fittings: everything the Shift
+-- changes. Lives in its own folder so it can be torn down and rebuilt.
+function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 	local S, H, T = LevelBuilder.CELL, LevelBuilder.HEIGHT, LevelBuilder.THICK
 	local W, D = layout.width, layout.depth
 
-	local model = Instance.new("Model")
-	model.Name = "Level"
-	model:SetAttribute("Seed", layout.seed)
-
+	local old = model:FindFirstChild("Structure")
+	if old then
+		old:Destroy()
+	end
+	local structure = Instance.new("Folder")
+	structure.Name = "Structure"
 	local walls = Instance.new("Folder")
 	walls.Name = "Walls"
-	walls.Parent = model
+	walls.Parent = structure
 	local lights = Instance.new("Folder")
 	lights.Name = "Lights"
-	lights.Parent = model
-
-	-- Floor and ceiling: one big slab each.
-	makePart({
-		Name = "Floor",
-		Size = Vector3.new(W * S + T, 1, D * S + T),
-		Position = Vector3.new(W * S / 2, -0.5, D * S / 2),
-		Color = COLORS.carpet,
-		Material = MATERIALS.carpet,
-	}, model)
-	makePart({
-		Name = "Ceiling",
-		Size = Vector3.new(W * S + T, 1, D * S + T),
-		Position = Vector3.new(W * S / 2, H + 0.5, D * S / 2),
-		Color = COLORS.ceiling,
-		Material = MATERIALS.ceiling,
-	}, model)
-
-	-- Suspended-ceiling grid: thin strips every quarter cell, both ways.
-	local ceilingFolder = Instance.new("Folder")
-	ceilingFolder.Name = "CeilingGrid"
-	ceilingFolder.Parent = model
-	local step = S / 4
-	for i = 0, math.floor(W * S / step) do
-		makePart({
-			Name = "GridX",
-			Size = Vector3.new(0.25, 0.1, D * S),
-			Position = Vector3.new(i * step, H - 0.05, D * S / 2),
-			Color = COLORS.grid,
-			Material = MATERIALS.trim,
-			CanCollide = false,
-			CastShadow = false,
-		}, ceilingFolder)
-	end
-	for i = 0, math.floor(D * S / step) do
-		makePart({
-			Name = "GridZ",
-			Size = Vector3.new(W * S, 0.1, 0.25),
-			Position = Vector3.new(W * S / 2, H - 0.05, i * step),
-			Color = COLORS.grid,
-			Material = MATERIALS.trim,
-			CanCollide = false,
-			CastShadow = false,
-		}, ceilingFolder)
-	end
+	lights.Parent = structure
 
 	-- Slightly different shade per wall run, so walls look patchy and aged
 	-- rather than one flat colour. Seeded, so the same seed looks the same.
-	local rng = LevelGen.makeRng(layout.seed + 7)
-	local function agedWallColor(): Color3
-		local shade = 0.86 + rng.float() * 0.16
+	-- The shade comes from the wall's position (not a running random number),
+	-- so a wall that survives a Shift keeps exactly the same colour.
+	local function agedWallColor(a: number, b: number): Color3
+		local h = math.sin(a * 12.9898 + b * 78.233 + layout.seed * 0.001) * 43758.5453
+		local shade = 0.86 + (h - math.floor(h)) * 0.16
 		local c = COLORS.wall
 		return Color3.new(c.R * shade, c.G * shade, c.B * (shade - 0.04))
 	end
@@ -127,7 +89,7 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 			Name = "Wall",
 			Size = Vector3.new(T, H, (z1 - z0 + 1) * S + T),
 			Position = Vector3.new(xLine * S, H / 2, ((z0 - 1) * S + z1 * S) / 2),
-			Color = agedWallColor(),
+			Color = agedWallColor(xLine, z0),
 			Material = MATERIALS.wall,
 		}, walls)
 		makePart({
@@ -145,7 +107,7 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 			Name = "Wall",
 			Size = Vector3.new((x1 - x0 + 1) * S + T, H, T),
 			Position = Vector3.new(((x0 - 1) * S + x1 * S) / 2, H / 2, zLine * S),
-			Color = agedWallColor(),
+			Color = agedWallColor(x0 + 500, zLine),
 			Material = MATERIALS.wall,
 		}, walls)
 		makePart({
@@ -190,11 +152,17 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 	end
 
 	-- Pillars inside rooms, at the inner grid corners, so rooms aren't empty boxes.
+	-- Only where all four cells meeting at that corner are still room cells
+	-- (a Shift can rewire half a room).
 	local pillarAt: { [number]: boolean } = {} -- rooms can overlap; one pillar per spot
+	local cells = layout.cells
 	for _, room in layout.rooms do
 		for x = room.x, room.x + room.w - 2 do
 			for z = room.z, room.z + room.d - 2 do
 				if pillarAt[x * 1000 + z] then
+					continue
+				end
+				if not (cells[x][z].room and cells[x + 1][z].room and cells[x][z + 1].room and cells[x + 1][z + 1].room) then
 					continue
 				end
 				pillarAt[x * 1000 + z] = true
@@ -244,11 +212,72 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 				light.Shadows = false -- shadows on 196 lights would kill phones
 				light.Parent = panel
 			end
+			panel:SetAttribute("LightState", cell.light)
+			if not dead then
+				CollectionService:AddTag(panel, "CeilingLight") -- the Shift blacks these out
+			end
 			if cell.light == "flicker" then
 				CollectionService:AddTag(panel, "FlickerLight")
 			end
 		end
 	end
+
+	structure.Parent = model
+end
+
+function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
+	local S, H, T = LevelBuilder.CELL, LevelBuilder.HEIGHT, LevelBuilder.THICK
+	local W, D = layout.width, layout.depth
+
+	local model = Instance.new("Model")
+	model.Name = "Level"
+	model:SetAttribute("Seed", layout.seed)
+
+	-- Floor and ceiling: one big slab each.
+	makePart({
+		Name = "Floor",
+		Size = Vector3.new(W * S + T, 1, D * S + T),
+		Position = Vector3.new(W * S / 2, -0.5, D * S / 2),
+		Color = COLORS.carpet,
+		Material = MATERIALS.carpet,
+	}, model)
+	makePart({
+		Name = "Ceiling",
+		Size = Vector3.new(W * S + T, 1, D * S + T),
+		Position = Vector3.new(W * S / 2, H + 0.5, D * S / 2),
+		Color = COLORS.ceiling,
+		Material = MATERIALS.ceiling,
+	}, model)
+
+	-- Suspended-ceiling grid: thin strips every quarter cell, both ways.
+	local ceilingFolder = Instance.new("Folder")
+	ceilingFolder.Name = "CeilingGrid"
+	ceilingFolder.Parent = model
+	local step = S / 4
+	for i = 0, math.floor(W * S / step) do
+		makePart({
+			Name = "GridX",
+			Size = Vector3.new(0.25, 0.1, D * S),
+			Position = Vector3.new(i * step, H - 0.05, D * S / 2),
+			Color = COLORS.grid,
+			Material = MATERIALS.trim,
+			CanCollide = false,
+			CastShadow = false,
+		}, ceilingFolder)
+	end
+	for i = 0, math.floor(D * S / step) do
+		makePart({
+			Name = "GridZ",
+			Size = Vector3.new(W * S, 0.1, 0.25),
+			Position = Vector3.new(W * S / 2, H - 0.05, i * step),
+			Color = COLORS.grid,
+			Material = MATERIALS.trim,
+			CanCollide = false,
+			CastShadow = false,
+		}, ceilingFolder)
+	end
+
+	LevelBuilder.buildStructure(layout, model)
 
 	model.Parent = parent
 	return model

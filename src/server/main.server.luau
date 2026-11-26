@@ -16,6 +16,8 @@ local Atmosphere = require(script.Parent:WaitForChild("Atmosphere"))
 local ArtefactService = require(script.Parent:WaitForChild("ArtefactService"))
 local ExitLift = require(script.Parent:WaitForChild("ExitLift"))
 local RunManager = require(script.Parent:WaitForChild("RunManager"))
+local ShiftService = require(script.Parent:WaitForChild("ShiftService"))
+local Remotes = require(script.Parent:WaitForChild("Remotes"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
@@ -58,11 +60,18 @@ local function buildLevel(seed: number)
 	local layout = currentLayout :: LevelGen.Layout
 	currentLevel = LevelBuilder.build(layout, workspace)
 	ArtefactService.spawnAll(layout, currentLevel :: Model, LevelBuilder.cellCenter)
-	local lift = ExitLift.build(
-		LevelBuilder.cellCenter(layout.exit.x, layout.exit.z),
-		LevelBuilder.HEIGHT,
-		currentLevel :: Model
-	)
+	local function placeLift(l: LevelGen.Layout): Vector3
+		local old = (currentLevel :: Model):FindFirstChild("ExitLift")
+		if old then
+			old:Destroy()
+		end
+		return ExitLift.build(LevelBuilder.cellCenter(l.exit.x, l.exit.z), LevelBuilder.HEIGHT, currentLevel :: Model)
+	end
+	local lift = placeLift(layout)
+	ShiftService.setLevel(layout, currentLevel :: Model, function(l)
+		RunManager.setLift(placeLift(l))
+		Remotes.Notify:FireAllClients("The lift has moved. Follow the compass.", "warn")
+	end)
 	local partCount = 0
 	for _, d in (currentLevel :: Model):GetDescendants() do
 		if d:IsA("BasePart") then
@@ -80,6 +89,7 @@ local function buildLevel(seed: number)
 end
 
 ArtefactService.init()
+ShiftService.init()
 RunManager.init(function()
 	-- Next run: brand new level. Setting the attribute triggers the rebuild below.
 	workspace:SetAttribute("LevelSeed", math.random(1, 999999))

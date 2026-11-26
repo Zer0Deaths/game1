@@ -47,6 +47,7 @@ Save the place in Studio (File > Save to Roblox) to keep non-code stuff like map
 - Walk into the lift to deposit everything you carry. The money goes to the shared quota at the top.
 - Beat the quota before the timer ends and the next run asks for more. Miss it and the quota resets.
 - Die and your loot drops where you fell.
+- **The Shift:** every 80-120 s the hum rises and the lights stutter (5 s warning), then everything goes black for 3 s while the maze rewires. Corridors near players stay put; everywhere else changes, and the lift may move. The compass spins during the blackout. To trigger one while testing: select Workspace and tick a Boolean attribute `ForceShift`.
 
 Tuning numbers (timer, quota, carry limit, speeds) are in `src/shared/Config.luau`.
 
@@ -69,6 +70,7 @@ Until then the hum is silent and footsteps use Roblox's default sound.
 - `src/client/main.client.luau` makes flickering lights stutter in bursts on each player's device.
 - `src/shared/Artefacts.luau` lists the 8 artefact types: value, weight, look.
 - `src/server/ArtefactService.luau` spawns artefacts and handles pickup, drop, carry weight and death drops.
+- `src/server/ShiftService.luau` runs the Shift; `LevelGen.shift` rewires the maze (tests check 1,000 Shifts keep it connected).
 - `src/server/ExitLift.luau` builds the deposit lift. `src/server/RunManager.luau` runs the quota, timer and deposits.
 - `src/client/Hud.client.luau` (quota, timer, carry, messages), `Compass.client.luau` (lift compass), `Controls.client.luau` (drop key).
 - `src/client/Ambience.client.luau` loops the fluorescent hum once a sound ID is set (`src/shared/SoundIds.luau`).

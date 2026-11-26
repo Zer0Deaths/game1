@@ -255,4 +255,218 @@ function LevelGen.reachableCount(layout: Layout): number
 	return count
 end
 
+export type ShiftOptions = {
+	loopChance: number?,
+	newRooms: number?,
+	flickerChance: number?,
+	deadChance: number?,
+	minExitDistance: number?, -- cells between the moved lift and the nearest protected cell
+}
+
+-- THE SHIFT. Rewires every part of the maze except the protected cells
+-- (the ones players are standing in or next to), in place.
+--
+-- protected: set of keys (x * 1000 + z) that must not visibly change.
+-- Any wall touching a protected cell keeps its current state. Every other
+-- wall is re-rolled as a fresh random spanning tree plus loops, so the
+-- whole level stays connected: the old open walls prove a connected
+-- layout exists, and a spanning tree over (kept open walls + all
+-- re-rollable walls) always finds one.
+--
+-- The exit lift moves to a fresh unprotected cell far from players,
+-- unless someone is standing near it.
+-- Returns the list of cells that changed (for rebuilding).
+function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: number, options: ShiftOptions?)
+	local opts: ShiftOptions = options or {} :: ShiftOptions
+	local loopChance = opts.loopChance or 0.18
+	local newRooms = opts.newRooms or 2
+	local flickerChance = opts.flickerChance or 0.12
+	local deadChance = opts.deadChance or 0.2
+	local minExitDistance = opts.minExitDistance or 5
+	local rng = makeRng(seed)
+	local W, D = layout.width, layout.depth
+	local cells = layout.cells
+
+	local function isProtected(x: number, z: number): boolean
+		return protected[x * 1000 + z] == true
+	end
+
+	-- Union-find over cells.
+	local parent: { [number]: number } = {}
+	local function find(k: number): number
+		while parent[k] ~= k do
+			parent[k] = parent[parent[k]]
+			k = parent[k]
+		end
+		return k
+	end
+	local function union(a: number, b: number): boolean
+		local ra, rb = find(a), find(b)
+		if ra == rb then
+			return false
+		end
+		parent[ra] = rb
+		return true
+	end
+	for x = 1, W do
+		for z = 1, D do
+			parent[x * 1000 + z] = x * 1000 + z
+		end
+	end
+
+	-- Sort walls into "kept" (touch a protected cell) and "free" (re-rolled).
+	local free = {}
+	for x = 1, W do
+		for z = 1, D do
+			for _, d in { { 1, 0 }, { 0, 1 } } do
+				local nx, nz = x + d[1], z + d[2]
+				if nx <= W and nz <= D then
+					if isProtected(x, z) or isProtected(nx, nz) then
+						if not LevelGen.hasWall(layout, x, z, d[1], d[2]) then
+							union(x * 1000 + z, nx * 1000 + nz)
+						end
+					else
+						table.insert(free, { x, z, d[1], d[2] })
+						setWall(layout, x, z, d[1], d[2], true)
+					end
+				end
+			end
+		end
+	end
+
+	-- Shuffle free walls, then open them Kruskal-style to join everything.
+	for i = #free, 2, -1 do
+		local j = rng.int(1, i)
+		free[i], free[j] = free[j], free[i]
+	end
+	for _, w in free do
+		local x, z, dx, dz = w[1], w[2], w[3], w[4]
+		if union(x * 1000 + z, (x + dx) * 1000 + (z + dz)) then
+			setWall(layout, x, z, dx, dz, false)
+		elseif rng.float() < loopChance then
+			setWall(layout, x, z, dx, dz, false)
+		end
+	end
+
+	-- Rooms: forget rooms that were rewired, open a couple of new ones in
+	-- fully unprotected space.
+	local keptRooms = {}
+	for _, room in layout.rooms do
+		local touched = false
+		for x = room.x, room.x + room.w - 1 do
+			for z = room.z, room.z + room.d - 1 do
+				if not isProtected(x, z) then
+					touched = true
+				end
+			end
+		end
+		if touched then
+			for x = room.x, room.x + room.w - 1 do
+				for z = room.z, room.z + room.d - 1 do
+					if not isProtected(x, z) then
+						cells[x][z].room = nil
+					end
+				end
+			end
+			-- Partly protected rooms stay listed so pillars next to players
+			-- survive; the builder only places a pillar where all four
+			-- surrounding cells are still room cells.
+			for x = room.x, room.x + room.w - 1 do
+				for z = room.z, room.z + room.d - 1 do
+					if isProtected(x, z) then
+						table.insert(keptRooms, room)
+						break
+					end
+				end
+				if keptRooms[#keptRooms] == room then
+					break
+				end
+			end
+		else
+			table.insert(keptRooms, room)
+		end
+	end
+	layout.rooms = keptRooms
+	for _ = 1, newRooms do
+		for _attempt = 1, 12 do
+			local w, d = rng.int(2, 4), rng.int(2, 4)
+			local rx, rz = rng.int(1, W - w + 1), rng.int(1, D - d + 1)
+			local clear = true
+			for x = rx, rx + w - 1 do
+				for z = rz, rz + d - 1 do
+					if isProtected(x, z) or cells[x][z].room then
+						clear = false
+					end
+				end
+			end
+			if clear then
+				local id = #layout.rooms + 1
+				table.insert(layout.rooms, { x = rx, z = rz, w = w, d = d })
+				for x = rx, rx + w - 1 do
+					for z = rz, rz + d - 1 do
+						cells[x][z].room = id
+						if x < rx + w - 1 then
+							cells[x][z].wallEast = false
+						end
+						if z < rz + d - 1 then
+							cells[x][z].wallSouth = false
+						end
+					end
+				end
+				break
+			end
+		end
+	end
+
+	-- New light pattern everywhere that changed.
+	for x = 1, W do
+		for z = 1, D do
+			if not isProtected(x, z) then
+				local roll = rng.float()
+				cells[x][z].light = if roll < deadChance
+					then "dead"
+					elseif roll < deadChance + flickerChance then "flicker"
+					else "on"
+			end
+		end
+	end
+
+	-- Move the lift, unless someone is near it.
+	if not isProtected(layout.exit.x, layout.exit.z) then
+		-- Distance from the nearest protected cell, by walking.
+		local nearest: { [number]: number } = {}
+		local queue = {}
+		for k in protected do
+			nearest[k] = 0
+			table.insert(queue, { k // 1000, k % 1000 })
+		end
+		local head = 1
+		while head <= #queue do
+			local x, z = queue[head][1], queue[head][2]
+			head += 1
+			for _, d in DIRS do
+				local nx, nz = x + d[1], z + d[2]
+				local k = nx * 1000 + nz
+				if inBounds(layout, nx, nz) and nearest[k] == nil and not LevelGen.hasWall(layout, x, z, d[1], d[2]) then
+					nearest[k] = nearest[x * 1000 + z] + 1
+					table.insert(queue, { nx, nz })
+				end
+			end
+		end
+		local options_ = {}
+		for x = 1, W do
+			for z = 1, D do
+				local dist = nearest[x * 1000 + z]
+				if dist and dist >= minExitDistance and not (x == layout.spawn.x and z == layout.spawn.z) then
+					table.insert(options_, { x = x, z = z })
+				end
+			end
+		end
+		if #options_ > 0 then
+			layout.exit = options_[rng.int(1, #options_)]
+		end
+	end
+	cells[layout.exit.x][layout.exit.z].light = "on"
+end
+
 return LevelGen

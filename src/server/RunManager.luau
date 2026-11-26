@@ -39,6 +39,12 @@ function RunManager.startRun(lift: Vector3)
 	)
 end
 
+-- The Shift moved the lift: update deposits and the compass, keep the run going.
+function RunManager.setLift(lift: Vector3)
+	liftPosition = lift
+	workspace:SetAttribute("LiftPosition", lift)
+end
+
 local function insideLift(character: Model): boolean
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local lift = liftPosition
