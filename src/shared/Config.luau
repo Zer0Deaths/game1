@@ -23,4 +23,12 @@ return {
 	EXHAUSTED_UNTIL = 30, -- run dry and you can't sprint again until this
 	LIFT_RADIUS = 6, -- how close to the lift centre counts as "inside"
 	INTERMISSION_SECONDS = 8, -- pause between runs to show the result
+
+	-- The Shift
+	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
+	SHIFT_MAX_SECONDS = 120,
+	SHIFT_WARNING_SECONDS = 5, -- hum rises, lights stutter
+	SHIFT_BLACKOUT_SECONDS = 3, -- total darkness while the maze rewires
+	SHIFT_SAFE_RADIUS = 1, -- cells around each player that never change (1 = 3x3)
+	SHIFT_NOT_BEFORE_END = 25, -- no Shift this close to the end of a run
 }

@@ -33,3 +33,41 @@ refresh()
 -- Work out which uploaded sound is which (footsteps pick this up too).
 SoundIds.autoAssign()
 refresh()
+
+-- The Shift, in sound only (no camera effects):
+--   warning:  the hum climbs in pitch and gets louder
+--   blackout: the hum cuts out and a deep rumble (same file, slowed way down) takes over
+local TweenService = game:GetService("TweenService")
+
+local rumble = Instance.new("Sound")
+rumble.Name = "ShiftRumble"
+rumble.Looped = true
+rumble.Volume = 0
+rumble.PlaybackSpeed = 0.3
+rumble.Parent = SoundService
+
+local function tween(sound: Sound, seconds: number, goal: { [string]: number })
+	TweenService:Create(sound, TweenInfo.new(seconds, Enum.EasingStyle.Sine), goal):Play()
+end
+
+local function onShiftState()
+	local id = SoundIds.get("HUM")
+	if id and rumble.SoundId ~= id then
+		rumble.SoundId = id
+	end
+	if workspace:GetAttribute("Shifting") then
+		tween(hum, 0.2, { Volume = 0 })
+		if id then
+			rumble:Play()
+		end
+		tween(rumble, 0.3, { Volume = 0.9 })
+	elseif workspace:GetAttribute("ShiftWarning") then
+		tween(hum, 5, { PlaybackSpeed = 1.8, Volume = 0.7 })
+	else
+		tween(rumble, 1.2, { Volume = 0 })
+		hum.PlaybackSpeed = 1
+		tween(hum, 1.5, { Volume = 0.35 })
+	end
+end
+workspace:GetAttributeChangedSignal("ShiftWarning"):Connect(onShiftState)
+workspace:GetAttributeChangedSignal("Shifting"):Connect(onShiftState)
