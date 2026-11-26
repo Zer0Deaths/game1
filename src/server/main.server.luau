@@ -21,6 +21,7 @@ local Remotes = require(script.Parent:WaitForChild("Remotes"))
 local Uniform = require(script.Parent:WaitForChild("Uniform"))
 local Tenant = require(script.Parent:WaitForChild("Tenant"))
 local Lampjaw = require(script.Parent:WaitForChild("Lampjaw"))
+local MapService = require(script.Parent:WaitForChild("MapService"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
@@ -104,6 +105,7 @@ local function buildLevel(seed: number)
 	end)
 	Tenant.setLevel(layout)
 	Lampjaw.setLevel(layout)
+	MapService.setLevel(layout)
 	local partCount = 0
 	for _, d in (currentLevel :: Model):GetDescendants() do
 		if d:IsA("BasePart") then
@@ -124,6 +126,7 @@ ArtefactService.init()
 ShiftService.init()
 Tenant.init()
 Lampjaw.init()
+MapService.init()
 RunManager.init(function()
 	-- Next run: brand new level. Setting the attribute triggers the rebuild below.
 	workspace:SetAttribute("LevelSeed", math.random(1, 999999))

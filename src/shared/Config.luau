@@ -82,6 +82,10 @@ return {
 		nearCells = 4, -- picks a flickering light within this many cells of someone
 	},
 
+	-- Shared map (M key): fills in wherever anyone on the server has looked.
+	MAP_SIGHT_CELLS = 2, -- how far down an open corridor you "see" for the map
+	MAP_UPDATE_SECONDS = 0.5,
+
 	-- The Shift
 	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
 	SHIFT_MAX_SECONDS = 120,
