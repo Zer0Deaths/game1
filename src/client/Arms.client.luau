@@ -1,45 +1,56 @@
 --!strict
--- First-person arms. Two simple arms drawn in front of your own camera
--- (only you see them; everyone else sees your normal character). They rise
--- into view and pump when you walk, pump harder and faster when you sprint,
--- and sink out of view when you stand still. Only the arms move: the camera
--- is never touched.
+-- First-person arms. Two smooth, lowered arms (jacket sleeve + hand) drawn
+-- in front of your own camera; only you see them. They sit low in the bottom
+-- corners while you walk with a short, slow swing, lean in a little and pump
+-- harder when you sprint, and sink out of view when you stand still.
+-- Only the arms move: the camera is never touched.
+-- Every position and swing number lives in Config.ARMS for tuning.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local A = Config.ARMS
 
 local player = Players.LocalPlayer
 
-local SLEEVE = Color3.fromRGB(58, 56, 44) -- worn work jacket
-local DEFAULT_SKIN = Color3.fromRGB(204, 160, 120)
+local SLEEVE = Color3.fromRGB(52, 50, 40) -- worn work jacket
+local CUFF = Color3.fromRGB(40, 38, 30)
+local DEFAULT_SKIN = Color3.fromRGB(196, 154, 118)
 
-local STEP_RATE = 0.8 -- swing radians per stud travelled
-local REST_DROP = 1.6 -- how far below view the arms sink when still
-
-local function makePart(name: string, size: Vector3, colour: Color3, parent: Instance): BasePart
+-- A smooth rounded shape: a Part with an ellipsoid mesh that fills its size.
+local function makeShape(name: string, size: Vector3, colour: Color3, material: Enum.Material, parent: Instance): BasePart
 	local p = Instance.new("Part")
 	p.Name = name
 	p.Size = size
 	p.Color = colour
-	p.Material = Enum.Material.SmoothPlastic
+	p.Material = material
 	p.Anchored = true
 	p.CanCollide = false
 	p.CanQuery = false
 	p.CanTouch = false
 	p.CastShadow = false
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = p
 	p.Parent = parent
 	return p
 end
 
-type Arm = { sleeve: BasePart, hand: BasePart, side: number }
+type Arm = { side: number, sleeve: BasePart, cuff: BasePart, hand: BasePart, fingers: BasePart }
 
 local folder = Instance.new("Folder")
 folder.Name = "FirstPersonArms"
 
 local function makeArm(side: number): Arm
-	local sleeve = makePart("Sleeve", Vector3.new(0.5, 0.5, 1.9), SLEEVE, folder)
-	local hand = makePart("Hand", Vector3.new(0.42, 0.32, 0.5), DEFAULT_SKIN, folder)
-	return { sleeve = sleeve, hand = hand, side = side }
+	return {
+		side = side,
+		sleeve = makeShape("Sleeve", Vector3.new(0.36, 0.34, 1.7), SLEEVE, Enum.Material.Fabric, folder),
+		cuff = makeShape("Cuff", Vector3.new(0.3, 0.28, 0.22), CUFF, Enum.Material.Fabric, folder),
+		hand = makeShape("Hand", Vector3.new(0.24, 0.13, 0.3), DEFAULT_SKIN, Enum.Material.SmoothPlastic, folder),
+		fingers = makeShape("Fingers", Vector3.new(0.22, 0.1, 0.22), DEFAULT_SKIN, Enum.Material.SmoothPlastic, folder),
+	}
 end
 
 local arms = { makeArm(-1), makeArm(1) }
@@ -52,7 +63,13 @@ local function skinColour(): Color3
 end
 
 local phase = 0
-local amount = 0 -- 0 = arms hidden below view, 1 = fully up and swinging
+local shown = 0 -- 0 = sunk out of view, 1 = in position
+local sprint = 0 -- 0 = walking, 1 = full sprint
+local swingSize = 0 -- eased swing amplitude
+
+local function ease(current: number, target: number, dt: number): number
+	return current + (target - current) * math.min(1, dt * A.ease)
+end
 
 RunService.RenderStepped:Connect(function(dt)
 	local camera = workspace.CurrentCamera
@@ -68,27 +85,37 @@ RunService.RenderStepped:Connect(function(dt)
 	local v = root.AssemblyLinearVelocity
 	local speed = Vector3.new(v.X, 0, v.Z).Magnitude
 	local grounded = humanoid.FloorMaterial ~= Enum.Material.Air
-	local moving = speed > 1.5 and grounded
+	local moving = speed > 1.5
+	-- Sprinting = moving well above normal walk speed.
+	local sprinting = speed > Config.WALK_SPEED * 1.15
 
-	-- Ease the arms up when moving, down when standing still.
-	amount += ((if moving then 1 else 0) - amount) * math.min(1, dt * 6)
-	-- Faster and bigger swings at sprint speed.
-	local effort = math.clamp(speed / 16, 0, 1.8)
-	phase = (phase + speed * STEP_RATE * dt) % (math.pi * 2)
+	shown = ease(shown, if moving then 1 else 0, dt)
+	sprint = ease(sprint, if sprinting then 1 else 0, dt)
+	swingSize = ease(swingSize, if moving and grounded then 1 else 0, dt)
+	if grounded then
+		phase = (phase + speed * A.stepRate * dt) % (math.pi * 2)
+	end
 
+	local amplitude = (A.swing + (A.sprintSwing - A.swing) * sprint) * swingSize
 	local skin = skinColour()
+	local hidden = shown < 0.02
 	for _, arm in arms do
-		local swing = math.sin(phase + (if arm.side > 0 then 0 else math.pi))
-		local reach = swing * 0.35 * effort -- forward/back pump
-		local lift = math.abs(swing) * 0.12 * effort
-		local base = CFrame.new(arm.side * 0.85, -1.15 - (1 - amount) * REST_DROP + lift, -1.1 - reach)
-		local angle = CFrame.Angles(math.rad(15 + swing * 10 * effort), math.rad(-arm.side * 8), math.rad(arm.side * 4))
-		local sleeveCf = camera.CFrame * base * angle
+		local s = math.sin(phase + (if arm.side > 0 then 0 else math.pi))
+		local x = arm.side * A.x
+		local y = A.y + A.sprintRaise * sprint - (1 - shown) * A.hideDrop + math.abs(s) * amplitude * 0.25
+		local z = A.z + A.sprintPull * sprint - s * amplitude
+		local pitch = A.pitch + A.sprintPitch * sprint + s * A.swingTilt * swingSize
+		local sleeveCf = camera.CFrame
+			* CFrame.new(x, y, z)
+			* CFrame.Angles(math.rad(pitch), math.rad(arm.side * A.yaw), math.rad(-arm.side * 6))
 		arm.sleeve.CFrame = sleeveCf
-		arm.hand.CFrame = sleeveCf * CFrame.new(0, 0, -1.15)
+		arm.cuff.CFrame = sleeveCf * CFrame.new(0, 0, -0.82)
+		arm.hand.CFrame = sleeveCf * CFrame.new(0, -0.01, -1.02) * CFrame.Angles(math.rad(-6), 0, math.rad(arm.side * 12))
+		arm.fingers.CFrame = arm.hand.CFrame * CFrame.new(-arm.side * 0.01, -0.02, -0.17) * CFrame.Angles(math.rad(-25), 0, 0)
 		arm.hand.Color = skin
-		local hidden = amount < 0.02
-		arm.sleeve.LocalTransparencyModifier = if hidden then 1 else 0
-		arm.hand.LocalTransparencyModifier = if hidden then 1 else 0
+		arm.fingers.Color = skin
+		for _, part in { arm.sleeve, arm.cuff, arm.hand, arm.fingers } do
+			part.LocalTransparencyModifier = if hidden then 1 else 0
+		end
 	end
 end)

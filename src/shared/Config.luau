@@ -32,6 +32,25 @@ return {
 	START_AMBIENT_HOLD = 12, -- seconds at full START_AMBIENT
 	START_AMBIENT_FADE = 8, -- seconds to fade down to AMBIENT
 
+	-- First-person arms (Arms.client). Offsets are in studs from the camera:
+	-- X = out to the side, Y = up (negative = lower), Z = forward (negative = further away).
+	ARMS = {
+		x = 1.1, -- how far apart the hands sit
+		y = -0.95, -- height of the arms (lower = less on screen)
+		z = -1.3, -- distance in front of the eyes
+		pitch = 20, -- degrees the forearms tilt up into view
+		yaw = 10, -- degrees the forearms angle inward
+		stepRate = 0.35, -- swing radians per stud walked (lower = slower swing)
+		swing = 0.07, -- walking: forward/back swing in studs
+		swingTilt = 3, -- walking: wrist tilt in degrees
+		sprintSwing = 0.12, -- sprinting: forward/back swing in studs
+		sprintRaise = 0.08, -- sprinting: arms come up a little
+		sprintPull = 0.15, -- sprinting: arms pull in closer (leaning into the run)
+		sprintPitch = 8, -- sprinting: extra upward tilt in degrees
+		hideDrop = 1.2, -- standing still: how far the arms sink out of view
+		ease = 8, -- how quickly arms settle into position (higher = snappier)
+	},
+
 	-- The Shift
 	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
 	SHIFT_MAX_SECONDS = 120,
