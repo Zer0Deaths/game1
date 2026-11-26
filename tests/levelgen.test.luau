@@ -144,3 +144,27 @@ for seed = 1, 100 do
 end
 print(`paths checked: 1000, failures: {pathFailures}`)
 print(if failures == 0 then "ALL PASSED (incl. paths)" else `{failures} FAILURES`)
+
+-- LEVEL TYPES: every type's generator settings still give a fully
+-- connected maze with a far exit, and picking respects unlocks.
+local LevelTypes = require("../src/shared/LevelTypes")
+local typeFailures = 0
+for _, t in LevelTypes.list do
+	for seed = 1, 100 do
+		local layout = LevelGen.generate(seed, t.gen)
+		if LevelGen.reachableCount(layout) ~= layout.width * layout.depth then
+			typeFailures += 1
+			check(false, `{t.id} seed {seed}: unreachable cells`)
+		end
+		local d = LevelGen.distancesFrom(layout, layout.spawn.x, layout.spawn.z)[layout.exit.x * 1000 + layout.exit.z]
+		check(d ~= nil and d >= 8, `{t.id} seed {seed}: exit too close`)
+	end
+end
+check(LevelTypes.pick(1, 0.99).id == "carpet", "run 1 must be The Carpet")
+local seenTypes = {}
+for i = 0, 99 do
+	seenTypes[LevelTypes.pick(5, i / 100).id] = true
+end
+check(seenTypes.carpet and seenTypes.ward and seenTypes.plant, "run 5 should offer every type")
+print(`level types checked: {#LevelTypes.list} x 100 seeds, failures: {typeFailures}`)
+print(if failures == 0 then "ALL PASSED (incl. level types)" else `{failures} FAILURES`)

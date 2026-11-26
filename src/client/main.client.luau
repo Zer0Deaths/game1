@@ -24,12 +24,13 @@ local states: { [BasePart]: FlickerState } = {}
 local function setLevel(panel: BasePart, level: number)
 	-- level: 0 = off, 0.5 = dim, 1 = full
 	panel.Material = if level > 0 then Enum.Material.Neon else Enum.Material.SmoothPlastic
-	panel.Color = if level >= 1 then ON elseif level > 0 then DIM else OFF
+	local on = (workspace:GetAttribute("LightColour") or ON) :: Color3 -- level types tint the lights
+	panel.Color = if level >= 1 then on elseif level > 0 then DIM else OFF
 	local light = panel:FindFirstChildOfClass("SurfaceLight")
 	if light then
 		light.Enabled = level > 0
 		light.Brightness = FULL_BRIGHTNESS * level
-		light.Color = ON
+		light.Color = on
 	end
 end
 

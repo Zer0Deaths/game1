@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local LevelGen = require(Shared:WaitForChild("LevelGen"))
+local LevelTypes = require(Shared:WaitForChild("LevelTypes"))
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
 
 local Atmosphere = require(script.Parent:WaitForChild("Atmosphere"))
@@ -76,13 +77,18 @@ local function aliveRoot(player: Player): BasePart?
 	return nil
 end
 
-local function buildLevel(seed: number)
+local function buildLevel(seed: number, levelType: LevelTypes.LevelType)
 	if currentLevel then
 		currentLevel:Destroy()
 	end
 	local started = os.clock()
-	currentLayout = LevelGen.generate(seed)
+	currentLayout = LevelGen.generate(seed, levelType.gen)
 	local layout = currentLayout :: LevelGen.Layout
+	LevelBuilder.setTheme(levelType.colours, levelType.materials)
+	Atmosphere.applyTheme(levelType.haze, levelType.tint)
+	workspace:SetAttribute("LevelType", levelType.id)
+	workspace:SetAttribute("LevelName", levelType.name)
+	workspace:SetAttribute("LightColour", levelType.light)
 	currentLevel = LevelBuilder.build(layout, workspace)
 	ArtefactService.spawnAll(layout, currentLevel :: Model, LevelBuilder.cellCenter)
 
@@ -102,7 +108,7 @@ local function buildLevel(seed: number)
 	Lampjaw.setLevel(layout)
 	MapService.setLevel(layout)
 	workspace:SetAttribute("LiftPosition", lift)
-	print(`[Level] seed {seed}: built in {math.round((os.clock() - started) * 1000)} ms`)
+	print(`[Level] {levelType.name}, seed {seed}: built in {math.round((os.clock() - started) * 1000)} ms`)
 	return lift
 end
 
@@ -139,7 +145,9 @@ local function descend(seed: number?)
 	seedFromStudio = true
 	workspace:SetAttribute("LevelSeed", chosen)
 	seedFromStudio = false
-	local lift = buildLevel(chosen)
+	local nextRun = ((workspace:GetAttribute("RunNumber") or 0) :: number) + 1
+	local levelType = LevelTypes.pick(nextRun, math.random())
+	local lift = buildLevel(chosen, levelType)
 	for i, player in Players:GetPlayers() do
 		player:SetAttribute("Ready", false)
 		player:SetAttribute("DiedThisRun", false)

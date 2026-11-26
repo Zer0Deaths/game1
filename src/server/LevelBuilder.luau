@@ -35,6 +35,20 @@ local MATERIALS = {
 	trim = Enum.Material.SmoothPlastic,
 }
 
+-- Level types (LevelTypes.luau) swap colours and materials before a build.
+local DEFAULT_COLORS = table.clone(COLORS)
+local DEFAULT_MATERIALS = table.clone(MATERIALS)
+
+function LevelBuilder.setTheme(colours: { [string]: Color3 }, materials: { [string]: string })
+	for k, v in DEFAULT_COLORS do
+		COLORS[k] = colours[k] or v
+	end
+	for k, v in DEFAULT_MATERIALS do
+		local name = materials[k]
+		MATERIALS[k] = if name then (Enum.Material :: any)[name] else v
+	end
+end
+
 local function makePart(props: { [string]: any }, parent: Instance): Part
 	local p = Instance.new("Part")
 	p.Anchored = true
