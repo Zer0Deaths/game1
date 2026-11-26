@@ -24,6 +24,14 @@ return {
 	LIFT_RADIUS = 6, -- how close to the lift centre counts as "inside"
 	INTERMISSION_SECONDS = 8, -- pause between runs to show the result
 
+	-- Lighting. Roblox takes ~15 s after joining before the ceiling lights
+	-- actually light the walls, so each player starts with a brighter warm
+	-- ambient that fades down to AMBIENT once the lights have caught up.
+	AMBIENT = Color3.fromRGB(46, 41, 24), -- base light where no lamp reaches (was 28,25,14: too dark)
+	START_AMBIENT = Color3.fromRGB(125, 112, 70), -- on join, until the lamps kick in
+	START_AMBIENT_HOLD = 12, -- seconds at full START_AMBIENT
+	START_AMBIENT_FADE = 8, -- seconds to fade down to AMBIENT
+
 	-- The Shift
 	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
 	SHIFT_MAX_SECONDS = 120,
