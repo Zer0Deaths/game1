@@ -40,16 +40,28 @@ Save the place in Studio (File > Save to Roblox) to keep non-code stuff like map
 
 ## How to play (current build)
 
-- Find artefacts in the maze and pick them up (**E**, or tap the prompt). You can carry 4. Heavy ones slow you down.
-- Drop the one in your hand with **G** (or the Drop button on phones).
-- Sprint with **Left Shift** (L3 on gamepad, Sprint button on phones). Stamina drains faster and comes back slower the more you carry. Carried loot shows on your back.
-- The compass at the top points to the **exit lift**. The further away you are, the more it wanders.
-- Walk into the lift to deposit everything you carry. The money goes to the shared quota at the top.
-- Beat the quota before the timer ends and the next run asks for more. Miss it and the quota resets.
-- Die and your loot drops where you fell.
-- **The Shift:** every 80-120 s the hum rises and the lights stutter (5 s warning), then everything goes black for 3 s while the maze rewires. Corridors near players stay put; everywhere else changes, and the lift may move. The compass spins during the blackout. To trigger one while testing: select Workspace and tick a Boolean attribute `ForceShift`.
+**The loop.** You spawn in the **safehouse**. Pick a crew at the crew board (4 crews of up to 4), buy supplies at the counter, then press **Ready** at the descent lift. When everyone is ready (or after 60 s) every crew drops into the same fresh level.
 
-Tuning numbers (timer, quota, carry limit, speeds) are in `src/shared/Config.luau`.
+**In the level**
+- Find artefacts and pick them up (**E**). You can carry 4 (more with the bigger pack). Heavy ones slow you down.
+- Drop the one in your hand with **G**. Dropping loot is loud.
+- Sprint with **Left Shift**. Sprinting is loud too.
+- The compass points to the **exit lift**. **M** opens the crew map: everything anyone has seen, faded where a Shift may have changed it.
+- Walk into the lift to deposit. The money goes to *your crew's* quota. When the timer ends, crews that met quota split the bank as personal **Cash** and face a bigger quota; crews that missed are wiped.
+- Die and your loot drops where you fell. You wait out the run in the safehouse.
+- **F** toggles your flashlight once you own one.
+
+**The Shift:** every 80-120 s the hum rises and the lights stutter, then 3 s of black while the maze rewires around you and the lift may move. Testing: tick a Boolean Workspace attribute `ForceShift`.
+
+**Entities**
+- **The Tenant** (tall, faceless, long coat) hunts by sound. It turns up after the first Shift, near whoever has been loudest. It walks to noises, chases what it sees, and is faster than walking but slower than sprinting. You hear its drone and heavy steps first. The exit lift is safe.
+- **Lampjaw** hides in flickering lights. When one strobes **red and buzzes**, don't stop under it: linger about a second and it takes you. More active when a Shift is coming.
+
+**Levels:** The Carpet (run 1), The Ward (from run 2), The Plant Room (from run 3).
+
+**Studio testing:** set the Workspace attribute `LevelSeed` to a number while in the safehouse to descend straight into that layout.
+
+Tuning numbers live in `src/shared/Config.luau`. Things only you can do (Studio settings, uploads, publishing, products) are in **TODO.md**.
 
 ## Optional: make it sound right
 
@@ -63,15 +75,17 @@ Until then the hum is silent and footsteps use Roblox's default sound.
 
 ## What's in the code
 
-- `src/shared/LevelGen.luau` builds a level layout as plain data: a grid maze with loops, open rooms and light states (on, flickering, dead). Same seed, same level.
-- `src/server/LevelBuilder.luau` turns that layout into grey-box parts (walls merged into long runs to keep part count low).
-- `src/server/main.server.luau` sets dark lighting, builds the level and moves players to the spawn.
-- `src/server/Atmosphere.luau` sets the look: haze, colour grading, bloom, hallway reverb. Tweak the numbers in `LOOK`.
-- `src/client/main.client.luau` makes flickering lights stutter in bursts on each player's device.
-- `src/shared/Artefacts.luau` lists the 8 artefact types: value, weight, look.
-- `src/server/ArtefactService.luau` spawns artefacts and handles pickup, drop, carry weight and death drops.
-- `src/server/ShiftService.luau` runs the Shift; `LevelGen.shift` rewires the maze (tests check 1,000 Shifts keep it connected).
-- `src/server/ExitLift.luau` builds the deposit lift. `src/server/RunManager.luau` runs the quota, timer and deposits.
-- `src/client/Hud.client.luau` (quota, timer, carry, messages), `Compass.client.luau` (lift compass), `Controls.client.luau` (drop key).
-- `src/client/Ambience.client.luau` loops the fluorescent hum once a sound ID is set (`src/shared/SoundIds.luau`).
-- `tests/levelgen.test.luau` checks 300 seeds can always reach every cell. Optional, needs the [Luau CLI](https://github.com/luau-lang/luau/releases): `luau tests/levelgen.test.luau`.
+Shared (`src/shared`, pure logic, mostly tested offline):
+- `LevelGen` maze generator, the Shift rewiring, and path finding. `LevelTypes` the three level kinds.
+- `Config` every tuning number. `Artefacts`, `ShopItems` item lists. `Crews` crew rules. `MapKnowledge` the crew map. `PlayerData` what gets saved.
+
+Server (`src/server`):
+- `main.server` the game loop: safehouse, descent, run, results.
+- `LevelBuilder`, `Atmosphere`, `ExitLift`, `Safehouse` build the world.
+- `RunManager` quotas and timer per crew. `CrewService` crews and Cash. `ArtefactService` loot.
+- `ShiftService` the Shift. `Tenant`, `Lampjaw` the entities. `NoiseService` what they can hear.
+- `MapService` crew map. `ShopService` shop and flashlight. `DataService` saving. `MonetisationService` paid extras (off until IDs are set). `Uniform` the crew suit.
+
+Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Footsteps`, `Ambience`, `TenantSounds`, `Controls`, `StartupLight`, `Arms` (off for now).
+
+Offline tests (need the [Luau CLI](https://github.com/luau-lang/luau/releases)): `luau tests/levelgen.test.luau`, `tests/map.test.luau`, `tests/crews.test.luau`, `tests/playerdata.test.luau`.

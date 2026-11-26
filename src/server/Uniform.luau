@@ -9,11 +9,12 @@
 -- show it too.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local Uniform = {}
 
-local SUIT = Color3.fromRGB(58, 92, 88) -- oxidised teal: stands out against the yellow levels
 local RUBBER = Color3.fromRGB(32, 32, 30) -- gloves and boots
 local TAPE = Color3.fromRGB(205, 200, 180) -- worn reflective tape
 local VISOR = Color3.fromRGB(20, 24, 24)
@@ -53,6 +54,10 @@ local function band(limb: BasePart, along: number)
 end
 
 local function dress(character: Model)
+	-- Suit colour: teal for everyone, unless the suit-colours pass picked another.
+	local owner = Players:GetPlayerFromCharacter(character)
+	local choice = owner and owner:GetAttribute("SuitColour")
+	local SUIT = Config.SUIT_COLOURS[if typeof(choice) == "number" then choice else 1] or Config.SUIT_COLOURS[1]
 	-- Strip anything from the player's own avatar.
 	for _, item in character:GetChildren() do
 		if item:IsA("Accessory") or item:IsA("Clothing") or item:IsA("ShirtGraphic") or item:IsA("BodyColors") then
@@ -127,6 +132,11 @@ local function dress(character: Model)
 		label.Text = "SHIFT"
 		label.TextScaled = true
 		label.TextColor3 = PATCH
+		if owner and owner:GetAttribute("Pass_Supporter") then
+			-- Supporter pass: an inverted amber patch.
+			label.BackgroundColor3 = PATCH
+			label.TextColor3 = Color3.fromRGB(28, 26, 20)
+		end
 		label.Parent = gui
 		gui.Parent = chest
 	end
