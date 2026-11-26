@@ -34,6 +34,7 @@ local CrewService = require(script.Parent:WaitForChild("CrewService"))
 local Safehouse = require(script.Parent:WaitForChild("Safehouse"))
 local ShopService = require(script.Parent:WaitForChild("ShopService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
+local MonetisationService = require(script.Parent:WaitForChild("MonetisationService"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
@@ -176,6 +177,10 @@ hub.shopPrompt.Triggered:Connect(function(player)
 	Remotes.OpenShop:FireClient(player)
 end)
 
+-- Paid extras (switched off until IDs are set in Config.MONETISATION).
+hub.wardrobePrompt.Triggered:Connect(MonetisationService.useWardrobe)
+hub.supplyPrompt.Triggered:Connect(MonetisationService.promptSupplyDrop)
+
 -- Descent lift: Ready in the hub, or join a run already under way.
 hub.readyPrompt.Triggered:Connect(function(player)
 	local state = workspace:GetAttribute("RunState")
@@ -248,6 +253,7 @@ end
 CrewService.init()
 ShopService.init()
 DataService.init()
+MonetisationService.init()
 ArtefactService.init()
 ShiftService.init()
 Tenant.init()

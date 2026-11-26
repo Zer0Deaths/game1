@@ -69,6 +69,8 @@ export type Hub = {
 	crewSigns: { TextLabel },
 	crewPrompts: { ProximityPrompt },
 	shopPrompt: ProximityPrompt,
+	wardrobePrompt: ProximityPrompt,
+	supplyPrompt: ProximityPrompt,
 	readyPrompt: ProximityPrompt,
 	liftSign: TextLabel,
 }
@@ -133,6 +135,15 @@ function Safehouse.build(): Hub
 	textOn(screen, Enum.NormalId.Left, "SUPPLIES", Color3.fromRGB(150, 230, 120))
 	local shopPrompt = prompt(counter, "Open shop", "Supplies")
 
+	-- Wardrobe and supply crate on the west side (only active once the
+	-- matching pass/product IDs are set in Config.MONETISATION).
+	local wardrobe = part({ Name = "Wardrobe", Size = Vector3.new(3, 8, 6), Position = o + Vector3.new(-W / 2 + 3, 4, -12), Color = Color3.fromRGB(80, 74, 64), Material = Enum.Material.Metal }, model)
+	local wardrobePrompt = prompt(wardrobe, "Change suit colour", "Wardrobe")
+	wardrobePrompt.Enabled = Config.MONETISATION.SUIT_COLOURS_PASS ~= 0
+	local crate = part({ Name = "SupplyCrate", Size = Vector3.new(4, 3, 4), Position = o + Vector3.new(-W / 2 + 4, 1.5, 12), Color = Color3.fromRGB(110, 96, 60), Material = Enum.Material.WoodPlanks }, model)
+	local supplyPrompt = prompt(crate, "Send a crew supply drop", "Supplies for your whole crew")
+	supplyPrompt.Enabled = Config.MONETISATION.CREW_SUPPLY_PRODUCT ~= 0
+
 	-- Descent lift on the south wall.
 	local liftCentre = o + Vector3.new(0, 0, D / 2 - 7)
 	part({ Name = "LiftPlate", Size = Vector3.new(10, 0.2, 10), Position = liftCentre + Vector3.new(0, 0.1, 0), Color = Color3.fromRGB(70, 70, 74), Material = Enum.Material.DiamondPlate }, model)
@@ -160,6 +171,8 @@ function Safehouse.build(): Hub
 		crewSigns = crewSigns,
 		crewPrompts = crewPrompts,
 		shopPrompt = shopPrompt,
+		wardrobePrompt = wardrobePrompt,
+		supplyPrompt = supplyPrompt,
 		readyPrompt = readyPrompt,
 		liftSign = liftSign,
 	}

@@ -109,6 +109,23 @@ return {
 	FLASHLIGHT_BRIGHTNESS = 2.2,
 	SOFTBOOTS_NOISE = 0.6, -- soft-sole boots multiply your noise radius by this
 
+	-- Monetisation hooks. Every ID is 0 = switched off: nothing is sold and
+	-- no buy prompts appear. Jason creates the real passes/products on the
+	-- Creator Hub and pastes the IDs here (see TODO.md). Cosmetic and
+	-- crew-helping only: nothing that lets a paying player out-earn others.
+	MONETISATION = {
+		SUIT_COLOURS_PASS = 0, -- game pass: choose your crew suit colour at the safehouse wardrobe
+		SUPPORTER_PASS = 0, -- game pass: amber "SUPPORTER" stripe on your suit's patch
+		CREW_SUPPLY_PRODUCT = 0, -- developer product: energy drink + soft boots for your whole crew next run
+	},
+	SUIT_COLOURS = {
+		Color3.fromRGB(58, 92, 88), -- oxidised teal (everyone's default)
+		Color3.fromRGB(150, 70, 40), -- rust orange
+		Color3.fromRGB(70, 74, 82), -- gunmetal
+		Color3.fromRGB(120, 112, 70), -- faded olive
+		Color3.fromRGB(150, 140, 120), -- dust white
+	},
+
 	-- The Shift
 	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
 	SHIFT_MAX_SECONDS = 120,
