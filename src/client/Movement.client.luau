@@ -70,7 +70,8 @@ RunService.RenderStepped:Connect(function(dt)
 		end
 	elseif now - lastSprintTime > Config.STAMINA_REGEN_DELAY then
 		-- ...and you get your breath back slower under load.
-		stamina += Config.STAMINA_REGEN / (1 + weight * Config.STAMINA_REGEN_PER_WEIGHT) * dt
+		local boost = if player:GetAttribute("Run_energydrink") then 1.5 else 1 -- shop: energy drink
+		stamina += Config.STAMINA_REGEN * boost / (1 + weight * Config.STAMINA_REGEN_PER_WEIGHT) * dt
 		stamina = math.min(stamina, 100)
 		if exhausted and stamina >= Config.EXHAUSTED_UNTIL then
 			exhausted = false

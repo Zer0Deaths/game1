@@ -85,7 +85,8 @@ RunService.RenderStepped:Connect(function(dt)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local playing = workspace:GetAttribute("RunState") == "playing"
-	dial.Visible = typeof(lift) == "Vector3" and root ~= nil and playing
+	-- Hidden in the safehouse (which sits at negative X; the level starts at 0).
+	dial.Visible = typeof(lift) == "Vector3" and root ~= nil and playing and (root :: BasePart).Position.X >= 0
 	if not dial.Visible then
 		return
 	end

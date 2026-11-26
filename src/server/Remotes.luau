@@ -4,6 +4,9 @@
 --   Notify        server -> client  (text, kind) for toasts and banners
 --   MapSync       server -> client  ("reset", width, depth) or ("cells", {entries}) for the shared map
 --   MapRequest    client -> server  "send me the whole map" (on join)
+--   OpenShop      server -> client  open the shop screen (safehouse counter)
+--   BuyItem       client -> server  (itemId) buy something in the shop
+--   ToggleFlashlight client -> server  switch your flashlight on/off
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -27,4 +30,7 @@ return {
 	Notify = event("Notify"),
 	MapSync = event("MapSync"),
 	MapRequest = event("MapRequest"),
+	OpenShop = event("OpenShop"),
+	BuyItem = event("BuyItem"),
+	ToggleFlashlight = event("ToggleFlashlight"),
 }

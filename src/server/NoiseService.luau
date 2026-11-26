@@ -43,7 +43,11 @@ function NoiseService.playerRadius(player: Player): number
 	local T = Config.TENANT
 	local base = if speed > Config.WALK_SPEED * 1.15 then T.hearSprint else T.hearWalk
 	local weight = (player:GetAttribute("CarryWeight") or 0) :: number
-	return base + weight * T.hearPerWeight
+	local radius = base + weight * T.hearPerWeight
+	if player:GetAttribute("Run_softboots") then
+		radius *= Config.SOFTBOOTS_NOISE -- shop: soft-sole boots
+	end
+	return radius
 end
 
 -- Everything audible from `from`: moving players and recent one-off noises.

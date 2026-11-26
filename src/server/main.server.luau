@@ -1,15 +1,22 @@
 -- Runs on the server. Synced to ServerScriptService.Server.main
--- Builds a fresh level when the server starts and drops players into it.
+-- The game loop:
+--   HUB      everyone is in the safehouse: pick a crew, shop, press Ready.
+--            When all are ready (or the countdown ends) everyone descends.
+--   PLAYING  a fresh level is built and every crew is dropped into it.
+--            The dead go back to the safehouse until the next descent;
+--            late joiners can use the descent lift to join in.
+--   INTERMISSION  quotas are settled, then everyone returns to the hub.
 --
--- To test a specific layout in Studio: select Workspace, and in the
--- Properties window set the attribute "LevelSeed" to any number.
--- The level rebuilds instantly and everyone is moved to the spawn.
+-- Studio testing: set the Workspace attribute "LevelSeed" to a number while
+-- in the hub to descend straight away into that exact layout.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- WaitForChild instead of a dot: if Rojo is mid-sync, this waits instead of crashing.
-local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LevelGen"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local LevelGen = require(Shared:WaitForChild("LevelGen"))
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
 
 local Atmosphere = require(script.Parent:WaitForChild("Atmosphere"))
@@ -23,13 +30,13 @@ local Tenant = require(script.Parent:WaitForChild("Tenant"))
 local Lampjaw = require(script.Parent:WaitForChild("Lampjaw"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local CrewService = require(script.Parent:WaitForChild("CrewService"))
+local Safehouse = require(script.Parent:WaitForChild("Safehouse"))
+local ShopService = require(script.Parent:WaitForChild("ShopService"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
 
--- Nobody spawns until the level (and its lights) exist. Spawning into an
--- unbuilt level, then being teleported in, left players in the dark for
--- the first few seconds while the lighting caught up.
+-- Nobody spawns until the safehouse exists.
 Players.CharacterAutoLoads = false
 
 -- Everyone wears the SHIFT crew suit, not their own avatar.
@@ -47,26 +54,26 @@ end
 local currentLevel: Model? = nil
 local currentLayout: LevelGen.Layout? = nil
 
-local function spawnCFrame(): CFrame
-	local layout = currentLayout
-	local pos = if layout
-		then LevelBuilder.cellCenter(layout.spawn.x, layout.spawn.z)
-		else Vector3.zero
-	return CFrame.new(pos + Vector3.new(0, 4, 0))
+local function now(): number
+	return workspace:GetServerTimeNow()
 end
 
-local function moveToSpawn(character: Model)
-	character:WaitForChild("HumanoidRootPart", 5)
-	if not character.Parent then
-		character.AncestryChanged:Wait()
+local function levelSpawnCFrame(index: number): CFrame
+	local layout = currentLayout
+	local pos = if layout then LevelBuilder.cellCenter(layout.spawn.x, layout.spawn.z) else Vector3.zero
+	-- Spread people around the start cell so nobody lands inside someone else.
+	local angle = index * 2.4
+	local r = 2 + (index % 4) * 1.5
+	return CFrame.new(pos + Vector3.new(math.cos(angle) * r, 4, math.sin(angle) * r))
+end
+
+local function aliveRoot(player: Player): BasePart?
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		return character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	end
-	task.wait() -- let Roblox finish its own spawn placement first
-	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	-- Normally you already spawn on the level's SpawnLocation; only move
-	-- people who are somewhere else (e.g. after the level was rebuilt).
-	if root and (root.Position - spawnCFrame().Position).Magnitude > 12 then
-		character:PivotTo(spawnCFrame())
-	end
+	return nil
 end
 
 local function buildLevel(seed: number)
@@ -79,19 +86,6 @@ local function buildLevel(seed: number)
 	currentLevel = LevelBuilder.build(layout, workspace)
 	ArtefactService.spawnAll(layout, currentLevel :: Model, LevelBuilder.cellCenter)
 
-	-- Invisible spawn pad in the start cell, so characters appear inside
-	-- the lit level instead of being teleported in.
-	local spawnPad = Instance.new("SpawnLocation")
-	spawnPad.Name = "LevelSpawn"
-	spawnPad.Anchored = true
-	spawnPad.CanCollide = false
-	spawnPad.CanTouch = false
-	spawnPad.Transparency = 1
-	spawnPad.Size = Vector3.new(6, 0.2, 6)
-	spawnPad.Position = LevelBuilder.cellCenter(layout.spawn.x, layout.spawn.z) + Vector3.new(0, 0.1, 0)
-	spawnPad.Neutral = true
-	spawnPad.Duration = 0 -- no spawn forcefield bubble
-	spawnPad.Parent = currentLevel
 	local function placeLift(l: LevelGen.Layout): Vector3
 		local old = (currentLevel :: Model):FindFirstChild("ExitLift")
 		if old then
@@ -107,48 +101,152 @@ local function buildLevel(seed: number)
 	Tenant.setLevel(layout)
 	Lampjaw.setLevel(layout)
 	MapService.setLevel(layout)
-	local partCount = 0
-	for _, d in (currentLevel :: Model):GetDescendants() do
-		if d:IsA("BasePart") then
-			partCount += 1
-		end
-	end
-	print(`[Level] seed {seed}: {partCount} parts in {math.round((os.clock() - started) * 1000)} ms`)
+	workspace:SetAttribute("LiftPosition", lift)
+	print(`[Level] seed {seed}: built in {math.round((os.clock() - started) * 1000)} ms`)
+	return lift
+end
 
-	for _, player in Players:GetPlayers() do
-		if player.Character then
-			task.spawn(moveToSpawn, player.Character)
+-- HUB -----------------------------------------------------------------------
+
+local hub = Safehouse.build()
+
+local function sendToHub(player: Player, index: number)
+	local root = aliveRoot(player)
+	if root then
+		(player.Character :: Model):PivotTo(hub.arrivalCFrame(index))
+	end
+end
+
+local function startHub()
+	workspace:SetAttribute("RunState", "hub")
+	workspace:SetAttribute("HubEndsAt", now() + Config.HUB_SECONDS)
+	for i, player in Players:GetPlayers() do
+		player:SetAttribute("Ready", false)
+		player:SetAttribute("DiedThisRun", false)
+		sendToHub(player, i)
+	end
+end
+
+local descending = false
+local seedFromStudio = false
+
+local function descend(seed: number?)
+	if descending then
+		return
+	end
+	descending = true
+	local chosen = seed or math.random(1, 999999)
+	seedFromStudio = true
+	workspace:SetAttribute("LevelSeed", chosen)
+	seedFromStudio = false
+	local lift = buildLevel(chosen)
+	for i, player in Players:GetPlayers() do
+		player:SetAttribute("Ready", false)
+		player:SetAttribute("DiedThisRun", false)
+		if aliveRoot(player) then
+			(player.Character :: Model):PivotTo(levelSpawnCFrame(i))
 		end
 	end
 	RunManager.startRun(lift)
+	descending = false
 end
 
+-- Crew board.
+for c, pr in hub.crewPrompts do
+	pr.Triggered:Connect(function(player)
+		if CrewService.switch(player, c) then
+			Remotes.Notify:FireClient(player, `You joined {Config.CREW_NAMES[c]}.`, "money")
+		elseif player:GetAttribute("Crew") ~= c then
+			Remotes.Notify:FireClient(player, `{Config.CREW_NAMES[c]} is full.`, "warn")
+		end
+	end)
+end
+
+-- Shop counter: the shop UI lives on the client (Shop.client).
+hub.shopPrompt.Triggered:Connect(function(player)
+	Remotes.OpenShop:FireClient(player)
+end)
+
+-- Descent lift: Ready in the hub, or join a run already under way.
+hub.readyPrompt.Triggered:Connect(function(player)
+	local state = workspace:GetAttribute("RunState")
+	if state == "hub" then
+		local ready = not player:GetAttribute("Ready")
+		player:SetAttribute("Ready", ready)
+		Remotes.Notify:FireClient(player, if ready then "Ready. Waiting for the others." else "Not ready.", "money")
+	elseif state == "playing" then
+		if player:GetAttribute("DiedThisRun") then
+			Remotes.Notify:FireClient(player, "You died this run. Wait for the next descent.", "warn")
+		elseif aliveRoot(player) then
+			(player.Character :: Model):PivotTo(levelSpawnCFrame(math.random(1, 16)))
+		end
+	end
+end)
+
+-- Hub countdown, ready check, and the signs.
+task.spawn(function()
+	while true do
+		task.wait(0.25)
+		local state = workspace:GetAttribute("RunState")
+		local players = Players:GetPlayers()
+		local ready = 0
+		for _, p in players do
+			if p:GetAttribute("Ready") then
+				ready += 1
+			end
+		end
+		for c, label in hub.crewSigns do
+			label.Text = `{Config.CREW_NAMES[c]}\n{#CrewService.members(c)}/{Config.CREW_SIZE}`
+		end
+		if state == "hub" then
+			local endsAt = (workspace:GetAttribute("HubEndsAt") or now()) :: number
+			if #players > 0 and ready == #players and endsAt - now() > Config.HUB_ALL_READY_SECONDS then
+				endsAt = now() + Config.HUB_ALL_READY_SECONDS
+				workspace:SetAttribute("HubEndsAt", endsAt)
+			end
+			workspace:SetAttribute("ReadyCount", ready)
+			hub.liftSign.Text = `DESCENT IN {math.max(0, math.ceil(endsAt - now()))}s  ·  READY {ready}/{#players}`
+			if now() >= endsAt and #players > 0 then
+				descend(nil)
+			end
+		elseif state == "playing" then
+			hub.liftSign.Text = "RUN UNDER WAY  ·  JOIN AT THE PANEL"
+		else
+			hub.liftSign.Text = "STAND BY"
+		end
+	end
+end)
+
+-- The dead sit out the rest of the run.
+local function watchDeaths(player: Player)
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+		humanoid.Died:Connect(function()
+			if workspace:GetAttribute("RunState") == "playing" then
+				player:SetAttribute("DiedThisRun", true)
+			end
+		end)
+	end)
+end
+Players.PlayerAdded:Connect(watchDeaths)
+for _, p in Players:GetPlayers() do
+	watchDeaths(p)
+end
+
+-- START ---------------------------------------------------------------------
+
 CrewService.init()
+ShopService.init()
 ArtefactService.init()
 ShiftService.init()
 Tenant.init()
 Lampjaw.init()
 MapService.init()
-RunManager.init(function()
-	-- Next run: brand new level. Setting the attribute triggers the rebuild below.
-	workspace:SetAttribute("LevelSeed", math.random(1, 999999))
-end)
+RunManager.init(startHub) -- after each run's results, everyone goes back to the hub
 
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(moveToSpawn)
-end)
-for _, player in Players:GetPlayers() do
-	player.CharacterAdded:Connect(moveToSpawn)
-end
+startHub()
 
-local startSeed = workspace:GetAttribute("LevelSeed")
-if typeof(startSeed) ~= "number" then
-	startSeed = math.random(1, 999999)
-	workspace:SetAttribute("LevelSeed", startSeed)
-end
-buildLevel(startSeed :: number)
-
--- Level is built and lit: now let people spawn.
+-- The safehouse is built and lit: now let people spawn (in the safehouse).
 Players.CharacterAutoLoads = true
 for _, player in Players:GetPlayers() do
 	if not player.Character then
@@ -160,7 +258,7 @@ end
 
 workspace:GetAttributeChangedSignal("LevelSeed"):Connect(function()
 	local seed = workspace:GetAttribute("LevelSeed")
-	if typeof(seed) == "number" then
-		buildLevel(seed)
+	if not seedFromStudio and typeof(seed) == "number" and workspace:GetAttribute("RunState") == "hub" then
+		descend(seed)
 	end
 end)

@@ -50,7 +50,7 @@ local timerLabel = label({
 	Name = "Timer",
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 34),
-	Size = UDim2.fromOffset(200, 22),
+	Size = UDim2.fromOffset(260, 22),
 	TextSize = 20,
 })
 
@@ -70,7 +70,7 @@ local cashLabel = label({
 	Name = "Cash",
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -20, 1, -32),
-	Size = UDim2.fromOffset(240, 22),
+	Size = UDim2.fromOffset(340, 22),
 	TextSize = 18,
 	TextColor3 = GREEN,
 	TextXAlignment = Enum.TextXAlignment.Right,
@@ -156,12 +156,20 @@ RunService.Heartbeat:Connect(function()
 		local left = math.max(0, math.ceil(endsAt - workspace:GetServerTimeNow()))
 		timerLabel.Text = string.format("%02d:%02d", left // 60, left % 60)
 		timerLabel.TextColor3 = if left <= 60 then RED else PALE
+	elseif workspace:GetAttribute("RunState") == "hub" then
+		local hubEnds = workspace:GetAttribute("HubEndsAt") or 0
+		local left = math.max(0, math.ceil(hubEnds - workspace:GetServerTimeNow()))
+		timerLabel.Text = string.format("DESCENT %02d:%02d", left // 60, left % 60)
+		timerLabel.TextColor3 = PALE
 	else
 		timerLabel.Text = "--:--"
 		timerLabel.TextColor3 = PALE
 	end
 
-	cashLabel.Text = `CASH  ${player:GetAttribute("Cash") or 0}`
+	local battery = if (player:GetAttribute("Own_flashlight") or 0) > 0
+		then `  ·  LIGHT {math.floor(player:GetAttribute("Battery") or 0)}%`
+		else ""
+	cashLabel.Text = `CASH  ${player:GetAttribute("Cash") or 0}{battery}`
 
 	local count = player:GetAttribute("CarryCount") or 0
 	local weight = player:GetAttribute("CarryWeight") or 0

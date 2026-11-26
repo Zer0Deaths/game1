@@ -45,7 +45,7 @@ end
 
 local function update()
 	local l = layout
-	if not l or workspace:GetAttribute("Shifting") then
+	if not l or workspace:GetAttribute("Shifting") or workspace:GetAttribute("RunState") ~= "playing" then
 		return
 	end
 	local shift = (workspace:GetAttribute("ShiftCount") or 0) :: number
@@ -54,7 +54,7 @@ local function update()
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if humanoid and root and humanoid.Health > 0 then
+		if humanoid and root and humanoid.Health > 0 and LevelBuilder.inLevel(l, root.Position) then
 			local cx = math.clamp(math.floor(root.Position.X / LevelBuilder.CELL) + 1, 1, l.width)
 			local cz = math.clamp(math.floor(root.Position.Z / LevelBuilder.CELL) + 1, 1, l.depth)
 			for _, e in MapKnowledge.reveal(knowledge, l, cx, cz, shift, Config.MAP_SIGHT_CELLS) do
