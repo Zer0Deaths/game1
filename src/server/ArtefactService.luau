@@ -14,6 +14,7 @@ local Artefacts = require(Shared:WaitForChild("Artefacts"))
 local Config = require(Shared:WaitForChild("Config"))
 local LevelGen = require(Shared:WaitForChild("LevelGen"))
 local Remotes = require(script.Parent:WaitForChild("Remotes"))
+local NoiseService = require(script.Parent:WaitForChild("NoiseService"))
 
 local ArtefactService = {}
 
@@ -244,6 +245,8 @@ local function dropHeld(player: Player)
 	local _, yaw, _ = root.CFrame:ToOrientation()
 	placeInWorld(tool, pos, yaw)
 	ArtefactService.refreshCarry(player)
+	-- Loot hitting the floor is loud.
+	NoiseService.emit(pos, Config.TENANT.hearDrop, player)
 end
 
 local function onCharacter(player: Player, character: Model)
