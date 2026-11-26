@@ -26,6 +26,7 @@ export type Layout = {
 	cells: { { Cell } }, -- cells[x][z]
 	rooms: { { x: number, z: number, w: number, d: number } },
 	spawn: { x: number, z: number },
+	exit: { x: number, z: number }, -- exit lift, the reachable cell furthest from spawn
 }
 
 export type Options = {
@@ -118,6 +119,7 @@ function LevelGen.generate(seed: number, options: Options?): Layout
 		cells = cells,
 		rooms = {},
 		spawn = { x = 1, z = 1 },
+		exit = { x = width, z = depth },
 	}
 
 	-- 2. Carve a maze (randomised depth-first search). Every cell becomes reachable.
@@ -192,7 +194,41 @@ function LevelGen.generate(seed: number, options: Options?): Layout
 	-- Spawn cell is always lit so players don't start blind.
 	cells[1][1].light = "on"
 
+	-- 6. Exit lift goes in the cell that takes longest to walk to.
+	-- Ties go to the lowest key so the same seed always picks the same cell.
+	local best, bestDist, bestKey = layout.exit, -1, math.huge
+	for k, dist in LevelGen.distancesFrom(layout, 1, 1) do
+		if dist > bestDist or (dist == bestDist and k < bestKey) then
+			bestDist, bestKey = dist, k
+			best = { x = k // 1000, z = k % 1000 }
+		end
+	end
+	layout.exit = best
+	cells[best.x][best.z].light = "on"
+
 	return layout
+end
+
+-- Walking distance (in cells) from (sx, sz) to every reachable cell.
+-- Keys are x * 1000 + z.
+function LevelGen.distancesFrom(layout: Layout, sx: number, sz: number): { [number]: number }
+	local dist: { [number]: number } = { [sx * 1000 + sz] = 0 }
+	local queue = { { sx, sz } }
+	local head = 1
+	while head <= #queue do
+		local x, z = queue[head][1], queue[head][2]
+		head += 1
+		local here = dist[x * 1000 + z]
+		for _, d in DIRS do
+			local nx, nz = x + d[1], z + d[2]
+			local k = nx * 1000 + nz
+			if dist[k] == nil and not LevelGen.hasWall(layout, x, z, d[1], d[2]) then
+				dist[k] = here + 1
+				table.insert(queue, { nx, nz })
+			end
+		end
+	end
+	return dist
 end
 
 -- Counts cells reachable from the spawn. Used by tests to prove
