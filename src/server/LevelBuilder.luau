@@ -16,12 +16,23 @@ LevelBuilder.HEIGHT = 11 -- floor to ceiling, low on purpose so it feels cramped
 LevelBuilder.THICK = 1 -- wall thickness
 
 local COLORS = {
-	wall = Color3.fromRGB(196, 178, 104), -- stained yellow wallpaper
-	carpet = Color3.fromRGB(140, 122, 68), -- damp carpet
-	ceiling = Color3.fromRGB(214, 210, 188), -- office ceiling tiles
-	lightOn = Color3.fromRGB(255, 244, 214),
-	lightDead = Color3.fromRGB(70, 68, 60),
-	pillar = Color3.fromRGB(180, 162, 92),
+	wall = Color3.fromRGB(201, 181, 104), -- stained yellow wallpaper
+	skirting = Color3.fromRGB(112, 94, 54), -- scuffed brown skirting board
+	carpet = Color3.fromRGB(128, 110, 62), -- damp mustard carpet
+	ceiling = Color3.fromRGB(206, 201, 178), -- yellowed ceiling tiles
+	grid = Color3.fromRGB(150, 146, 128), -- metal T-bar ceiling grid
+	housing = Color3.fromRGB(186, 184, 174), -- light fitting frame
+	lightOn = Color3.fromRGB(246, 242, 212), -- cold-warm fluorescent
+	lightDead = Color3.fromRGB(64, 62, 56),
+	pillar = Color3.fromRGB(190, 170, 96),
+}
+
+-- Built-in Roblox materials only (no uploads needed).
+local MATERIALS = {
+	wall = Enum.Material.Plaster,
+	carpet = Enum.Material.Carpet,
+	ceiling = Enum.Material.Plaster,
+	trim = Enum.Material.SmoothPlastic,
 }
 
 local function makePart(props: { [string]: any }, parent: Instance): Part
@@ -63,15 +74,52 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 		Size = Vector3.new(W * S + T, 1, D * S + T),
 		Position = Vector3.new(W * S / 2, -0.5, D * S / 2),
 		Color = COLORS.carpet,
-		Material = Enum.Material.Fabric,
+		Material = MATERIALS.carpet,
 	}, model)
 	makePart({
 		Name = "Ceiling",
 		Size = Vector3.new(W * S + T, 1, D * S + T),
 		Position = Vector3.new(W * S / 2, H + 0.5, D * S / 2),
 		Color = COLORS.ceiling,
-		Material = Enum.Material.Concrete,
+		Material = MATERIALS.ceiling,
 	}, model)
+
+	-- Suspended-ceiling grid: thin strips every quarter cell, both ways.
+	local ceilingFolder = Instance.new("Folder")
+	ceilingFolder.Name = "CeilingGrid"
+	ceilingFolder.Parent = model
+	local step = S / 4
+	for i = 0, math.floor(W * S / step) do
+		makePart({
+			Name = "GridX",
+			Size = Vector3.new(0.25, 0.1, D * S),
+			Position = Vector3.new(i * step, H - 0.05, D * S / 2),
+			Color = COLORS.grid,
+			Material = MATERIALS.trim,
+			CanCollide = false,
+			CastShadow = false,
+		}, ceilingFolder)
+	end
+	for i = 0, math.floor(D * S / step) do
+		makePart({
+			Name = "GridZ",
+			Size = Vector3.new(W * S, 0.1, 0.25),
+			Position = Vector3.new(W * S / 2, H - 0.05, i * step),
+			Color = COLORS.grid,
+			Material = MATERIALS.trim,
+			CanCollide = false,
+			CastShadow = false,
+		}, ceilingFolder)
+	end
+
+	-- Slightly different shade per wall run, so walls look patchy and aged
+	-- rather than one flat colour. Seeded, so the same seed looks the same.
+	local rng = LevelGen.makeRng(layout.seed + 7)
+	local function agedWallColor(): Color3
+		local shade = 0.86 + rng.float() * 0.16
+		local c = COLORS.wall
+		return Color3.new(c.R * shade, c.G * shade, c.B * (shade - 0.04))
+	end
 
 	local function wallX(xLine: number, z0: number, z1: number)
 		-- Wall running north-south along X = xLine * S, covering cells z0..z1.
@@ -79,8 +127,16 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 			Name = "Wall",
 			Size = Vector3.new(T, H, (z1 - z0 + 1) * S + T),
 			Position = Vector3.new(xLine * S, H / 2, ((z0 - 1) * S + z1 * S) / 2),
-			Color = COLORS.wall,
-			Material = Enum.Material.SmoothPlastic,
+			Color = agedWallColor(),
+			Material = MATERIALS.wall,
+		}, walls)
+		makePart({
+			Name = "Skirting",
+			Size = Vector3.new(T + 0.3, 0.7, (z1 - z0 + 1) * S + T + 0.3),
+			Position = Vector3.new(xLine * S, 0.35, ((z0 - 1) * S + z1 * S) / 2),
+			Color = COLORS.skirting,
+			Material = MATERIALS.trim,
+			CastShadow = false,
 		}, walls)
 	end
 	local function wallZ(zLine: number, x0: number, x1: number)
@@ -89,8 +145,16 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 			Name = "Wall",
 			Size = Vector3.new((x1 - x0 + 1) * S + T, H, T),
 			Position = Vector3.new(((x0 - 1) * S + x1 * S) / 2, H / 2, zLine * S),
-			Color = COLORS.wall,
-			Material = Enum.Material.SmoothPlastic,
+			Color = agedWallColor(),
+			Material = MATERIALS.wall,
+		}, walls)
+		makePart({
+			Name = "Skirting",
+			Size = Vector3.new((x1 - x0 + 1) * S + T + 0.3, 0.7, T + 0.3),
+			Position = Vector3.new(((x0 - 1) * S + x1 * S) / 2, 0.35, zLine * S),
+			Color = COLORS.skirting,
+			Material = MATERIALS.trim,
+			CastShadow = false,
 		}, walls)
 	end
 
@@ -139,22 +203,32 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 					Size = Vector3.new(2, H, 2),
 					Position = Vector3.new(x * S, H / 2, z * S),
 					Color = COLORS.pillar,
-					Material = Enum.Material.SmoothPlastic,
+					Material = MATERIALS.wall,
 				}, walls)
 			end
 		end
 	end
 
-	-- One ceiling light panel per cell.
+	-- One fluorescent fitting per cell: a frame flush with the ceiling
+	-- and a glowing diffuser panel just below it.
 	for x = 1, W do
 		for z = 1, D do
 			local cell = layout.cells[x][z]
 			local c = LevelBuilder.cellCenter(x, z)
 			local dead = cell.light == "dead"
+			makePart({
+				Name = "LightHousing",
+				Size = Vector3.new(4.6, 0.3, 2.6),
+				Position = Vector3.new(c.X, H - 0.15, c.Z),
+				Color = COLORS.housing,
+				Material = MATERIALS.trim,
+				CanCollide = false,
+				CastShadow = false,
+			}, lights)
 			local panel = makePart({
 				Name = "LightPanel",
-				Size = Vector3.new(4, 0.2, 2),
-				Position = Vector3.new(c.X, H - 0.1, c.Z),
+				Size = Vector3.new(4, 0.12, 2),
+				Position = Vector3.new(c.X, H - 0.33, c.Z),
 				Color = if dead then COLORS.lightDead else COLORS.lightOn,
 				Material = if dead then Enum.Material.SmoothPlastic else Enum.Material.Neon,
 				CanCollide = false,
@@ -164,8 +238,8 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 				local light = Instance.new("SurfaceLight")
 				light.Face = Enum.NormalId.Bottom
 				light.Angle = 120
-				light.Range = 18
-				light.Brightness = 1.6
+				light.Range = 20
+				light.Brightness = 2
 				light.Color = COLORS.lightOn
 				light.Shadows = false -- shadows on 196 lights would kill phones
 				light.Parent = panel
