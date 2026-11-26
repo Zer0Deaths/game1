@@ -117,3 +117,30 @@ for seed = 1, 200 do
 end
 print(`shift rounds checked: 1000, maze splits: {shiftFailures}, fewest walls changed: {minChanged}`)
 print(if failures == 0 then "ALL PASSED (incl. shift)" else `{failures} FAILURES`)
+
+-- PATH: routes are walkable step by step and as short as BFS distance says.
+local pathFailures = 0
+for seed = 1, 100 do
+	local layout = LevelGen.generate(seed)
+	local rng = LevelGen.makeRng(seed * 13)
+	for _ = 1, 10 do
+		local sx, sz = rng.int(1, layout.width), rng.int(1, layout.depth)
+		local tx, tz = rng.int(1, layout.width), rng.int(1, layout.depth)
+		local route = LevelGen.path(layout, sx, sz, tx, tz)
+		local dist = LevelGen.distancesFrom(layout, sx, sz)[tx * 1000 + tz]
+		if not route or #route ~= dist then
+			pathFailures += 1
+			check(false, `path seed {seed}: length {route and #route or -1} vs distance {dist}`)
+		else
+			local cx, cz = sx, sz
+			for _, step in route do
+				local dx, dz = step[1] - cx, step[2] - cz
+				check(math.abs(dx) + math.abs(dz) == 1 and not LevelGen.hasWall(layout, cx, cz, dx, dz), `path seed {seed}: walks through a wall`)
+				cx, cz = step[1], step[2]
+			end
+			check(cx == tx and cz == tz, `path seed {seed}: does not end at the goal`)
+		end
+	end
+end
+print(`paths checked: 1000, failures: {pathFailures}`)
+print(if failures == 0 then "ALL PASSED (incl. paths)" else `{failures} FAILURES`)

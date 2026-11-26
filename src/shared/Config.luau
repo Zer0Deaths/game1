@@ -35,6 +35,7 @@ return {
 	-- First-person arms (Arms.client). Your real avatar arms are shown in
 	-- first person and lifted forward at the shoulder so you can see them.
 	-- The walk/run animation swings them; these angles are in degrees.
+	SHOW_FIRST_PERSON_ARMS = false, -- off until a proper arms model exists (the avatar arms looked too big)
 	ARMS = {
 		idleRaise = 55, -- standing still: arms lowered, mostly out of view
 		walkRaise = 88, -- walking: how far forward the arms lift
@@ -42,6 +43,27 @@ return {
 		inward = 14, -- angle the arms in towards the centre
 		lookFollow = 0.5, -- how much the arms follow looking up/down (0 = not at all)
 		ease = 7, -- how quickly arms settle (higher = snappier)
+	},
+
+	-- THE TENANT: hunts by sound. Arrives right after the first Shift and
+	-- re-appears near the loudest player after every Shift. Counter: stay
+	-- quiet, split up, hide in the exit lift.
+	TENANT = {
+		enabled = true,
+		height = 9.5, -- studs (ceiling is 11)
+		wanderSpeed = 6, -- studs/s
+		investigateSpeed = 11, -- heading to a noise
+		chaseSpeed = 17.5, -- faster than walking (16), slower than sprinting (25.6)
+		killRange = 4, -- studs: caught
+		sightRange = 45, -- studs: will chase what it can see this close
+		hearWalk = 40, -- studs: hears a walking player this far away
+		hearSprint = 110, -- studs: hears a sprinting player this far away
+		hearPerWeight = 2, -- extra studs per point of carried weight
+		hearDrop = 90, -- studs: hears dropped loot this far away
+		forgetAfter = 8, -- seconds without hearing or seeing you before it gives up
+		arriveMinCells = 4, -- after a Shift it appears at least this many cells (by path) from everyone
+		arriveMaxCells = 7, -- ...and at most this far from the loudest player
+		killCooldown = 6, -- seconds it lingers after taking someone
 	},
 
 	-- The Shift

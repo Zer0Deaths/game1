@@ -231,6 +231,41 @@ function LevelGen.distancesFrom(layout: Layout, sx: number, sz: number): { [numb
 	return dist
 end
 
+-- Shortest walking route between two cells, as a list of cells from the
+-- one after the start up to and including the goal ({} if already there,
+-- nil if unreachable). Used by entities to walk the maze.
+function LevelGen.path(layout: Layout, sx: number, sz: number, tx: number, tz: number): { { number } }?
+	if sx == tx and sz == tz then
+		return {}
+	end
+	local from: { [number]: number } = { [sx * 1000 + sz] = -1 }
+	local queue = { { sx, sz } }
+	local head = 1
+	local goal = tx * 1000 + tz
+	while head <= #queue do
+		local x, z = queue[head][1], queue[head][2]
+		head += 1
+		for _, d in DIRS do
+			local nx, nz = x + d[1], z + d[2]
+			local k = nx * 1000 + nz
+			if from[k] == nil and not LevelGen.hasWall(layout, x, z, d[1], d[2]) then
+				from[k] = x * 1000 + z
+				if k == goal then
+					local route = {}
+					local cur = k
+					while cur ~= sx * 1000 + sz do
+						table.insert(route, 1, { cur // 1000, cur % 1000 })
+						cur = from[cur]
+					end
+					return route
+				end
+				table.insert(queue, { nx, nz })
+			end
+		end
+	end
+	return nil
+end
+
 -- Counts cells reachable from the spawn. Used by tests to prove
 -- the level never traps a player.
 function LevelGen.reachableCount(layout: Layout): number

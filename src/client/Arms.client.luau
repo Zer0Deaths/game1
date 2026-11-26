@@ -13,6 +13,10 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local A = Config.ARMS
 
+if not Config.SHOW_FIRST_PERSON_ARMS then
+	return -- hidden until a proper arms model exists; flip the flag in Config to test
+end
+
 local player = Players.LocalPlayer
 
 local R15_ARMS = {
