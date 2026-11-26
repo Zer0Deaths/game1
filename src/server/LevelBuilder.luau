@@ -213,6 +213,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 				light.Parent = panel
 			end
 			panel:SetAttribute("LightState", cell.light)
+			panel:SetAttribute("Cell", x * 1000 + z) -- lets entities find "the light over this cell"
 			if not dead then
 				CollectionService:AddTag(panel, "CeilingLight") -- the Shift blacks these out
 			end

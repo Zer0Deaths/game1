@@ -3,6 +3,7 @@
 --   normal:   panels tagged "FlickerLight" stutter in bursts like dying tubes
 --   warning:  (Workspace.ShiftWarning) every light stutters, the Shift is coming
 --   blackout: (Workspace.Shifting) every light is off while the maze rewires
+--   Lampjaw:  (Workspace.LampjawCell) the light it is hiding in strobes red and buzzes
 
 local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
@@ -28,6 +29,7 @@ local function setLevel(panel: BasePart, level: number)
 	if light then
 		light.Enabled = level > 0
 		light.Brightness = FULL_BRIGHTNESS * level
+		light.Color = ON
 	end
 end
 
@@ -46,6 +48,68 @@ end
 
 local mode = "normal"
 local nextStorm = 0
+
+-- Lampjaw's light: a red strobe and an electrical buzz.
+local RED_ON = Color3.fromRGB(255, 120, 90)
+local RED_DIM = Color3.fromRGB(140, 50, 40)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundIds = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SoundIds"))
+local lampjawPanel: BasePart? = nil
+local lampjawKey = 0
+local nextStrobe = 0
+local buzz = Instance.new("Sound")
+buzz.Name = "LampjawBuzz"
+buzz.Looped = true
+buzz.Volume = 0.9
+buzz.PlaybackSpeed = 2.4
+buzz.RollOffMode = Enum.RollOffMode.InverseTapered
+buzz.RollOffMinDistance = 6
+buzz.RollOffMaxDistance = 60
+
+local function findLampjawPanel(key: number): BasePart?
+	if key == 0 then
+		return nil
+	end
+	for _, inst in CollectionService:GetTagged("FlickerLight") do
+		if inst:IsA("BasePart") and inst:GetAttribute("Cell") == key then
+			return inst
+		end
+	end
+	return nil
+end
+
+local function updateLampjaw(now: number, strobe: boolean)
+	local key = (workspace:GetAttribute("LampjawCell") or 0) :: number
+	if key ~= lampjawKey or (lampjawPanel and not lampjawPanel.Parent) then
+		if lampjawPanel and lampjawPanel.Parent then
+			setLevel(lampjawPanel, 1)
+		end
+		lampjawKey = key
+		lampjawPanel = findLampjawPanel(key)
+		buzz:Stop()
+		buzz.Parent = lampjawPanel
+		if lampjawPanel then
+			local id = SoundIds.get("HUM")
+			if id then
+				buzz.SoundId = id
+				buzz:Play()
+			end
+		end
+	end
+	local panel = lampjawPanel
+	if panel and strobe and now >= nextStrobe then
+		nextStrobe = now + 0.04 + math.random() * 0.09
+		local on = math.random() < 0.55
+		panel.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		panel.Color = if on then RED_ON else RED_DIM
+		local light = panel:FindFirstChildOfClass("SurfaceLight")
+		if light then
+			light.Enabled = on
+			light.Color = RED_ON
+			light.Brightness = if on then 1.6 else 0
+		end
+	end
+end
 
 -- Lights built during a blackout must start dark too.
 CollectionService:GetInstanceAddedSignal("CeilingLight"):Connect(function(inst)
@@ -75,6 +139,9 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 
+	if mode ~= "normal" then
+		updateLampjaw(now, false) -- keep its buzz in step, but the Shift owns the lights
+	end
 	if mode == "blackout" then
 		return
 	elseif mode == "warning" then
@@ -90,9 +157,10 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
-	-- Normal: only the dying tubes stutter.
+	-- Normal: only the dying tubes stutter, and Lampjaw's light strobes red.
+	updateLampjaw(now, true)
 	for _, inst in CollectionService:GetTagged("FlickerLight") do
-		if not inst:IsA("BasePart") then
+		if not inst:IsA("BasePart") or inst == lampjawPanel then
 			continue
 		end
 		local panel = inst :: BasePart
