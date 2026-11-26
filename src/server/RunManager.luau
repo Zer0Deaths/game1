@@ -71,6 +71,7 @@ local function checkDeposits()
 				local crew = player:GetAttribute("Crew") or 1
 				local key = `Crew{crew}Banked`
 				workspace:SetAttribute(key, (workspace:GetAttribute(key) or 0) + total)
+				player:SetAttribute("Stat_Deposited", ((player:GetAttribute("Stat_Deposited") or 0) :: number) + total)
 				for _, mate in CrewService.members(crew) do
 					Remotes.Notify:FireClient(mate, `{player.DisplayName} deposited {count} item(s): +${total}`, "money")
 				end
@@ -96,6 +97,7 @@ local function endRun()
 		for _, p in members do
 			if met then
 				p:SetAttribute("Cash", (p:GetAttribute("Cash") or 0) + each)
+				p:SetAttribute("Stat_QuotasMet", ((p:GetAttribute("Stat_QuotasMet") or 0) :: number) + 1)
 				Remotes.Notify:FireClient(p, `QUOTA MET  ${banked} / ${quota}. You take home ${each}. Next quota: ${nextQuota}`, "banner")
 			else
 				Remotes.Notify:FireClient(p, `QUOTA FAILED  ${banked} / ${quota}. {Config.CREW_NAMES[c]} is wiped.`, "banner")

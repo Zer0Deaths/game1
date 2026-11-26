@@ -33,6 +33,7 @@ local MapService = require(script.Parent:WaitForChild("MapService"))
 local CrewService = require(script.Parent:WaitForChild("CrewService"))
 local Safehouse = require(script.Parent:WaitForChild("Safehouse"))
 local ShopService = require(script.Parent:WaitForChild("ShopService"))
+local DataService = require(script.Parent:WaitForChild("DataService"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
@@ -232,6 +233,7 @@ local function watchDeaths(player: Player)
 		humanoid.Died:Connect(function()
 			if workspace:GetAttribute("RunState") == "playing" then
 				player:SetAttribute("DiedThisRun", true)
+				player:SetAttribute("Stat_Deaths", ((player:GetAttribute("Stat_Deaths") or 0) :: number) + 1)
 			end
 		end)
 	end)
@@ -245,6 +247,7 @@ end
 
 CrewService.init()
 ShopService.init()
+DataService.init()
 ArtefactService.init()
 ShiftService.init()
 Tenant.init()
