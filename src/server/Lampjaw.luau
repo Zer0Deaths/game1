@@ -38,8 +38,9 @@ end
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if humanoid and humanoid.Health > 0 then
-		return character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local r = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if humanoid and humanoid.Health > 0 and r and layout and LevelBuilder.inLevel(layout, r.Position) then
+		return r
 	end
 	return nil
 end

@@ -48,6 +48,12 @@ local function makePart(props: { [string]: any }, parent: Instance): Part
 end
 
 -- World position of the middle of a cell, at floor height.
+-- Is this position inside the level (not the safehouse)?
+function LevelBuilder.inLevel(layout: LevelGen.Layout, pos: Vector3): boolean
+	local s = LevelBuilder.CELL
+	return pos.X >= 0 and pos.Z >= 0 and pos.X <= layout.width * s and pos.Z <= layout.depth * s and pos.Y > -20
+end
+
 function LevelBuilder.cellCenter(x: number, z: number): Vector3
 	local s = LevelBuilder.CELL
 	return Vector3.new((x - 0.5) * s, 0, (z - 0.5) * s)

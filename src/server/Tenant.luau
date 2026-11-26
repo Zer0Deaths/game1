@@ -104,8 +104,10 @@ end
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if humanoid and humanoid.Health > 0 then
-		return character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local r = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	-- Only people actually in the level (not waiting in the safehouse).
+	if humanoid and humanoid.Health > 0 and r and layout and LevelBuilder.inLevel(layout, r.Position) then
+		return r
 	end
 	return nil
 end
@@ -337,7 +339,7 @@ local function decide()
 	local heard = NoiseService.audible(position)
 	local best: NoiseService.Noise? = nil
 	for _, n in heard do
-		if not inLift(n.position) and (not best or n.radius - (n.position - position).Magnitude > best.radius - (best.position - position).Magnitude) then
+		if layout and LevelBuilder.inLevel(layout, n.position) and not inLift(n.position) and (not best or n.radius - (n.position - position).Magnitude > best.radius - (best.position - position).Magnitude) then
 			best = n
 		end
 	end

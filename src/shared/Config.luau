@@ -98,6 +98,17 @@ return {
 		Color3.fromRGB(240, 140, 200), -- pink
 	},
 
+	-- Safehouse hub: where crews wait, shop and pick crews between runs.
+	HUB_ORIGIN = Vector3.new(-160, 0, 140), -- far from the level (which starts at 0,0)
+	HUB_SECONDS = 60, -- countdown before the next descent
+	HUB_ALL_READY_SECONDS = 5, -- countdown once everyone has pressed Ready
+
+	-- Flashlight (shop item)
+	FLASHLIGHT_SECONDS = 150, -- battery life per run
+	FLASHLIGHT_RANGE = 40,
+	FLASHLIGHT_BRIGHTNESS = 2.2,
+	SOFTBOOTS_NOISE = 0.6, -- soft-sole boots multiply your noise radius by this
+
 	-- The Shift
 	SHIFT_MIN_SECONDS = 80, -- time between Shifts is random in this range
 	SHIFT_MAX_SECONDS = 120,
