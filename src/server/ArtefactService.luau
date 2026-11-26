@@ -280,11 +280,17 @@ local function onCharacter(player: Player, character: Model)
 end
 
 function ArtefactService.init()
-	game:GetService("StarterPlayer").EnableMouseLockOption = false
+	local StarterPlayer = game:GetService("StarterPlayer")
+	StarterPlayer.EnableMouseLockOption = false
+	-- First person only, for everyone.
+	StarterPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
 	Remotes.DropArtefact.OnServerEvent:Connect(dropHeld)
 	local function onPlayer(player: Player)
 		-- Left Shift is our sprint key, so Roblox's Shift Lock has to go.
 		player.DevEnableMouseLock = false
+		-- First person only. Roblox hides your own body and the loot on your
+		-- back from your own camera; held items still show in your hand.
+		player.CameraMode = Enum.CameraMode.LockFirstPerson
 		player.CharacterAdded:Connect(function(character)
 			onCharacter(player, character)
 		end)
