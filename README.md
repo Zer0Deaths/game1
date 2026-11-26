@@ -67,7 +67,6 @@ Until then the hum is silent and footsteps use Roblox's default sound.
 - `src/server/main.server.luau` sets dark lighting, builds the level and moves players to the spawn.
 - `src/server/Atmosphere.luau` sets the look: haze, colour grading, bloom, hallway reverb. Tweak the numbers in `LOOK`.
 - `src/client/main.client.luau` makes flickering lights stutter in bursts on each player's device.
-- `src/client/CameraBob.client.luau` adds a gentle head bob while walking.
 - `src/shared/Artefacts.luau` lists the 8 artefact types: value, weight, look.
 - `src/server/ArtefactService.luau` spawns artefacts and handles pickup, drop, carry weight and death drops.
 - `src/server/ExitLift.luau` builds the deposit lift. `src/server/RunManager.luau` runs the quota, timer and deposits.
