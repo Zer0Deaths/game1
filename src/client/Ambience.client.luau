@@ -29,3 +29,7 @@ end
 workspace:GetAttributeChangedSignal("HUM"):Connect(refresh)
 workspace:GetAttributeChangedSignal("HumSoundId"):Connect(refresh)
 refresh()
+
+-- Work out which uploaded sound is which (footsteps pick this up too).
+SoundIds.autoAssign()
+refresh()
