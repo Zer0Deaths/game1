@@ -309,12 +309,22 @@ local function dress(model: Model, o: Vector3)
 	grime(decor, "floor_stain", CFrame.new(o + Vector3.new(6.5, 0.025, 8.5)) * CFrame.Angles(0, 0.7, 0), Vector3.new(3.2, 0.04, 2.4), NS.Top, 0)
 	grime(decor, "floor_stain", CFrame.new(o + Vector3.new(-25, 0.025, 8)) * CFrame.Angles(0, 2.1, 0), Vector3.new(2.6, 0.04, 2.2), NS.Top, 0.1)
 
-	-- More crates by the supply crate, and boxes by the counter.
-	part({ Name = "Crate", Size = Vector3.new(3, 2.6, 3), CFrame = CFrame.new(o + Vector3.new(-W / 2 + 4, 1.3, 17)) * CFrame.Angles(0, 0.12, 0), Color = Color3.fromRGB(120, 100, 64), Material = Enum.Material.WoodPlanks }, decor)
-	part({ Name = "Crate", Size = Vector3.new(2.2, 1.9, 2.2), CFrame = CFrame.new(o + Vector3.new(-W / 2 + 4.2, 3.55, 16.8)) * CFrame.Angles(0, -0.3, 0), Color = Color3.fromRGB(112, 94, 60), Material = Enum.Material.WoodPlanks }, decor)
-	part({ Name = "Crate", Size = Vector3.new(2.4, 2, 2.4), CFrame = CFrame.new(o + Vector3.new(-W / 2 + 8, 1, 18.5)) * CFrame.Angles(0, 0.5, 0), Color = Color3.fromRGB(126, 104, 66), Material = Enum.Material.WoodPlanks }, decor)
-	part({ Name = "Box", Size = Vector3.new(2, 1.5, 1.6), CFrame = CFrame.new(o + Vector3.new(W / 2 - 3, 0.75, -10)) * CFrame.Angles(0, 0.2, 0), Color = Color3.fromRGB(150, 120, 80), Material = Enum.Material.Cardboard }, decor)
-	part({ Name = "Box", Size = Vector3.new(1.6, 1.2, 1.4), CFrame = CFrame.new(o + Vector3.new(W / 2 - 3.2, 2.1, -10.1)) * CFrame.Angles(0, -0.25, 0), Color = Color3.fromRGB(160, 128, 84), Material = Enum.Material.Cardboard }, decor)
+	-- Storage lockers by the supply locker, a filing cabinet by the counter.
+	-- No crates or boxes on the floor: anything box-sized reads as loot.
+	for i, z in { 16.2, 18.8 } do
+		local cf = CFrame.new(o + Vector3.new(-W / 2 + 1.7, 3.25, z))
+		part({ Name = "Locker", Size = Vector3.new(2, 6.5, 2.4), CFrame = cf, Color = if i == 1 then Color3.fromRGB(86, 92, 88) else Color3.fromRGB(96, 98, 90), Material = Enum.Material.Metal }, decor)
+		bit({ Name = "LockerSeam", Size = Vector3.new(0.05, 6.1, 0.05), CFrame = cf * CFrame.new(1.01, 0, 0), Color = Color3.fromRGB(30, 30, 28), Material = Enum.Material.Metal }, decor)
+		for _, y in { 2.6, 2.3, 2.0 } do
+			bit({ Name = "LockerVent", Size = Vector3.new(0.05, 0.08, 1.4), CFrame = cf * CFrame.new(1.01, y, 0), Color = Color3.fromRGB(30, 30, 28), Material = Enum.Material.Metal }, decor)
+		end
+		bit({ Name = "LockerHandle", Size = Vector3.new(0.1, 0.5, 0.12), CFrame = cf * CFrame.new(1.05, 0.2, 0.8), Color = Color3.fromRGB(170, 168, 160), Material = Enum.Material.Metal }, decor)
+	end
+	part({ Name = "FilingCabinet", Size = Vector3.new(2.2, 4.4, 1.8), CFrame = CFrame.new(o + Vector3.new(W / 2 - 1.7, 2.2, -10)), Color = Color3.fromRGB(140, 138, 126), Material = Enum.Material.Metal }, decor)
+	for i = 0, 3 do
+		bit({ Name = "DrawerLine", Size = Vector3.new(0.04, 0.05, 1.6), CFrame = CFrame.new(o + Vector3.new(W / 2 - 2.81, 0.6 + i * 1.05, -10)), Color = Color3.fromRGB(34, 34, 36), Material = Enum.Material.Metal }, decor)
+		bit({ Name = "DrawerHandle", Size = Vector3.new(0.1, 0.1, 0.5), CFrame = CFrame.new(o + Vector3.new(W / 2 - 2.86, 0.95 + i * 1.05, -10)), Color = Color3.fromRGB(180, 178, 170), Material = Enum.Material.Metal }, decor)
+	end
 
 	-- A clipboard dropped on the floor, papers scattered round it.
 	local board = CFrame.new(o + Vector3.new(9, 0.04, -5)) * CFrame.Angles(0, 0.4, 0)
@@ -465,7 +475,11 @@ function Safehouse.build(): Hub
 	local wardrobe = part({ Name = "Wardrobe", Size = Vector3.new(3, 8, 6), Position = o + Vector3.new(-W / 2 + 3, 4, -12), Color = Color3.fromRGB(80, 74, 64), Material = Enum.Material.Metal }, model)
 	local wardrobePrompt = prompt(wardrobe, "Change suit colour", "Wardrobe")
 	wardrobePrompt.Enabled = Config.MONETISATION.SUIT_COLOURS_PASS ~= 0
-	local crate = part({ Name = "SupplyCrate", Size = Vector3.new(4, 3, 4), Position = o + Vector3.new(-W / 2 + 4, 1.5, 12), Color = Color3.fromRGB(110, 96, 60), Material = Enum.Material.WoodPlanks }, model)
+	-- A tall metal supply locker against the wall (was a wooden crate on
+	-- the floor, which read as loot).
+	local crate = part({ Name = "SupplyLocker", Size = Vector3.new(2, 7, 4), Position = o + Vector3.new(-W / 2 + 1.7, 3.5, 12), Color = Color3.fromRGB(70, 84, 76), Material = Enum.Material.Metal }, model)
+	local lockerSign = part({ Name = "SupplySign", Size = Vector3.new(0.1, 0.9, 3), Position = o + Vector3.new(-W / 2 + 2.76, 5.6, 12), Color = Color3.fromRGB(28, 26, 20), Material = Enum.Material.Plastic, CanCollide = false }, model)
+	textOn(lockerSign, Enum.NormalId.Right, "CREW SUPPLIES", AMBER)
 	local supplyPrompt = prompt(crate, "Send a crew supply drop", "Supplies for your whole crew")
 	supplyPrompt.Enabled = Config.MONETISATION.CREW_SUPPLY_PRODUCT ~= 0
 

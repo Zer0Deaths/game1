@@ -246,7 +246,7 @@ local function shelving(parent: Instance, at: CFrame, h: (number) -> number)
 		while x < W / 2 - 1.2 do
 			i += 1
 			local bw = 1.2 + h(level * 10 + i) * 1.4
-			if h(level * 10 + i + 50) < 0.7 and x + bw < W / 2 then
+			if level > 0 and h(level * 10 + i + 50) < 0.7 and x + bw < W / 2 then -- none on the bottom shelf, right by the floor
 				local bh = math.min(1.9, 0.8 + h(level * 10 + i + 90) * 1.2)
 				box(parent, at * CFrame.new(x + bw / 2, y + 0.08, (h(i + 7) - 0.5) * 0.3) * CFrame.Angles(0, (h(i + 3) - 0.5) * 0.3, 0), Vector3.new(bw, bh, Dp - 0.5))
 			end
@@ -516,8 +516,10 @@ local function dressCell(parent: Instance, kind: string, room: LevelGen.Room, x:
 		local alongX = room.w >= room.d
 		local rackYaw = if alongX then 0 else math.rad(90)
 		shelving(parent, CFrame.new(c) * CFrame.Angles(0, rackYaw, 0) * CFrame.new(0, 0, -4), h)
-		if h(45) < 0.5 then
-			box(parent, CFrame.new(c) * CFrame.Angles(0, rackYaw + (h(46) - 0.5), 0) * CFrame.new((h(47) - 0.5) * 8, 0, 4.5), Vector3.new(2, 1.6, 2))
+		-- No loose boxes on the floor: anything box-sized down there reads
+		-- as loot (Jason). A cabinet at the end of the aisle instead.
+		if h(45) < 0.35 then
+			filingCabinet(parent, CFrame.new(c) * CFrame.Angles(0, rackYaw, 0) * CFrame.new((h(47) - 0.5) * 6, 0, 4.6) * CFrame.Angles(0, math.rad(180), 0))
 		end
 	elseif kind == "atrium" then
 		if h(48) < 0.3 then
@@ -526,11 +528,9 @@ local function dressCell(parent: Instance, kind: string, room: LevelGen.Room, x:
 	elseif kind == "room" then
 		local roll = h(52)
 		if roll < 0.18 then
-			local base = at * CFrame.new((h(53) - 0.5) * 10, 0, (h(54) - 0.5) * 10)
-			box(parent, base, Vector3.new(2.2, 1.8, 2.2))
-			if h(55) < 0.6 then
-				box(parent, base * CFrame.new(0.1, 1.8, -0.1) * CFrame.Angles(0, 0.3, 0), Vector3.new(1.8, 1.4, 1.8))
-			end
+			-- A cabinet pushed against the side of the room (was a stack of
+			-- boxes, which looked like loot).
+			filingCabinet(parent, at * CFrame.new(7.5, 0, (h(54) - 0.5) * 10) * CFrame.Angles(0, math.rad(90), 0))
 		elseif roll < 0.3 then
 			chair(parent, at * CFrame.new((h(56) - 0.5) * 10, 0, (h(57) - 0.5) * 10), h(58) < 0.3)
 		elseif roll < 0.38 then
@@ -547,7 +547,7 @@ local function dressCell(parent: Instance, kind: string, room: LevelGen.Room, x:
 	else -- plain corridor
 		local roll = h(65)
 		if roll < 0.03 then
-			box(parent, at * CFrame.new(6, 0, (h(66) - 0.5) * 10), Vector3.new(2, 1.6, 2))
+			chair(parent, at * CFrame.new(6, 0, (h(66) - 0.5) * 10) * CFrame.Angles(0, h(64) * 6, 0), false)
 		elseif roll < 0.045 then
 			chair(parent, at * CFrame.new(5, 0, (h(67) - 0.5) * 10), true)
 		elseif roll < 0.06 then

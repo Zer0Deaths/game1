@@ -234,21 +234,56 @@ end
 -- Returns (items on the floor, items moved, items that found no clear spot
 -- and were left where they were).
 function ArtefactService.resettle(folder: Instance, layout: LevelGen.Layout, origin: Vector3, blockers: { Instance }): (number, number, number)
-	local params = OverlapParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = blockers
-	params.RespectCanCollide = false
+	-- Props are CanQuery = false (so the Tenant sees past them), which
+	-- hides them from spatial queries too, so this checks the parts
+	-- directly, bucketed by grid cell. Anything visible that rises above
+	-- floor clutter height counts.
+	local S = LevelBuilder.CELL
+	local buckets: { [number]: { BasePart } } = {}
+	for _, root in blockers do
+		for _, d in root:GetDescendants() do
+			if not d:IsA("BasePart") or d.Transparency >= 0.95 then
+				continue
+			end
+			local cf, size = d.CFrame, d.Size
+			local ext = (cf.RightVector * size.X):Abs() + (cf.UpVector * size.Y):Abs() + (cf.LookVector * size.Z):Abs()
+			local lo, hi = cf.Position - ext / 2 - origin, cf.Position + ext / 2 - origin
+			if hi.Y < 0.3 then
+				continue -- puddles, papers, fallen tiles: loot can sit on those
+			end
+			local x0, x1 = math.max(1, math.floor(lo.X / S) + 1), math.min(layout.width, math.floor(hi.X / S) + 1)
+			local z0, z1 = math.max(1, math.floor(lo.Z / S) + 1), math.min(layout.depth, math.floor(hi.Z / S) + 1)
+			for x = x0, x1 do
+				for z = z0, z1 do
+					local k = x * 1000 + z
+					local list = buckets[k]
+					if not list then
+						list = {}
+						buckets[k] = list
+					end
+					table.insert(list, d)
+				end
+			end
+		end
+	end
 
-	-- Footprint of an item lying flat, from just above the floor (so thin
-	-- floor clutter like puddles and fallen tiles doesn't count) to its top.
+	-- Is the item's footprint at `at` (from just above the floor to its
+	-- top) free of every part near it?
 	local function clear(at: Vector3, handle: BasePart): boolean
 		local s = handle.Size
-		local r = math.sqrt(s.X * s.X + s.Z * s.Z) / 2 + 0.4
+		local r = math.sqrt(s.X * s.X + s.Z * s.Z) / 2 + 0.3
 		local h = math.max(s.Y, 1)
-		local hits = workspace:GetPartBoundsInBox(CFrame.new(at.X, 0.3 + h / 2, at.Z), Vector3.new(r * 2, h, r * 2), params)
-		for _, part in hits do
-			if part.Transparency < 0.95 then
-				return false
+		local centre = Vector3.new(at.X, 0.3 + h / 2, at.Z)
+		local cx, cz = LevelBuilder.cellOf(layout, centre, origin)
+		for dx = -1, 1 do
+			for dz = -1, 1 do
+				for _, part in buckets[(cx + dx) * 1000 + cz + dz] or {} do
+					local p = part.CFrame:PointToObjectSpace(centre)
+					local half = part.Size / 2
+					if math.abs(p.X) < half.X + r and math.abs(p.Y) < half.Y + h / 2 and math.abs(p.Z) < half.Z + r then
+						return false
+					end
+				end
 			end
 		end
 		return true
