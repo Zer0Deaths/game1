@@ -95,7 +95,6 @@ local function verify()
 	end
 	verifying = true
 	task.spawn(function()
-		local ContentProvider = game:GetService("ContentProvider")
 		local list, keyOf = {}, {}
 		for key, raw in AssetIds.sounds :: any do
 			local id = normalise(raw)
@@ -107,24 +106,39 @@ local function verify()
 			end
 		end
 		local failed = {}
-		-- Preload real Sound instances: a bare ID string is fetched as an
-		-- image, and every audio ID then "fails" with "Asset type does not
-		-- match requested type" even though it's fine.
+		-- Load each one into a silent Sound and wait for it. PreloadAsync
+		-- reports success even for audio Roblox hasn't approved yet; a
+		-- Sound that is still not loaded after the wait is the real test.
+		local SoundService = game:GetService("SoundService")
 		local probes = {}
 		for _, id in list do
 			local probe = Instance.new("Sound")
+			probe.Name = "SoundIdsProbe"
 			probe.SoundId = id
 			probe.Volume = 0
+			probe.Parent = SoundService
 			table.insert(probes, probe)
 		end
-		pcall(function()
-			ContentProvider:PreloadAsync(probes, function(contentId: string, status: Enum.AssetFetchStatus)
-				if status == Enum.AssetFetchStatus.Failure then
-					bad[contentId] = true
-					table.insert(failed, `{keyOf[contentId] or "?"} ({string.match(contentId, "%d+") or contentId})`)
+		local deadline = os.clock() + 12
+		while os.clock() < deadline do
+			local waiting = false
+			for _, probe in probes do
+				if not probe.IsLoaded then
+					waiting = true
+					break
 				end
-			end)
-		end)
+			end
+			if not waiting then
+				break
+			end
+			task.wait(0.2)
+		end
+		for _, probe in probes do
+			if not probe.IsLoaded or probe.TimeLength <= 0 then
+				bad[probe.SoundId] = true
+				table.insert(failed, `{keyOf[probe.SoundId] or "?"} ({string.match(probe.SoundId, "%d+") or probe.SoundId})`)
+			end
+		end
 		for _, probe in probes do
 			probe:Destroy()
 		end
