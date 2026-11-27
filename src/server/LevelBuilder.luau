@@ -1133,6 +1133,8 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 						tubes.Color = panel.Color
 						tubes.Material = panel.Material
 						tubes.Parent = panel
+					else
+						panel.Transparency = 0 -- no separate tubes in this upload: keep the panel lit
 					end
 				end,
 			})

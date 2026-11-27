@@ -10,6 +10,14 @@
 --   Lampjaw:     a thin black thing that drops out of a light fitting:
 --                a long neck ending in a hinged jaw full of pale teeth.
 --
+-- THE BLENDER TENANT (blender/scripts/tenant.py): once its model is
+-- uploaded (AssetIds.models.tenant) and loaded, the Tenant is built from
+-- it instead: 15 MeshParts joined at the joints the Blender script wrote
+-- into the manifest, so the skeleton animated here is the one modelled
+-- there. Head hung low, shoulders hunched over it, arms past the knees,
+-- elbows that bend the wrong way, up on its toes. The built rig below
+-- stays as the fallback until then.
+--
 -- SWAPPING IN A REAL MODEL (Cube or Tripo mesh, see docs/ENTITY_GUIDE.md):
 -- put a rigged model in ServerStorage > SHIFT_Models named "Tenant" or
 -- "Lampjaw". It needs a HumanoidRootPart, Motor6D joints and an
@@ -30,6 +38,8 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Surfaces = require(Shared:WaitForChild("Surfaces"))
+local Manifest = require(Shared:WaitForChild("MeshManifest")) :: any
+local Meshes = require(script.Parent:WaitForChild("Meshes"))
 
 local EntityRig = {}
 
@@ -184,6 +194,77 @@ local function lampjaw(): Model
 	return m
 end
 
+-- R15 joints: name -> (Part0, Part1). Positions come from the manifest.
+local R15 = {
+	Root = { "HumanoidRootPart", "LowerTorso" },
+	Waist = { "LowerTorso", "UpperTorso" },
+	Neck = { "UpperTorso", "Head" },
+}
+for _, side in { "Left", "Right" } do
+	R15[`{side}Shoulder`] = { "UpperTorso", `{side}UpperArm` }
+	R15[`{side}Elbow`] = { `{side}UpperArm`, `{side}LowerArm` }
+	R15[`{side}Wrist`] = { `{side}LowerArm`, `{side}Hand` }
+	R15[`{side}Hip`] = { "LowerTorso", `{side}UpperLeg` }
+	R15[`{side}Knee`] = { `{side}UpperLeg`, `{side}LowerLeg` }
+	R15[`{side}Ankle`] = { `{side}LowerLeg`, `{side}Foot` }
+end
+
+-- The Blender Tenant, or nil while its model isn't uploaded or loaded.
+-- Modelled at 9.5 studs (Config.TENANT.height), scaled for other heights.
+local function tenantFromMesh(height: number): Model?
+	local spec = Manifest.tenant
+	if not (spec and spec.joints and Meshes.ready("tenant")) then
+		return nil
+	end
+	local k = height / 9.5
+	local meshes = Meshes.build("tenant", CFrame.identity, { scale = k })
+	if not meshes then
+		return nil
+	end
+	local m = Instance.new("Model")
+	m.Name = "Tenant"
+	local parts: { [string]: BasePart } = {}
+	for _, mp in meshes:GetChildren() do
+		if mp:IsA("BasePart") then
+			mp.Anchored = false
+			mp.Massless = true
+			mp.CanCollide = false
+			mp.CanQuery = false
+			mp.CanTouch = false
+			mp.CastShadow = true
+			mp.Parent = m
+			parts[mp.Name] = mp
+		end
+	end
+	meshes:Destroy()
+	local hip = spec.joints.Root.Y * k
+	local root = Instance.new("Part")
+	root.Name = "HumanoidRootPart"
+	root.Size = Vector3.new(1.2, 1.2, 0.6) * k
+	root.CFrame = CFrame.new(0, hip, 0)
+	root.Anchored = true
+	root.Transparency = 1
+	root.CanCollide = false
+	root.CanQuery = false
+	root.CanTouch = false
+	root.PivotOffset = CFrame.new(0, -hip, 0) -- the model's pivot is at its feet
+	root.Parent = m
+	m.PrimaryPart = root
+	parts.HumanoidRootPart = root
+	for name, pair in R15 do
+		local p0, p1 = parts[pair[1]], parts[pair[2]]
+		local at = spec.joints[name]
+		if not (p0 and p1 and at) then
+			warn(`[EntityRig] Blender Tenant is missing {name}: using the built rig`)
+			m:Destroy()
+			return nil
+		end
+		motor(name, p0, p1, CFrame.new(at * k))
+	end
+	animator(m)
+	return m
+end
+
 local BUILDERS: { [string]: (number) -> Model } = {
 	Tenant = tenant,
 	Lampjaw = function()
@@ -215,7 +296,13 @@ function EntityRig.build(name: string, height: number?): Model
 		end
 		print(`[EntityRig] using your {name} model from ServerStorage.SHIFT_Models`)
 	else
-		m = BUILDERS[name](height or 9.5)
+		local fromMesh = if name == "Tenant" then tenantFromMesh(height or 9.5) else nil
+		if fromMesh then
+			m = fromMesh
+			print("[EntityRig] Tenant: the Blender model")
+		else
+			m = BUILDERS[name](height or 9.5)
+		end
 	end
 	m.Name = name
 	pcall(function()
@@ -228,7 +315,7 @@ end
 
 -- Studio helper: a posable copy in Workspace for the Animation Editor.
 function EntityRig.spawnForEditing(name: string): Model
-	local m = BUILDERS[name](9.5)
+	local m = (if name == "Tenant" then tenantFromMesh(9.5) else nil) or BUILDERS[name](9.5)
 	m.Name = `{name}Rig`
 	m:PivotTo(CFrame.new(0, 20, 0))
 	m.Parent = workspace

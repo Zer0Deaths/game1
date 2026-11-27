@@ -7,9 +7,10 @@
 -- If Jason has made animations in the Animation Editor and put their IDs
 -- in Config.ANIMATIONS, those play. Otherwise a procedural animation
 -- drives the rig's Motor6D joints:
---   The Tenant: a slow, long-limbed walk; a loping run with arms
---               reaching when it hunts; a head that twitches when it
---               stops to listen or spots you; a lunge when it takes you.
+--   The Tenant: a slow, long-limbed walk; a loping run with its arms
+--               trailing when it hunts; a hanging head that twitches when
+--               it listens and comes up, tipped over, when it spots you;
+--               arms up and forward in a lunge when it takes you.
 --   Lampjaw:    a neck that sways under the light and a chattering jaw;
 --               a bite when it takes you. It's only visible in the red
 --               flashes of its light: glimpsed, never seen clearly.
@@ -34,6 +35,8 @@ type Rig = {
 	speed: number,
 	attackSeen: number,
 	panel: BasePart?,
+	lift: number, -- the Tenant's head coming up (eased)
+	roll: number,
 }
 local rigs: { [Model]: Rig } = {}
 
@@ -96,6 +99,8 @@ local function track(model: Model)
 		speed = 0,
 		attackSeen = (model:GetAttribute("AttackAt") or 0) :: number,
 		panel = nil,
+		lift = 0,
+		roll = 0,
 	}
 end
 
@@ -179,12 +184,13 @@ local function tenantPose(r: Rig, t: number, dt: number)
 	local lean = if running then -0.28 else 0
 	set(r, "Waist", CFrame.Angles(lean + breathe, s * 0.1 * amp, 0))
 
-	-- Arms: hang and swing loosely; when it hunts they reach forward.
-	local reach = if running then -0.55 else 0
+	-- Arms: hang and swing loosely; when it runs they trail behind it, and
+	-- when it takes you they come up and forward. (+X swings forward.)
+	local reach = if running then -0.4 else 0
 	local att = attacking(r)
 	if att >= 0 then
 		local lunge = math.sin(att * math.pi)
-		reach = -1.7 * lunge
+		reach = 1.5 * lunge
 		set(r, "Waist", CFrame.Angles(-0.5 * lunge, 0, 0))
 	end
 	local lag = math.sin(r.phase - 0.6)
@@ -194,13 +200,17 @@ local function tenantPose(r: Rig, t: number, dt: number)
 	set(r, "RightElbow", CFrame.Angles(-0.12 - math.max(0, -lag) * 0.3 * amp, 0, 0))
 
 	-- Head: slow, searching turns; a nervous twitch while it listens or
-	-- has just spotted someone.
+	-- has just spotted someone. It hangs low; when it spots you it comes up
+	-- and tips over to one side (the shriek), and stays up while it hunts.
 	local twitch = st == "notice" or (st == "investigate" and gait == "idle")
 	local jx, jy, jz = 0, 0, 0
 	if twitch and math.random() < 0.25 then
 		jx, jy, jz = (math.random() - 0.5) * 0.35, (math.random() - 0.5) * 0.5, (math.random() - 0.5) * 0.7
 	end
-	set(r, "Neck", CFrame.Angles(math.sin(t * 0.37) * 0.08 + jx, math.sin(t * 0.23) * 0.45 + jy, math.sin(t * 0.61) * 0.1 + jz))
+	local ease = math.min(1, dt * 5)
+	r.lift += ((if st == "notice" then 0.7 elseif st == "chase" then 0.35 else 0) - r.lift) * ease
+	r.roll += ((if st == "notice" then 0.55 else 0) - r.roll) * ease
+	set(r, "Neck", CFrame.Angles(math.sin(t * 0.37) * 0.08 + jx + r.lift, math.sin(t * 0.23) * 0.45 * (1 - r.lift) + jy, math.sin(t * 0.61) * 0.1 + jz + r.roll))
 end
 
 local function lampjawPose(r: Rig, t: number)

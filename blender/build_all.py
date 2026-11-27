@@ -63,6 +63,12 @@ def write_manifest():
                 f"shadow = {'true' if p['shadow'] else 'false'}, attach = \"{p['attach']}\" }},"
             )
         lines.append("\t\t},")
+        if m.get("joints"):
+            # Rigs (the Tenant): where each Motor6D sits, in the modelled frame.
+            lines.append("\t\tjoints = {")
+            for k in sorted(m["joints"]):
+                lines.append(f"\t\t\t{k} = {vec(m['joints'][k])},")
+            lines.append("\t\t},")
         lines.append("\t},")
     lines += ["}", ""]
     with open(MANIFEST, "w", newline="\n") as f:
