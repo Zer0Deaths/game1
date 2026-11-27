@@ -347,11 +347,13 @@ local function dress(model: Model, o: Vector3)
 		local crate = bit({ Name = "Crate", Size = crateSize, CFrame = top * CFrame.new(0, crateSize.Y / 2, 0), Color = Color3.fromRGB(122, 98, 66), Material = Enum.Material.WoodPlanks }, decor)
 		Meshes.dress("crate_small", top, decor, { crate }, { scale = scale })
 	end
-	part({ Name = "FilingCabinet", Size = Vector3.new(2.2, 4.4, 1.8), CFrame = CFrame.new(o + Vector3.new(W / 2 - 1.7, 2.2, -10)), Color = Color3.fromRGB(140, 138, 126), Material = Enum.Material.Metal }, decor)
+	local cabinet = { part({ Name = "FilingCabinet", Size = Vector3.new(2.2, 4.4, 1.8), CFrame = CFrame.new(o + Vector3.new(W / 2 - 1.7, 2.2, -10)), Color = Color3.fromRGB(140, 138, 126), Material = Enum.Material.Metal }, decor) }
 	for i = 0, 3 do
-		bit({ Name = "DrawerLine", Size = Vector3.new(0.04, 0.05, 1.6), CFrame = CFrame.new(o + Vector3.new(W / 2 - 2.81, 0.6 + i * 1.05, -10)), Color = Color3.fromRGB(34, 34, 36), Material = Enum.Material.Metal }, decor)
-		bit({ Name = "DrawerHandle", Size = Vector3.new(0.1, 0.1, 0.5), CFrame = CFrame.new(o + Vector3.new(W / 2 - 2.86, 0.95 + i * 1.05, -10)), Color = Color3.fromRGB(180, 178, 170), Material = Enum.Material.Metal }, decor)
+		table.insert(cabinet, bit({ Name = "DrawerLine", Size = Vector3.new(0.04, 0.05, 1.6), CFrame = CFrame.new(o + Vector3.new(W / 2 - 2.81, 0.6 + i * 1.05, -10)), Color = Color3.fromRGB(34, 34, 36), Material = Enum.Material.Metal }, decor))
+		table.insert(cabinet, bit({ Name = "DrawerHandle", Size = Vector3.new(0.1, 0.1, 0.5), CFrame = CFrame.new(o + Vector3.new(W / 2 - 2.86, 0.95 + i * 1.05, -10)), Color = Color3.fromRGB(180, 178, 170), Material = Enum.Material.Metal }, decor))
 	end
+	-- The Blender cabinet, drawers facing into the room (-X).
+	Meshes.dress("filing_cabinet", CFrame.new(o + Vector3.new(W / 2 - 1.7, 0, -10)) * CFrame.Angles(0, math.rad(90), 0), decor, cabinet)
 
 	-- A clipboard dropped on the floor, papers scattered round it.
 	local board = CFrame.new(o + Vector3.new(9, 0.04, -5)) * CFrame.Angles(0, 0.4, 0)
@@ -468,7 +470,7 @@ function Safehouse.build(): Hub
 	model.Name = "Safehouse"
 
 	-- Shell: floor, ceiling, four walls.
-	part({ Name = "Floor", Size = Vector3.new(W, 1, D), Position = o + Vector3.new(0, -0.5, 0), Color = Color3.fromRGB(118, 100, 62), Material = Enum.Material.Carpet }, model)
+	local floor = part({ Name = "Floor", Size = Vector3.new(W, 1, D), Position = o + Vector3.new(0, -0.5, 0), Color = Color3.fromRGB(118, 100, 62), Material = Enum.Material.Carpet }, model)
 	part({ Name = "Ceiling", Size = Vector3.new(W, 1, D), Position = o + Vector3.new(0, H + 0.5, 0), Color = Color3.fromRGB(200, 192, 170), Material = Enum.Material.Plaster }, model)
 	local wallColour = Color3.fromRGB(196, 178, 112) -- yellowed (the colour until the wallpaper is installed)
 	part({ Name = "WallN", Size = Vector3.new(W, H, 1), Position = o + Vector3.new(0, H / 2, -D / 2), Color = wallColour, Material = Enum.Material.Plaster }, model)
@@ -477,6 +479,17 @@ function Safehouse.build(): Hub
 	part({ Name = "WallE", Size = Vector3.new(1, H, D), Position = o + Vector3.new(W / 2, H / 2, 0), Color = wallColour, Material = Enum.Material.Plaster }, model)
 
 	dress(model, o)
+	local decor = model:FindFirstChild("Dressing") :: Folder
+
+	-- The Blender carpet tiles (the level's floor panels), sunk so their
+	-- tops are flush with the floor; they run on under the walls.
+	local held = false
+	for px = -1.5, 1.5 do
+		for pz = -1, 1 do
+			Meshes.dress("floor_panel", CFrame.new(o + Vector3.new(px * 20, -0.12, pz * 20)), decor, if held then {} else { floor }, { copy = { Carpet = floor } })
+			held = true
+		end
+	end
 
 	-- Title on the west wall.
 	local titleBoard = part({ Name = "Title", Size = Vector3.new(0.2, 3, 16), Position = o + Vector3.new(-W / 2 + 0.6, 7, 0), Color = Color3.fromRGB(28, 26, 20), Material = Enum.Material.Plastic }, model)
@@ -510,12 +523,16 @@ function Safehouse.build(): Hub
 	local screen = part({ Name = "ShopScreen", Size = Vector3.new(0.3, 2.4, 4), Position = o + Vector3.new(W / 2 - 6, 4.8, 0), Color = Color3.fromRGB(20, 30, 24), Material = Enum.Material.Neon }, model)
 	textOn(screen, Enum.NormalId.Left, "SUPPLIES", Color3.fromRGB(150, 230, 120))
 	local shopPrompt = prompt(counter, "Open shop", "Supplies")
+	-- The Blender counter (front to the room, -X) with the screen's housing.
+	-- The counter part stays, invisible, for its prompt; the screen stays lit.
+	Meshes.dress("shop_counter", CFrame.new(o + Vector3.new(W / 2 - 6, 0, 0)) * CFrame.Angles(0, math.rad(90), 0), decor, { counter })
 
 	-- Wardrobe and supply crate on the west side (only active once the
 	-- matching pass/product IDs are set in Config.MONETISATION).
 	local wardrobe = part({ Name = "Wardrobe", Size = Vector3.new(3, 8, 6), Position = o + Vector3.new(-W / 2 + 3, 4, -12), Color = Color3.fromRGB(80, 74, 64), Material = Enum.Material.Metal }, model)
 	local wardrobePrompt = prompt(wardrobe, "Change suit colour", "Wardrobe")
 	wardrobePrompt.Enabled = Config.MONETISATION.SUIT_COLOURS_PASS ~= 0
+	Meshes.dress("wardrobe", CFrame.new(o + Vector3.new(-W / 2 + 3, 0, -12)) * CFrame.Angles(0, math.rad(-90), 0), decor, { wardrobe })
 	-- A tall metal supply locker against the wall (was a wooden crate on
 	-- the floor, which read as loot).
 	local crate = part({ Name = "SupplyLocker", Size = Vector3.new(2, 7, 4), Position = o + Vector3.new(-W / 2 + 1.7, 3.5, 12), Color = Color3.fromRGB(70, 84, 76), Material = Enum.Material.Metal }, model)
@@ -523,18 +540,24 @@ function Safehouse.build(): Hub
 	textOn(lockerSign, Enum.NormalId.Right, "CREW SUPPLIES", AMBER)
 	local supplyPrompt = prompt(crate, "Send a crew supply drop", "Supplies for your whole crew")
 	supplyPrompt.Enabled = Config.MONETISATION.CREW_SUPPLY_PRODUCT ~= 0
+	Meshes.dress("supply_locker", CFrame.new(o + Vector3.new(-W / 2 + 1.7, 0, 12)) * CFrame.Angles(0, math.rad(-90), 0), decor, { crate })
 
 	-- Descent lift on the south wall.
 	local liftCentre = o + Vector3.new(0, 0, D / 2 - 7)
-	part({ Name = "LiftPlate", Size = Vector3.new(10, 0.2, 10), Position = liftCentre + Vector3.new(0, 0.1, 0), Color = Color3.fromRGB(70, 70, 74), Material = Enum.Material.DiamondPlate }, model)
+	local cage = { part({ Name = "LiftPlate", Size = Vector3.new(10, 0.2, 10), Position = liftCentre + Vector3.new(0, 0.1, 0), Color = Color3.fromRGB(70, 70, 74), Material = Enum.Material.DiamondPlate }, model) }
 	-- A worn concrete kerb round the plate.
 	for _, k in { { Vector3.new(0, 0, 5.45), Vector3.new(11.4, 0.18, 0.9) }, { Vector3.new(0, 0, -5.45), Vector3.new(11.4, 0.18, 0.9) }, { Vector3.new(5.45, 0, 0), Vector3.new(0.9, 0.18, 10) }, { Vector3.new(-5.45, 0, 0), Vector3.new(0.9, 0.18, 10) } } do
-		part({ Name = "LiftKerb", Size = k[2], Position = liftCentre + k[1] + Vector3.new(0, 0.09, 0), Color = Color3.fromRGB(140, 136, 126), Material = Enum.Material.Concrete }, model)
+		table.insert(cage, part({ Name = "LiftKerb", Size = k[2], Position = liftCentre + k[1] + Vector3.new(0, 0.09, 0), Color = Color3.fromRGB(140, 136, 126), Material = Enum.Material.Concrete }, model))
 	end
 	for _, corner in { Vector3.new(5, 0, 5), Vector3.new(-5, 0, 5), Vector3.new(5, 0, -5), Vector3.new(-5, 0, -5) } do
 		-- Scuffed painted steel on a concrete footing.
-		part({ Name = "Post", Size = Vector3.new(0.6, H, 0.6), Position = liftCentre + corner + Vector3.new(0, H / 2, 0), Color = Color3.fromRGB(128, 116, 74), Material = Enum.Material.Metal }, model)
-		part({ Name = "PostFooting", Size = Vector3.new(1.4, 1.1, 1.4), Position = liftCentre + corner + Vector3.new(0, 0.55, 0), Color = Color3.fromRGB(150, 146, 136), Material = Enum.Material.Concrete }, model)
+		table.insert(cage, part({ Name = "Post", Size = Vector3.new(0.6, H, 0.6), Position = liftCentre + corner + Vector3.new(0, H / 2, 0), Color = Color3.fromRGB(128, 116, 74), Material = Enum.Material.Metal }, model))
+		table.insert(cage, part({ Name = "PostFooting", Size = Vector3.new(1.4, 1.1, 1.4), Position = liftCentre + corner + Vector3.new(0, 0.55, 0), Color = Color3.fromRGB(150, 146, 136), Material = Enum.Material.Concrete }, model))
+	end
+	-- The Blender lift (deck, kerb, posts on footings, header, hoist ropes)
+	-- for the 12-stud safehouse. The DESCENT sign and ready button stay.
+	if H == 12 then
+		Meshes.dress("descent_lift", CFrame.new(liftCentre), decor, cage)
 	end
 	local liftBoard = part({ Name = "LiftSign", Size = Vector3.new(10, 2.4, 0.3), Position = liftCentre + Vector3.new(0, 9, -5), Color = Color3.fromRGB(28, 26, 20), Material = Enum.Material.Plastic, CanCollide = false }, model)
 	local liftSign = textOn(liftBoard, Enum.NormalId.Front, "DESCENT", AMBER)

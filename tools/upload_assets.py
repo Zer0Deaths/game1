@@ -78,8 +78,19 @@ def model_digest(fbx):
     counts as changed only if its script, the kit or its geometry summary did."""
     stem = os.path.splitext(os.path.basename(fbx))[0]
     h = hashlib.sha256()
-    for path in (os.path.join(MODELS, stem + ".json"), os.path.join(ROOT, "blender", "scripts", stem + ".py"),
-                 os.path.join(ROOT, "blender", "lib", "kit.py")):
+    script = os.path.join(ROOT, "blender", "scripts", stem + ".py")
+    paths = [os.path.join(MODELS, stem + ".json"), script, os.path.join(ROOT, "blender", "lib", "kit.py")]
+    # Shared helpers a script imports (shapes.py, or another script it builds
+    # on, like lift_cage.py) count too. Models that don't import any keep the
+    # digest they were uploaded with.
+    if os.path.exists(script):
+        with open(script, encoding="utf-8") as f:
+            for mod in re.findall(r"^\s*(?:import|from)\s+([a-z_0-9]+)", f.read(), re.M):
+                for folder in ("lib", "scripts"):
+                    dep = os.path.join(ROOT, "blender", folder, mod + ".py")
+                    if mod != "kit" and os.path.exists(dep) and dep not in paths:
+                        paths.append(dep)
+    for path in paths:
         if os.path.exists(path):
             with open(path, "rb") as f:
                 h.update(f.read())
