@@ -107,15 +107,36 @@ local function verify()
 			end
 		end
 		local failed = {}
+		-- Preload real Sound instances: a bare ID string is fetched as an
+		-- image, and every audio ID then "fails" with "Asset type does not
+		-- match requested type" even though it's fine.
+		local probes = {}
+		for _, id in list do
+			local probe = Instance.new("Sound")
+			probe.SoundId = id
+			probe.Volume = 0
+			table.insert(probes, probe)
+		end
 		pcall(function()
-			ContentProvider:PreloadAsync(list, function(contentId: string, status: Enum.AssetFetchStatus)
+			ContentProvider:PreloadAsync(probes, function(contentId: string, status: Enum.AssetFetchStatus)
 				if status == Enum.AssetFetchStatus.Failure then
 					bad[contentId] = true
 					table.insert(failed, `{keyOf[contentId] or "?"} ({string.match(contentId, "%d+") or contentId})`)
 				end
 			end)
 		end)
+		for _, probe in probes do
+			probe:Destroy()
+		end
 		verified = true
+		if #list > 3 and #failed == #list then
+			-- Every single one failing means the check is wrong, not the
+			-- sounds: don't throw them all away.
+			table.clear(bad)
+			warn(`[SoundIds] couldn't check the uploaded sounds (all {#list} reported failing); using them anyway`)
+			changed:Fire()
+			return
+		end
 		if #failed > 0 then
 			table.sort(failed)
 			warn(`[SoundIds] {#failed} uploaded sound(s) can't load yet (Roblox may still be reviewing them); using fallbacks: {table.concat(failed, ", ")}`)
