@@ -8,6 +8,10 @@ stingers, electrical noise, UI blips. Real recorded footsteps and impacts
 come from Kenney's CC0 packs instead (tools/fetch_cc0.py). The hum Jason
 uploaded is kept as it is; DRONE sits underneath it.
 
+DRONE is no longer uploaded (Roblox's IP filter took it down as a false
+match on 27 Nov 2026; tools/upload_assets.py blocks it). The game uses the
+hum, slowed, in its place.
+
 Pass keys to regenerate only those:  python tools/make_sounds.py HEARTBEAT DRONE
 """
 import os
