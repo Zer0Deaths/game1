@@ -1,4 +1,5 @@
-"""Uploads every SHIFT texture, sound and clothing template to Roblox in one
+"""Uploads every SHIFT texture, sound, clothing template and 3D model (the
+FBX files blender/build_all.py makes) to Roblox in one
 go and writes the IDs into src/shared/AssetIds.luau (Rojo syncs it).
 
 Run:  python tools/upload_assets.py
@@ -32,6 +33,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 ASSETS = os.path.join(ROOT, "assets")
 LEDGER = os.path.join(ASSETS, "uploaded.json")
+MODELS = os.path.join(ROOT, "blender", "exports")  # FBX from blender/build_all.py
 OUT = os.path.join(ROOT, "src", "shared", "AssetIds.luau")
 API = "https://apis.roblox.com/assets/v1"
 
@@ -61,6 +63,19 @@ def sha(path):
         return hashlib.sha256(f.read()).hexdigest()[:16]
 
 
+def model_digest(fbx):
+    """FBX files carry a timestamp, so a rebuild always changes them. A model
+    counts as changed only if its script, the kit or its geometry summary did."""
+    stem = os.path.splitext(os.path.basename(fbx))[0]
+    h = hashlib.sha256()
+    for path in (os.path.join(MODELS, stem + ".json"), os.path.join(ROOT, "blender", "scripts", stem + ".py"),
+                 os.path.join(ROOT, "blender", "lib", "kit.py")):
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                h.update(f.read())
+    return h.hexdigest()[:16]
+
+
 def request(method, url, key, body=None, headers=None):
     h = {"x-api-key": key}
     h.update(headers or {})
@@ -80,7 +95,8 @@ def upload(path, kind, key, user_id):
         "description": "SHIFT game asset",
         "creationContext": {"creator": {"userId": str(user_id)}},
     }
-    mime = {".png": "image/png", ".ogg": "audio/ogg", ".mp3": "audio/mpeg", ".wav": "audio/wav"}[os.path.splitext(path)[1].lower()]
+    mime = {".png": "image/png", ".ogg": "audio/ogg", ".mp3": "audio/mpeg", ".wav": "audio/wav",
+            ".fbx": "model/fbx"}[os.path.splitext(path)[1].lower()]
     boundary = uuid.uuid4().hex
     with open(path, "rb") as f:
         data = f.read()
@@ -131,13 +147,19 @@ def main():
             for f in sorted(os.listdir(d)):
                 if f.lower().endswith((".png", ".ogg", ".mp3", ".wav")):
                     jobs.append((f"{folder}/{f}", kind))
+    # 3D models: every FBX build_all made that has a manifest entry (.json).
+    if os.path.isdir(MODELS):
+        for f in sorted(os.listdir(MODELS)):
+            stem, ext = os.path.splitext(f)
+            if ext.lower() == ".fbx" and os.path.exists(os.path.join(MODELS, stem + ".json")):
+                jobs.append((f"models/{f}", "Model"))
     jobs.sort(key=lambda j: (j[1] == "Audio", sound_rank(j[0]) if j[1] == "Audio" else j[0]))
 
     failed = 0
     audio_capped = False
     for rel, kind in jobs:
-        full = os.path.join(ASSETS, rel)
-        digest = sha(full)
+        full = os.path.join(MODELS, rel.split("/", 1)[1]) if kind == "Model" else os.path.join(ASSETS, rel)
+        digest = sha(full) if kind != "Model" else model_digest(full)
         entry = ledger.get(rel)
         if entry and entry.get("sha") == digest:
             continue
@@ -166,7 +188,7 @@ def main():
 
 
 def write_luau(ledger):
-    textures, sounds, clothing, decals = {}, {}, {}, {}
+    textures, sounds, clothing, decals, models = {}, {}, {}, {}, {}
     for rel, entry in ledger.items():
         folder, file = rel.split("/", 1)
         stem = os.path.splitext(file)[0]
@@ -180,6 +202,8 @@ def write_luau(ledger):
             clothing[stem.replace("suit_", "")] = entry["id"]
         elif folder == "decals":
             decals[stem] = entry["id"]
+        elif folder == "models":
+            models[stem] = entry["id"]
     lines = [
         "--!strict",
         "-- Uploaded asset IDs. WRITTEN BY tools/upload_assets.py: run that",
@@ -200,6 +224,9 @@ def write_luau(ledger):
     lines += ["\t},", "\tdecals = {"]
     for k in sorted(decals):
         lines.append(f'\t\t{k} = "{decals[k]}",')
+    lines += ["\t},", "\tmodels = {"]
+    for k in sorted(models):
+        lines.append(f'\t\t{k} = "{models[k]}",')
     lines += ["\t},", "}", ""]
     with open(OUT, "w", newline="\n") as f:
         f.write("\n".join(lines))
