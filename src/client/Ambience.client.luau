@@ -1,8 +1,9 @@
 --!strict
 -- The ambient bed, played on this device:
 --   * Jason's looping fluorescent hum (HUM), the base of everything.
---   * DRONE: a low room tone underneath the hum, always on. Until DRONE
---     is uploaded the hum slowed right down stands in for it.
+--   * DRONE: a low room tone underneath the hum, always on. With no DRONE
+--     ID (its upload was taken down by Roblox's IP filter, 27 Nov) the hum
+--     slowed right down stands in for it.
 --   * WHISPERS: fade in as your Sanity falls (player attribute, 0-100).
 -- The Shift, in sound:
 --   warning:  the hum climbs in pitch and gets louder, SHIFT_WARN whines up

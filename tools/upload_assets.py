@@ -39,6 +39,16 @@ API = "https://apis.roblox.com/assets/v1"
 
 TEXTURE_MAPS = ("colour", "normal", "roughness", "metalness")
 
+# Never upload these again. DRONE.ogg (our own synthesis, tools/make_sounds.py)
+# was taken down by Roblox's IP filter on 27 Nov 2026 as a false match; the
+# game plays a slowed copy of the hum in its place.
+BLOCKED = {"sounds/DRONE.ogg"}
+
+# Audio is paused after that takedown: sounds only upload when you pass
+# --audio (python tools/upload_assets.py --audio). Images and models are
+# unaffected.
+AUDIO = "--audio" in sys.argv
+
 # Audio uploads are capped per month (lower on accounts that aren't
 # ID-verified), so the sounds that matter most go first. Anything not
 # uploaded keeps its in-game fallback until the next run.
@@ -163,6 +173,10 @@ def main():
         entry = ledger.get(rel)
         if entry and entry.get("sha") == digest:
             continue
+        if rel in BLOCKED:
+            continue
+        if kind == "Audio" and not AUDIO:
+            continue  # paused: see AUDIO above
         if kind == "Audio" and audio_capped:
             failed += 1
             continue
@@ -190,6 +204,8 @@ def main():
 def write_luau(ledger):
     textures, sounds, clothing, decals, models = {}, {}, {}, {}, {}
     for rel, entry in ledger.items():
+        if rel in BLOCKED:
+            continue
         folder, file = rel.split("/", 1)
         stem = os.path.splitext(file)[0]
         if folder == "textures":
