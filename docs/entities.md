@@ -1,6 +1,6 @@
 # SHIFT entity roster (brainstorm)
 
-**Status:** design only. Nothing on this page is built yet, except the Tenant and Lampjaw.
+**Status:** design only, except the Tenant, Lampjaw and the Quiet (built 27 Nov, `src/server/Quiet.luau`, tuning in `Config.QUIET`).
 
 All of these are original to SHIFT. None of them is taken from the Backrooms wiki canon (Smilers, Hounds, Facelings and so on) or from another game's roster.
 
@@ -28,10 +28,12 @@ All of these are original to SHIFT. None of them is taken from the Backrooms wik
 |---|---|---|
 | **The Tenant** | Hunts by sound, and arrives after the first Shift. | 4 |
 | **Lampjaw** | Drops out of a light fitting; you only see it in its red strobe. | 4 |
+| **The Quiet** | The hum dies in a ring around you; make a sound before it comes back and you're taken. From sublevel 3. | 4 |
 
 ## New entities
 
-### 1. The Quiet
+### 1. The Quiet (built)
+- **As built:** the ring is the 3x3 cells around one player. The hum drains for 2 seconds (moving is still safe), then 4 to 6 seconds of silence. Walking, sprinting, jumping or dropping loot in the ring is fatal; a twitch under 0.3 seconds is forgiven. It holds off while a Tenant is hunting, never rings a player a Tenant is near or a light Lampjaw is in (and Lampjaw stays out of the ring), and the lift is always safe. The first time each player meets it they're told "The hum has stopped. Don't move." Its breath (`QUIET_INHALE`) waits on audio uploads; slowed whispers stand in.
 - **What it is:** an absence that lives in the fluorescent hum. The safehouse note already warns about it: "if the hum stops, STOP".
 - **Behaviour rule:** the hum cuts out in a ring of cells around a player. Anyone who makes noise inside the silence before the hum comes back (4 to 6 seconds) is taken.
 - **Sound cue:** the level's hum ducks to dead silence, then there's one slow inhale close by. The tubes in the ring dim but stay on.

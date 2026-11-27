@@ -4,6 +4,8 @@
 --   warning:  (Workspace.ShiftWarning) every light stutters, the Shift is coming
 --   blackout: (Workspace.Shifting) every light is off while the maze rewires
 --   Lampjaw:  (Workspace.LampjawCell) the light it is hiding in strobes red and buzzes
+--   Quiet:    (Workspace.QuietState/QuietCell) the tubes in its ring dim but stay on
+--             until the hum comes back, then stutter back up
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -115,6 +117,47 @@ local function updateLampjaw(now: number, strobe: boolean)
 	end
 end
 
+-- The Quiet's ring: while the hum is gone the tubes in it dim (a little
+-- while it drains, more in the silence) and nothing else flickers them.
+-- When the hum comes back they stutter back up. Seen from outside, a dim
+-- patch of corridor is a ring you don't walk into.
+local quietPanels: { [BasePart]: boolean } = {}
+local quietSig = ""
+
+local function updateQuiet()
+	local st = workspace:GetAttribute("QuietState")
+	local key = (workspace:GetAttribute("QuietCell") or 0) :: number
+	local on = (st == "falling" or st == "silent") and key ~= 0
+	local sig = if on then `{st}:{key}` else ""
+	if sig == quietSig then
+		return
+	end
+	quietSig = sig
+	local ring: { [BasePart]: boolean } = {}
+	if on then
+		local radius = (workspace:GetAttribute("QuietRadius") or 1) :: number
+		local level = if st == "falling" then 0.6 else 0.3
+		eachCeilingLight(function(panel)
+			local c = panel:GetAttribute("Cell")
+			if typeof(c) == "number" and math.abs(c // 1000 - key // 1000) <= radius and math.abs(c % 1000 - key % 1000) <= radius then
+				ring[panel] = true
+				setLevel(panel, level)
+			end
+		end)
+	end
+	for panel in quietPanels do
+		if not ring[panel] and panel.Parent and panel:GetAttribute("LightState") ~= "dead" then
+			setLevel(panel, 0.5)
+			task.delay(0.06 + math.random() * 0.12, function()
+				if mode == "normal" and panel.Parent and panel:GetAttribute("LightState") ~= "dead" and not quietPanels[panel] then
+					setLevel(panel, 1)
+				end
+			end)
+		end
+	end
+	quietPanels = ring
+end
+
 -- Every fitting follows its LightState: dead ones stay dark, working ones
 -- come on (unless the Shift has everything blacked out). The server never
 -- touches the look after the first build, so this device owns it.
@@ -192,18 +235,19 @@ RunService.Heartbeat:Connect(function()
 	-- and then any healthy tube blinks once, so no corridor feels static.
 	-- Tubes near the Tenant stutter too: you mostly catch it in the flicker.
 	updateLampjaw(now, true)
+	updateQuiet()
 	if now >= nextHaunt then
 		nextHaunt = now + 0.09 + math.random() * 0.12
 		for _, t in CollectionService:GetTagged("SHIFT_Tenant") do
 			if t:IsA("Model") and t:IsDescendantOf(workspace) and mine(t) then
 				local at = t:GetPivot().Position
 				for _, inst in CollectionService:GetTagged("CeilingLight") do
-					if inst:IsA("BasePart") and mine(inst) and inst ~= lampjawPanel and math.random() < 0.3 then
+					if inst:IsA("BasePart") and mine(inst) and inst ~= lampjawPanel and not quietPanels[inst] and math.random() < 0.3 then
 						local d = inst.Position - at
 						if d.X * d.X + d.Z * d.Z < TENANT_FLICKER_RADIUS * TENANT_FLICKER_RADIUS then
 							setLevel(inst, randomLevel(0.5))
 							task.delay(0.05 + math.random() * 0.08, function()
-								if mode == "normal" and inst.Parent and inst:GetAttribute("LightState") ~= "dead" and not states[inst] then
+								if mode == "normal" and inst.Parent and inst:GetAttribute("LightState") ~= "dead" and not states[inst] and not quietPanels[inst] then
 									setLevel(inst, 1)
 								end
 							end)
@@ -218,10 +262,10 @@ RunService.Heartbeat:Connect(function()
 		local all = CollectionService:GetTagged("CeilingLight")
 		if #all > 0 then
 			local panel = all[math.random(1, #all)]
-			if panel:IsA("BasePart") and mine(panel) and panel:GetAttribute("LightState") ~= "dead" and panel ~= lampjawPanel and not states[panel] then
+			if panel:IsA("BasePart") and mine(panel) and panel:GetAttribute("LightState") ~= "dead" and panel ~= lampjawPanel and not states[panel] and not quietPanels[panel] then
 				setLevel(panel, 0.5)
 				task.delay(0.04 + math.random() * 0.1, function()
-					if mode == "normal" and panel.Parent and panel:GetAttribute("LightState") ~= "dead" then
+					if mode == "normal" and panel.Parent and panel:GetAttribute("LightState") ~= "dead" and not quietPanels[panel] then
 						setLevel(panel, 1)
 					end
 				end)
@@ -229,7 +273,7 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 	for _, inst in CollectionService:GetTagged("FlickerLight") do
-		if not inst:IsA("BasePart") or inst == lampjawPanel or not mine(inst) then
+		if not inst:IsA("BasePart") or inst == lampjawPanel or quietPanels[inst] or not mine(inst) then
 			continue
 		end
 		local panel = inst :: BasePart

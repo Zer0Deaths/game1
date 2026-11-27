@@ -181,6 +181,7 @@ end
 -- Studio testing:
 --   LevelSeed (number): drop the first player's crew straight into that layout.
 --   ForceShift (bool): trigger a Shift in every crew's level now.
+--   ForceQuiet (bool): the Quiet strikes in every crew's level now (any sublevel).
 workspace:GetAttributeChangedSignal("LevelSeed"):Connect(function()
 	local seed = workspace:GetAttribute("LevelSeed")
 	local first = Players:GetPlayers()[1]
@@ -192,5 +193,11 @@ workspace:GetAttributeChangedSignal("ForceShift"):Connect(function()
 	if workspace:GetAttribute("ForceShift") == true then
 		workspace:SetAttribute("ForceShift", false)
 		Sublevels.forceShift()
+	end
+end)
+workspace:GetAttributeChangedSignal("ForceQuiet"):Connect(function()
+	if workspace:GetAttribute("ForceQuiet") == true then
+		workspace:SetAttribute("ForceQuiet", false)
+		Sublevels.forceQuiet()
 	end
 end)

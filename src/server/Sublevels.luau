@@ -35,6 +35,7 @@ local DataService = require(script.Parent:WaitForChild("DataService"))
 local ExitLift = require(script.Parent:WaitForChild("ExitLift"))
 local Lampjaw = require(script.Parent:WaitForChild("Lampjaw"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
+local Quiet = require(script.Parent:WaitForChild("Quiet"))
 local Remotes = require(script.Parent:WaitForChild("Remotes"))
 local ShiftService = require(script.Parent:WaitForChild("ShiftService"))
 local ShopService = require(script.Parent:WaitForChild("ShopService"))
@@ -55,6 +56,7 @@ type Ctx = {
 	shift: ShiftService.Shift?,
 	tenants: { Tenant.Tenant },
 	lampjaw: Lampjaw.Lampjaw?,
+	quiet: Quiet.Quiet?,
 	map: MapService.CrewMap?,
 	startedAt: number,
 	alive: boolean,
@@ -212,6 +214,9 @@ local function destroy(ctx: Ctx)
 	if ctx.lampjaw then
 		ctx.lampjaw.destroy()
 	end
+	if ctx.quiet then
+		ctx.quiet.destroy()
+	end
 	if ctx.map then
 		ctx.map.destroy()
 	end
@@ -284,6 +289,7 @@ local function start(crew: number, depth: number, seed: number?)
 		shift = nil,
 		tenants = {},
 		lampjaw = nil,
+		quiet = nil,
 		map = nil,
 		startedAt = now(),
 		alive = true,
@@ -338,6 +344,9 @@ local function start(crew: number, depth: number, seed: number?)
 	if Config.LAMPJAW.enabled and depth >= Config.DEPTH.lampjawFrom then
 		ctx.lampjaw = Lampjaw.create(ctx)
 	end
+	if Config.QUIET.enabled then
+		ctx.quiet = Quiet.create(ctx) -- dormant above Config.QUIET.fromDepth unless forced
+	end
 	ctx.map = MapService.create(ctx)
 	print(`[Level] crew {crew}, sublevel {depth}: {levelType.name} {layout.width}x{layout.depth}, seed {chosenSeed}, quota ${quota}, built in {math.round((os.clock() - started) * 1000)} ms`)
 
@@ -358,6 +367,7 @@ local function start(crew: number, depth: number, seed: number?)
 		local extra = if depth >= Config.DEPTH.secondTenantFrom
 			then "  Two of them down here."
 			elseif depth == Config.DEPTH.lampjawFrom then "  Watch the lights."
+			elseif depth == Config.QUIET.fromDepth then "  If the hum stops, stop."
 			else ""
 		Remotes.Notify:FireClient(p, `SUBLEVEL {depth}: {string.upper(levelType.name)}. Crew quota ${quota}.{extra}`, "banner")
 	end
@@ -529,6 +539,15 @@ function Sublevels.forceShift()
 	end
 end
 
+-- Studio testing: the Quiet strikes in every crew's level now (any depth).
+function Sublevels.forceQuiet()
+	for _, ctx in active do
+		if ctx.quiet then
+			ctx.quiet.force()
+		end
+	end
+end
+
 function Sublevels.init(hubSend: (Player, number) -> ())
 	sendToHub = hubSend
 	ArtefactService.setFolderResolver(Sublevels.levelFor)
@@ -540,6 +559,8 @@ function Sublevels.init(hubSend: (Player, number) -> ())
 		st:SetAttribute("Banked", 0)
 		st:SetAttribute("Quota", Crews.quota(1, 1, Config.QUOTA_SOLO, Config.QUOTA_PER_EXTRA, Config.QUOTA_GROWTH))
 		st:SetAttribute("LampjawCell", 0)
+		st:SetAttribute("QuietState", "idle")
+		st:SetAttribute("QuietCell", 0)
 	end
 	-- Leaving the server: a crew with nobody left in its level is wiped by
 	-- tick(); a crew with nobody left at all just closes.
