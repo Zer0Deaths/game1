@@ -170,6 +170,21 @@ for i = 0, 99 do
 	seenTypes[LevelTypes.pick(5, i / 100).id] = true
 end
 check(seenTypes.carpet and seenTypes.ward and seenTypes.plant, "run 5 should offer every type")
+-- Variety: sublevels 1-3 are three different places, and no sublevel
+-- after that repeats the one before.
+for i = 0, 199 do
+	local used = {}
+	for depth = 1, 8 do
+		local t = LevelTypes.pick(depth, ((i * 37 + depth * 11) % 100) / 100, used)
+		if depth <= 3 then
+			check(table.find(used, t.id) == nil, `variety {i}: sublevel {depth} repeats {t.id}`)
+		else
+			check(t.id ~= used[#used], `variety {i}: sublevel {depth} same as the one before`)
+		end
+		table.insert(used, t.id)
+	end
+	check(used[1] == "carpet", `variety {i}: sublevel 1 should be The Carpet`)
+end
 print(`level types checked: {#LevelTypes.list} x 100 seeds, failures: {typeFailures}`)
 print(if failures == 0 then "ALL PASSED (incl. level types)" else `{failures} FAILURES`)
 

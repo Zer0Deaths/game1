@@ -109,7 +109,11 @@ function ShiftService.create(ctx: any, exitMoved: (LevelGen.Layout) -> ()): Shif
 		for _ in protected do
 			protectedCount += 1
 		end
-		local changed = LevelGen.shift(current, protected, math.random(1, 2 ^ 30))
+		-- Early sublevels: the lift only hops a short walk away (Config.LIFT_EASY).
+		local easy = Config.LIFT_EASY[ctx.depth]
+		local changed = LevelGen.shift(current, protected, math.random(1, 2 ^ 30), if easy
+			then { minExitDistance = easy.shiftMin, maxExitDistance = easy.shiftMax }
+			else nil)
 		LevelBuilder.buildStructure(current, model)
 		local moved = current.exit.x ~= oldExit.x or current.exit.z ~= oldExit.z
 		if moved then

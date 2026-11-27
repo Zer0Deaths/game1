@@ -7,6 +7,8 @@
 --   OpenShop      server -> client  open the shop screen (safehouse counter)
 --   BuyItem       client -> server  (itemId) buy something in the shop
 --   ToggleFlashlight client -> server  switch your flashlight on/off
+--   Swing         client -> server  (lookVector) swing the melee weapon in your hand
+--   OpenShop also carries "lift" for the armoury in the exit lift
 --   Fx            server -> client  (kind, position) one-off sounds and effects: pickup, drop, death
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -67,4 +69,5 @@ return {
 	BuyItem = event("BuyItem"),
 	ToggleFlashlight = event("ToggleFlashlight"),
 	Fx = event("Fx"),
+	Swing = event("Swing"),
 }

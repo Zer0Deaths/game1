@@ -4,7 +4,10 @@
 -- true (set by the Shift later), it spins out completely.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -104,6 +107,11 @@ RunService.RenderStepped:Connect(function(dt)
 		local relative = heading(flat) - heading(Vector3.new(look.X, 0, look.Z))
 		-- Wander grows with distance: two slow waves plus a little tremble.
 		local far = math.clamp((flat.Magnitude - NEAR) / (FAR - NEAR), 0, 1)
+		-- The first sublevels: the needle holds steady (Config.LIFT_EASY).
+		local easy = Config.LIFT_EASY[(workspace:GetAttribute("Depth") or 0) :: number]
+		if easy and easy.steady then
+			far = 0
+		end
 		local wobble = (math.sin(t * 0.9) * 0.6 + math.sin(t * 2.3 + 1.7) * 0.4) * MAX_WOBBLE * far
 		local tremble = (math.random() - 0.5) * 6 * far
 		target = relative + wobble + tremble

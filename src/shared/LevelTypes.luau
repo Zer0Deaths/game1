@@ -83,7 +83,7 @@ local LevelTypes: { LevelType } = {
 		id = "plant",
 		name = "The Plant Room",
 		blurb = "Concrete, grating and sodium light. Lots of it flickers.",
-		unlockRun = 3,
+		unlockRun = 2, -- with the Ward from sublevel 2, so sublevels 1-3 can be three different places
 		weight = 2,
 		sizeBonus = 2,
 		gen = { loopChance = 0.26, roomCount = 6, atriumCount = 2, officeCount = 1, storageCount = 6, hallCount = 3, flickerChance = 0.24, deadChance = 0.18 },
@@ -116,24 +116,53 @@ function M.get(id: string): LevelType
 	return byId[id] or LevelTypes[1]
 end
 
+-- The first sublevels of a run are always different places: sublevel 1 is
+-- The Carpet, and 2 and 3 are each somewhere the run hasn't been yet
+-- (so a run starts Carpet, Ward, Plant Room or Carpet, Plant Room, Ward).
+-- After that it's a weighted roll that never repeats the sublevel before.
+M.VARIETY_DEPTH = 3
+
 -- Pick a level type for this sublevel (depth) with a 0..1 roll.
-function M.pick(runNumber: number, roll: number): LevelType
-	local total = 0
-	for _, t in LevelTypes do
-		if runNumber >= t.unlockRun then
-			total += t.weight
-		end
-	end
-	local target = roll * total
-	for _, t in LevelTypes do
-		if runNumber >= t.unlockRun then
-			target -= t.weight
-			if target < 0 then
-				return t
+--   used: ids of the types this run has already been to (oldest first)
+function M.pick(runNumber: number, roll: number, used: { string }?): LevelType
+	local seen = used or {}
+	local previous = seen[#seen]
+	local candidates: { LevelType } = {}
+	local function gather(skip: (LevelType) -> boolean)
+		table.clear(candidates)
+		for _, t in LevelTypes do
+			if runNumber >= t.unlockRun and not skip(t) then
+				table.insert(candidates, t)
 			end
 		end
 	end
-	return LevelTypes[1]
+	if runNumber <= M.VARIETY_DEPTH then
+		gather(function(t)
+			return table.find(seen, t.id) ~= nil
+		end)
+	end
+	if #candidates == 0 then
+		gather(function(t)
+			return t.id == previous
+		end)
+	end
+	if #candidates == 0 then
+		gather(function()
+			return false
+		end)
+	end
+	local total = 0
+	for _, t in candidates do
+		total += t.weight
+	end
+	local target = roll * total
+	for _, t in candidates do
+		target -= t.weight
+		if target < 0 then
+			return t
+		end
+	end
+	return candidates[#candidates] or LevelTypes[1]
 end
 
 return M

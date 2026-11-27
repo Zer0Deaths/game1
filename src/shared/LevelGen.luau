@@ -46,6 +46,8 @@ export type Options = {
 	hallCount: number?,
 	flickerChance: number?,
 	deadChance: number?,
+	exitBand: { number }?, -- { lo, hi }: the lift is this fraction of the furthest walk from spawn (default 0.45-0.6)
+	exitMin: number?, -- ...but never fewer cells than this (default 8)
 }
 
 -- Small seeded random generator (Park-Miller). Same seed, same level,
@@ -394,7 +396,9 @@ function LevelGen.generate(seed: number, options: Options?): Layout
 	for _, dist in dists do
 		maxDist = math.max(maxDist, dist)
 	end
-	local lo, hi = math.max(8, math.floor(maxDist * 0.45)), math.max(8, math.floor(maxDist * 0.6))
+	local band = opts.exitBand or { 0.45, 0.6 }
+	local floor_ = opts.exitMin or 8
+	local lo, hi = math.max(floor_, math.floor(maxDist * band[1])), math.max(floor_, math.floor(maxDist * band[2]))
 	local choices = {}
 	for k, dist in dists do
 		if dist >= lo and dist <= hi then
@@ -500,6 +504,7 @@ export type ShiftOptions = {
 	flickerChance: number?,
 	deadChance: number?,
 	minExitDistance: number?, -- cells between the moved lift and the nearest protected cell
+	maxExitDistance: number?, -- ...and at most this many (early sublevels keep the lift close)
 }
 
 -- THE SHIFT. Rewires every part of the maze except the protected cells
@@ -522,6 +527,7 @@ function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: 
 	local flickerChance = opts.flickerChance or 0.12
 	local deadChance = opts.deadChance or 0.2
 	local minExitDistance = opts.minExitDistance or 5
+	local maxExitDistance = opts.maxExitDistance or math.huge
 	local rng = makeRng(seed)
 	local W, D = layout.width, layout.depth
 	local cells = layout.cells
@@ -681,7 +687,7 @@ function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: 
 		for x = 1, W do
 			for z = 1, D do
 				local dist = nearest[x * 1000 + z]
-				if dist and dist >= minExitDistance and not (x == layout.spawn.x and z == layout.spawn.z) then
+				if dist and dist >= minExitDistance and dist <= maxExitDistance and not (x == layout.spawn.x and z == layout.spawn.z) then
 					table.insert(options_, { x = x, z = z })
 				end
 			end

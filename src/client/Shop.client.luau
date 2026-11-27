@@ -1,5 +1,6 @@
 --!strict
--- The safehouse shop screen. Opens from the counter's prompt. Buying is
+-- The shop screen: the safehouse supplies counter, or the armoury in the
+-- exit lift (OpenShop fires with "lift": melee weapons only). Buying is
 -- checked by the server (ShopService); this only shows what's on offer.
 -- Also: F toggles your flashlight once you own one.
 
@@ -30,7 +31,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local panel = Instance.new("Frame")
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
 panel.Position = UDim2.fromScale(0.5, 0.5)
-panel.Size = UDim2.fromOffset(460, 96 + #ShopItems * 78)
+panel.Size = UDim2.fromOffset(460, 96 + 4 * 78)
 panel.BackgroundColor3 = Color3.fromRGB(18, 16, 12)
 panel.BackgroundTransparency = 0.05
 panel.BorderSizePixel = 0
@@ -85,7 +86,7 @@ local function text(parent: Instance, props: { [string]: any }): TextLabel
 	return l
 end
 
-text(panel, { Position = UDim2.fromOffset(16, 10), Size = UDim2.new(1, -120, 0, 26), TextSize = 20, TextColor3 = AMBER, Text = "SUPPLIES" })
+local title = text(panel, { Position = UDim2.fromOffset(16, 10), Size = UDim2.new(1, -120, 0, 26), TextSize = 20, TextColor3 = AMBER, Text = "SUPPLIES" })
 local cashText = text(panel, { Position = UDim2.new(1, -220, 0, 12), Size = UDim2.fromOffset(200, 22), TextSize = 16, TextColor3 = GREEN, TextXAlignment = Enum.TextXAlignment.Right })
 
 -- Modal so the mouse is freed from first person while the shop is open.
@@ -107,16 +108,16 @@ close.Activated:Connect(function()
 	closePanel()
 end)
 
-type Row = { item: ShopItems.Item, button: TextButton, status: TextLabel }
+type Row = { item: ShopItems.Item, frame: Frame, button: TextButton, status: TextLabel }
 local rows: { Row } = {}
+local mode = "safehouse"
 
-for i, item in ShopItems do
-	local y = 46 + (i - 1) * 78
+local function rowFor(item: ShopItems.Item): Row
 	local row = Instance.new("Frame")
-	row.Position = UDim2.fromOffset(12, y)
 	row.Size = UDim2.new(1, -24, 0, 70)
 	row.BackgroundColor3 = Color3.fromRGB(32, 29, 22)
 	row.BorderSizePixel = 0
+	row.Visible = false
 	row.Parent = panel
 	text(row, { Position = UDim2.fromOffset(10, 6), Size = UDim2.new(1, -140, 0, 20), TextSize = 17, TextColor3 = AMBER, Text = item.name })
 	text(row, { Position = UDim2.fromOffset(10, 28), Size = UDim2.new(1, -140, 0, 36), TextSize = 13, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Text = item.description })
@@ -135,14 +136,41 @@ for i, item in ShopItems do
 		Audio.ui("UI_CLICK")
 		BuyItem:FireServer(item.id)
 	end)
-	table.insert(rows, { item = item, button = button, status = status })
+	return { item = item, frame = row, button = button, status = status }
+end
+
+for _, item in ShopItems do
+	table.insert(rows, rowFor(item))
+end
+
+-- Show the rows this counter sells, top to bottom.
+local function layout()
+	title.Text = if mode == "lift" then "LIFT ARMOURY" else "SUPPLIES"
+	local shown = 0
+	for _, r in rows do
+		local on = (r.item.where or "safehouse") == mode
+		r.frame.Visible = on
+		if on then
+			r.frame.Position = UDim2.fromOffset(12, 46 + shown * 78)
+			shown += 1
+		end
+	end
+	panel.Size = UDim2.fromOffset(460, 96 + math.max(shown, 1) * 78)
 end
 
 local function refresh()
 	cashText.Text = `CASH  ${player:GetAttribute("Cash") or 0}`
 	for _, r in rows do
 		local item = r.item
-		if item.kind == "permanent" then
+		if item.kind == "melee" then
+			local holding = player:GetAttribute("Melee") == item.id
+			local spec = item.melee :: ShopItems.Melee
+			local uses = (player:GetAttribute("MeleeUses") or 0) :: number
+			local full = holding and uses >= spec.uses
+			r.button.Text = if full then "In hand" else `Buy  ${item.price[1]}`
+			r.button.BackgroundColor3 = if full then Color3.fromRGB(45, 42, 34) else Color3.fromRGB(60, 90, 50)
+			r.status.Text = if holding then `in hand: {uses} hits` else "one at a time"
+		elseif item.kind == "permanent" then
 			local level = (player:GetAttribute(`Own_{item.id}`) or 0) :: number
 			if level >= #item.price then
 				r.button.Text = "Owned"
@@ -177,7 +205,9 @@ player.AttributeChanged:Connect(function(name)
 	end
 end)
 
-OpenShop.OnClientEvent:Connect(function()
+OpenShop.OnClientEvent:Connect(function(which: string?)
+	mode = if which == "lift" then "lift" else "safehouse"
+	layout()
 	refresh()
 	if not gui.Enabled then
 		Audio.ui("UI_OPEN")
