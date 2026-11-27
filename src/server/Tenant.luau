@@ -5,20 +5,32 @@
 --     Shift, it arrives a few corridors away from the loudest player.
 --   * Hears moving players (sprinting and heavy loads carry much further)
 --     and dropped loot, and walks the maze to the noise.
---   * When it spots you it stops and shrieks first (Config.TENANT.noticeSeconds),
---     then chases: faster than walking, a little slower than sprinting.
---     Out of sight it only knows where it last saw you, so break line of
---     sight and go quiet to lose it.
+--   * It sees what's in front of it (Config.TENANT.sightCone), not behind.
+--     When it spots you it stops, lifts its pale face at you and screeches
+--     (Config.TENANT.noticeSeconds) before it moves: that's your warning.
+--     Get out of sight in that time and it doesn't chase, it walks to where
+--     it saw you. If it does chase, it sets off slowly and runs about as
+--     fast as you walk on sublevel 1 (a sprint always pulls away).
+--   * Out of sight it only knows where it last saw you: it walks there,
+--     stands and listens, and only then follows sounds, a step behind
+--     (it re-aims every Config.TENANT.rethinkSeconds). Break line of sight
+--     and go quiet to lose it.
 --   * Hearing has a range per sound (Config.TENANT): walking carries a
 --     few studs, sprinting a couple of cells, dropped loot further.
 --   * Catching you kills you; your loot spills where you fell.
 --   * The exit lift is safe: it won't take anyone standing inside it.
+--   * A melee hit stuns it (MeleeService sets StunnedUntil, a server time,
+--     and StunFrom, the hitter's position, on its model): it reels away
+--     from the hit and stands still, can't take anyone and forgets who it
+--     was after. It comes round dazed (Config.TENANT.dazedSeconds, blind)
+--     and wanders off rather than going straight back for the hitter.
 -- Counter: stay quiet, split up, don't drop loot near it.
 --
 -- Fully server-side and cheap: one anchored model, a maze-grid path search
 -- (196 cells) a few times a second, and a handful of raycasts.
--- Its body is an R15-style rig (EntityRig): tall, thin, near-black and
--- featureless, animated on each player's device (Entities.client). Its
+-- Its body is an R15-style rig (EntityRig): tall, thin and near-black with
+-- a bone-white face that catches a faint light, so you can make it out in
+-- the dark; animated on each player's device (Entities.client). Its
 -- one cue, a wet clicking breath, is played there too (Cues.client).
 -- The tubes around it stutter, so you mostly catch it in the flicker.
 
@@ -40,7 +52,7 @@ local DECIDE_EVERY = 0.25
 
 local Tenant = {}
 
-type State = "dormant" | "wander" | "investigate" | "notice" | "chase" | "linger"
+type State = "dormant" | "wander" | "investigate" | "notice" | "chase" | "linger" | "stunned"
 
 -- Public -----------------------------------------------------------------------
 
@@ -67,6 +79,14 @@ function Tenant.create(ctx: any): Tenant
 	local noticeUntil = 0 -- it stops and shrieks before every chase
 	local lastSeenAt: Vector3? = nil -- where it last saw its target (it can't see through walls)
 	local loudness: { [Player]: number } = {} -- running average of how loud each player is
+	local chaseSince = 0 -- when this chase started (it builds up to full speed)
+	local searching = false -- walking to where it lost you (deaf until it gets there)
+	local listenUntil = 0 -- standing still, listening
+	local nextRethink = 0 -- when it may re-aim at a sound
+	local lostAt = -math.huge -- when it last lost sight of someone it was running after
+	local lost: Player? = nil
+	local blindUntil = 0 -- dazed after a stun: it can't see anyone yet
+	local faceLight: PointLight? = nil
 
 
 	-- Helpers --------------------------------------------------------------------
@@ -113,10 +133,39 @@ function Tenant.create(ctx: any): Tenant
 		return workspace:Raycast(eye, pos - eye, rayParams) == nil
 	end
 
+	local function lookVector(): Vector3
+		return Vector3.new(-math.sin(facing), 0, -math.cos(facing))
+	end
+
+	local function faceToward(pos: Vector3)
+		local flat = Vector3.new(pos.X - position.X, 0, pos.Z - position.Z)
+		if flat.Magnitude > 0.1 then
+			facing = math.atan2(-flat.X, -flat.Z)
+		end
+	end
+
+	-- Can it see this player? Only in front of it, unless they're right
+	-- next to it, or they're who it's already running after.
+	local function sees(player: Player, r: BasePart): boolean
+		local flat = Vector3.new(r.Position.X - position.X, 0, r.Position.Z - position.Z)
+		local dist = flat.Magnitude
+		if dist > T.sightRange then
+			return false
+		end
+		local locked = state == "chase" and player == target
+		if dist > T.senseRange and not locked and flat.Unit:Dot(lookVector()) < T.sightCone then
+			return false
+		end
+		return canSee(r.Position + Vector3.new(0, 1.5, 0))
+	end
+
 	local function setState(s: State)
 		state = s
 		if model then
 			model:SetAttribute("State", s)
+		end
+		if faceLight then
+			faceLight.Brightness = if s == "notice" then T.faceGlowNotice else T.faceGlow
 		end
 	end
 
@@ -127,6 +176,8 @@ function Tenant.create(ctx: any): Tenant
 		route = {}
 		target = nil
 		lastSeenAt = nil
+		searching = false
+		listenUntil = 0
 	end
 
 	local function show()
@@ -156,7 +207,10 @@ function Tenant.create(ctx: any): Tenant
 		if state == "chase" then
 			local D = Config.DEPTH
 			local deeper = math.min(D.tenantSpeedCap, T.chaseSpeed + D.tenantSpeedPerDepth * (ctx.depth - 1))
-			return deeper * (if ctx.depth <= 1 then T.firstRunChaseScale else 1)
+			local full = deeper * (if ctx.depth <= 1 then T.firstRunChaseScale else 1)
+			-- It sets off slowly and builds up to a run.
+			local ramp = math.clamp((os.clock() - chaseSince) / math.max(0.01, T.chaseRampSeconds), 0, 1)
+			return T.investigateSpeed + (full - T.investigateSpeed) * ramp
 		elseif state == "investigate" then
 			return T.investigateSpeed
 		end
@@ -224,6 +278,8 @@ function Tenant.create(ctx: any): Tenant
 		-- It comes looking for whoever was loudest.
 		setState("investigate")
 		target = nil
+		searching = false
+		listenUntil = 0
 		lastNoticed = os.clock()
 		walkTo(vx, vz)
 		graceUntil = os.clock() + T.arriveGraceSeconds
@@ -265,6 +321,29 @@ function Tenant.create(ctx: any): Tenant
 		lingerUntil = os.clock() + T.killCooldown
 		route = {}
 		target = nil
+		searching = false
+		listenUntil = 0
+	end
+
+	-- Walk (not run) to where it last saw someone, then stand and listen.
+	local function searchAt(at: Vector3?)
+		local l = layout
+		setState("investigate")
+		lastNoticed = os.clock()
+		route = {}
+		searching = at ~= nil and l ~= nil
+		if at and l then
+			local cx, cz = cellOf(at, l)
+			walkTo(cx, cz)
+			if #route == 0 then
+				route = { Vector3.new(at.X, 0, at.Z) }
+			end
+		end
+	end
+
+	local function stunned(): boolean
+		local untilAt = model and model:GetAttribute("StunnedUntil")
+		return typeof(untilAt) == "number" and workspace:GetServerTimeNow() < untilAt
 	end
 
 	local function decide()
@@ -273,6 +352,30 @@ function Tenant.create(ctx: any): Tenant
 			return
 		end
 		local now = os.clock()
+
+		-- 0. Stunned by a melee hit: it reels away from the hitter, stands,
+		-- and drops whoever it was after. Then it comes round dazed.
+		if stunned() then
+			if state ~= "stunned" then
+				setState("stunned")
+				route = {}
+				target = nil
+				lost = nil
+				lastSeenAt = nil
+				searching = false
+				listenUntil = 0
+				local from = (model :: Model):GetAttribute("StunFrom")
+				if typeof(from) == "Vector3" then
+					faceToward(position * 2 - from) -- turned away from the blow
+				end
+			end
+			return
+		elseif state == "stunned" then
+			setState("wander")
+			route = {}
+			blindUntil = now + T.dazedSeconds
+			lastNoticed = now
+		end
 
 		-- 1. Anyone within reach is taken (except inside the lift).
 		for _, player in Players:GetPlayers() do
@@ -292,93 +395,127 @@ function Tenant.create(ctx: any): Tenant
 			setState("wander")
 		end
 
-		-- 2. Sight: chase the nearest player it can see.
+		-- 2. Sight: the nearest player it can see.
 		local seen: Player? = nil
-		local seenDist = T.sightRange
+		local seenRoot: BasePart? = nil
+		local seenDist = math.huge
 		for _, player in Players:GetPlayers() do
 			local r = rootOf(player)
 			if r and not inLift(r.Position) then
 				local dist = (r.Position - position).Magnitude
-				if dist <= seenDist and canSee(r.Position + Vector3.new(0, 1.5, 0)) then
-					seen, seenDist = player, dist
+				if dist < seenDist and now >= blindUntil and sees(player, r) then
+					seen, seenRoot, seenDist = player, r, dist
 				end
 			end
 		end
+
+		-- The warning: it stands, faces you and screeches. Only if it can
+		-- still see you at the end does it run.
 		if state == "notice" then
-			if now < noticeUntil then
-				return -- standing still, shrieking: your head start
+			local r = target and rootOf(target)
+			local still = r ~= nil and not inLift(r.Position) and (r.Position - position).Magnitude <= T.sightRange and canSee(r.Position + Vector3.new(0, 1.5, 0))
+			if still then
+				lastSeenAt = (r :: BasePart).Position
+				faceToward((r :: BasePart).Position)
 			end
-			setState("chase")
+			if now < noticeUntil then
+				return
+			end
+			if still then
+				setState("chase")
+				chaseSince = now
+				lastNoticed = now
+				local at = (r :: BasePart).Position
+				route = { Vector3.new(at.X, 0, at.Z) }
+			else
+				searchAt(lastSeenAt) -- you got out of sight in time: it comes to look, at a walk
+			end
+			return
 		end
-		if seen then
+
+		if seen and seenRoot then
 			if state ~= "chase" then
-				-- First it stops and shrieks. That's the warning to run.
 				print(`[Tenant] crew {ctx.crew}: spotted {seen.Name}`)
 				target = seen
 				if model then
 					model:SetAttribute("TargetId", seen.UserId) -- that player gets the reveal stinger
 				end
 				setState("notice")
-				noticeUntil = now + T.noticeSeconds
+				-- Someone it lost a moment ago gets a shorter warning (still a screech).
+				local again = seen == lost and now - lostAt <= T.forgetAfter
+				noticeUntil = now + (if again then T.renoticeSeconds else T.noticeSeconds)
 				lastNoticed = now
-				lastSeenAt = (rootOf(seen) :: BasePart).Position
+				lastSeenAt = seenRoot.Position
+				faceToward(seenRoot.Position)
+				searching = false
+				listenUntil = 0
 				route = {}
 				return
 			end
 			target = seen
 			lastNoticed = now
-			local r = rootOf(seen) :: BasePart
-			lastSeenAt = r.Position
+			lastSeenAt = seenRoot.Position
 			goalCell = nil
-			route = { Vector3.new(r.Position.X, 0, r.Position.Z) } -- straight at you: nothing is in the way
+			route = { Vector3.new(seenRoot.Position.X, 0, seenRoot.Position.Z) } -- straight at you: nothing is in the way
 			return
 		end
 
-		-- 3. Hearing: head for the loudest noise in range.
-		local heard = NoiseService.audible(position)
-		local best: NoiseService.Noise? = nil
-		for _, n in heard do
-			if layout and LevelBuilder.inLevel(layout, n.position, ctx.origin) and not inLift(n.position) and (not best or n.radius - (n.position - position).Magnitude > best.radius - (best.position - position).Magnitude) then
-				best = n
-			end
+		-- 3. Lost sight mid-chase: it stops running and walks to where it
+		-- last saw you. It doesn't know where you went.
+		if state == "chase" then
+			lost, lostAt = target, now
+			searchAt(lastSeenAt)
+			return
 		end
-		if best then
+
+		-- 4. Got there: it stands still and listens before it does anything.
+		if searching then
+			if #route > 0 then
+				return
+			end
+			searching = false
+			listenUntil = now + T.listenSeconds
 			lastNoticed = now
-			if state ~= "chase" then
-				setState("investigate")
-			end
-			local cx, cz = cellOf(best.position, l)
-			walkTo(cx, cz)
-			if #route == 0 then
-				-- Same cell as the noise: go to the exact spot.
-				route = { Vector3.new(best.position.X, 0, best.position.Z) }
-			end
+			return
+		end
+		if now < listenUntil then
 			return
 		end
 
-		-- 4. Nothing seen or heard.
-		if (state == "chase" or state == "investigate") and now - lastNoticed > T.forgetAfter then
+		-- 5. Hearing: head for the loudest noise in range. It re-aims only
+		-- every rethinkSeconds, so it is always a step behind someone moving.
+		if now >= nextRethink then
+			local heard = NoiseService.audible(position)
+			local best: NoiseService.Noise? = nil
+			for _, n in heard do
+				if layout and LevelBuilder.inLevel(layout, n.position, ctx.origin) and not inLift(n.position) and (not best or n.radius - (n.position - position).Magnitude > best.radius - (best.position - position).Magnitude) then
+					best = n
+				end
+			end
+			if best then
+				nextRethink = now + T.rethinkSeconds
+				lastNoticed = now
+				setState("investigate")
+				local cx, cz = cellOf(best.position, l)
+				walkTo(cx, cz)
+				if #route == 0 then
+					-- Same cell as the noise: go to the exact spot.
+					route = { Vector3.new(best.position.X, 0, best.position.Z) }
+				end
+				return
+			end
+		end
+
+		-- 6. Nothing seen or heard.
+		if state == "investigate" then
+			if now - lastNoticed <= T.forgetAfter then
+				return -- still walking to the noise, or listening where it was
+			end
 			setState("wander")
 			target = nil
 			route = {}
-		elseif state == "chase" and target and lastSeenAt then
-			-- Lost sight: run to where it last saw them, then listen. It does
-			-- not know where you went unless it hears you.
-			local cx, cz = cellOf(lastSeenAt, l)
-			if not goalCell or goalCell[1] ~= cx or goalCell[2] ~= cz then
-				walkTo(cx, cz)
-				if #route == 0 then
-					route = { Vector3.new(lastSeenAt.X, 0, lastSeenAt.Z) }
-				end
-			elseif #route == 0 then
-				setState("investigate") -- got there, you're gone: listen
-				lastSeenAt = nil
-			end
 		end
-		if #route == 0 and state ~= "chase" then
-			if state == "investigate" and now - lastNoticed <= T.forgetAfter then
-				return -- reached the noise; listen for a moment
-			end
+		if #route == 0 then
 			setState("wander")
 			wanderSomewhere()
 		end
@@ -389,7 +526,7 @@ function Tenant.create(ctx: any): Tenant
 			return
 		end
 		local moving = false
-		if state ~= "linger" then
+		if state ~= "linger" and state ~= "stunned" and not stunned() then
 			local remaining = speed() * dt
 			while remaining > 0 and #route > 0 do
 				local goal = route[1]
@@ -422,6 +559,19 @@ function Tenant.create(ctx: any): Tenant
 
 	model = EntityRig.build("Tenant", T.height)
 	root = (model :: Model).PrimaryPart
+	-- Its pale face catches a faint cold light (an attachment just in front
+	-- of it, see EntityRig), so you can make it out in the dark.
+	local glowAt = (model :: Model):FindFirstChild("FaceLight", true)
+	if glowAt and glowAt:IsA("Attachment") and T.faceGlow > 0 then
+		local light = Instance.new("PointLight")
+		light.Name = "FaceGlow"
+		light.Color = Color3.fromRGB(214, 222, 230)
+		light.Range = 3.5
+		light.Brightness = T.faceGlow
+		light.Shadows = false
+		light.Parent = glowAt
+		faceLight = light
+	end
 	CollectionService:AddTag(model :: Model, "SHIFT_Tenant") -- clients hang its sounds on this
 	;(model :: Model):SetAttribute("Crew", ctx.crew)
 	hide()

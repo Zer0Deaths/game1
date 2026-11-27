@@ -581,11 +581,13 @@ return {
 		},
 	},
 	tenant = {
-		tris = 6132,
+		tris = 6856,
 		size = Vector3.new(2.28, 8.1656, 2.2275),
 		origin = Vector3.new(0, 0.0103, -0.7866), -- where the origin sits in the frame the script modelled it in
 		parts = {
 			{ name = "Head", size = Vector3.new(0.5668, 1.5738, 1.4581), centre = Vector3.new(0.0731, 7.1555, -0.3847), look = "skin", material = "Rubber", surface = "SHIFT_TenantSkin", colour = Color3.fromRGB(20, 18, 18), transparency = 0, shadow = true, attach = "" },
+			{ name = "Face", size = Vector3.new(0.4312, 0.3243, 0.4764), centre = Vector3.new(0.0819, 6.5643, -0.8153), look = "plaster", material = "Plaster", surface = "", colour = Color3.fromRGB(226, 221, 208), transparency = 0, shadow = true, attach = "Head" },
+			{ name = "FaceHoles", size = Vector3.new(0.3258, 0.2554, 0.3429), centre = Vector3.new(0.0742, 6.5569, -0.7689), look = "skin", material = "Rubber", surface = "SHIFT_TenantSkin", colour = Color3.fromRGB(8, 7, 7), transparency = 0, shadow = true, attach = "Head" },
 			{ name = "UpperTorso", size = Vector3.new(1.9612, 3.184, 1.0433), centre = Vector3.new(0, 6.5737, 0.5386), look = "skin", material = "Rubber", surface = "SHIFT_TenantSkin", colour = Color3.fromRGB(20, 18, 18), transparency = 0, shadow = true, attach = "" },
 			{ name = "LowerTorso", size = Vector3.new(1.02, 1.128, 0.4843), centre = Vector3.new(0, 4.8797, 0.8716), look = "skin", material = "Rubber", surface = "SHIFT_TenantSkin", colour = Color3.fromRGB(20, 18, 18), transparency = 0, shadow = true, attach = "" },
 			{ name = "LeftUpperArm", size = Vector3.new(0.5094, 2.6262, 0.8318), centre = Vector3.new(-0.8853, 6.3428, 0.0375), look = "skin", material = "Rubber", surface = "SHIFT_TenantSkin", colour = Color3.fromRGB(20, 18, 18), transparency = 0, shadow = true, attach = "" },
@@ -602,6 +604,7 @@ return {
 			{ name = "RightFoot", size = Vector3.new(0.3236, 0.6997, 1.132), centre = Vector3.new(0.41, 0.3499, 0.4906), look = "skin", material = "Rubber", surface = "SHIFT_TenantSkin", colour = Color3.fromRGB(20, 18, 18), transparency = 0, shadow = true, attach = "" },
 		},
 		joints = {
+			FaceLight = Vector3.new(0.1212, 5.868, -2.1177),
 			LeftAnkle = Vector3.new(-0.4, 0.62, 0.14),
 			LeftElbow = Vector3.new(-1, 5.18, -0.96),
 			LeftHip = Vector3.new(-0.36, 4.6, 0.06),

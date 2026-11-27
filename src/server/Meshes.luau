@@ -166,15 +166,27 @@ local function load(name: string)
 			warn(`[Meshes] {name} came in as one merged mesh: placed whole, in one look (tell Claude)`)
 			found = {}
 		end
-		for _, p in spec.parts do
-			-- By name first ("Door_Frame"), then the unused mesh closest in shape.
-			local pick: MeshPart? = nil
-			for _, mp in found do
-				if not used[mp] and (mp.Name == p.name or string.find(mp.Name, p.name, 1, true) == 1) then
-					pick = mp
-					break
+		-- By name first, over every part before any guessing: exact names,
+		-- then names the importer added to ("Door_Frame"). Only then does a
+		-- part left over take the unused mesh closest in shape. (So "Face"
+		-- never grabs "FaceHoles", and an upload older than the manifest
+		-- keeps its own parts.)
+		local named: { [string]: MeshPart } = {}
+		for pass = 1, 2 do
+			for _, p in spec.parts do
+				if not named[p.name] then
+					for _, mp in found do
+						if not used[mp] and (mp.Name == p.name or (pass == 2 and string.find(mp.Name, p.name, 1, true) == 1)) then
+							named[p.name] = mp
+							used[mp] = true
+							break
+						end
+					end
 				end
 			end
+		end
+		for _, p in spec.parts do
+			local pick: MeshPart? = named[p.name]
 			if not pick then
 				local bestErr = math.huge
 				for _, mp in found do

@@ -74,21 +74,28 @@ local function watchTenant(model: Model)
 	if cue.SoundId == Audio.id("HUM") then
 		cue.PlaybackSpeed = 0.22 -- stand-in until TENANT_CUE is uploaded: the hum, dragged down
 	end
-	-- Its shriek when it spots someone: the hum torn upwards.
+	-- Its screech when it spots someone: its own wet clicking breath torn
+	-- up high and chattering, loud and carrying (the hum it used to be
+	-- made from sank into the hum every corridor already has).
 	local shriek = Instance.new("Sound")
 	shriek.Name = "Shriek"
-	shriek.SoundId = Audio.id("HUM") or ""
-	shriek.PlaybackSpeed = 1.6
-	shriek.Volume = 3
+	shriek.SoundId = Audio.id("TENANT_CUE") or Audio.id("HUM") or ""
+	shriek.PlaybackSpeed = 1.3
+	shriek.Volume = 4
 	shriek.RollOffMode = Enum.RollOffMode.InverseTapered
-	shriek.RollOffMinDistance = 10
-	shriek.RollOffMaxDistance = 160
+	shriek.RollOffMinDistance = 14
+	shriek.RollOffMaxDistance = 180
 	shriek.SoundGroup = Audio.group("Entities")
 	local bend = Instance.new("PitchShiftSoundEffect")
-	bend.Octave = 0.6
+	bend.Octave = 1.7
 	bend.Parent = shriek
+	local chatter = Instance.new("TremoloSoundEffect")
+	chatter.Depth = 0.9
+	chatter.Duty = 0.5
+	chatter.Frequency = 13
+	chatter.Parent = shriek
 	local grit = Instance.new("DistortionSoundEffect")
-	grit.Level = 0.6
+	grit.Level = 0.55
 	grit.Parent = shriek
 	shriek.Parent = root
 
@@ -96,20 +103,32 @@ local function watchTenant(model: Model)
 	tenants[model] = w
 	model:GetAttributeChangedSignal("State"):Connect(function()
 		if model:GetAttribute("State") ~= "notice" then
+			if shriek.IsPlaying then
+				shriek:Stop()
+			end
 			return
 		end
 		if shriek.SoundId ~= "" then
 			shriek.TimePosition = 0
 			shriek:Play()
-			task.delay(1.5, function()
+			task.delay(Config.TENANT.noticeSeconds, function()
 				shriek:Stop()
 			end)
 		end
-		-- It has seen YOU: the reveal stinger.
-		if model:GetAttribute("TargetId") == player.UserId and myCrew(model) then
+		if not myCrew(model) then
+			return
+		end
+		if model:GetAttribute("TargetId") == player.UserId then
+			-- It has seen YOU: the reveal stinger. Run.
 			Audio.sting("STING_REVEAL", 1, 3)
 			CameraFx.shake(0.2, 0.6)
 			CameraFx.kick(8)
+		else
+			-- It's seen one of your crew nearby: you hear it go off too.
+			local me = myRoot()
+			if me and (me.Position - (root :: BasePart).Position).Magnitude < 90 then
+				Audio.sting("STING_REVEAL", 0.55, 3)
+			end
 		end
 	end)
 end

@@ -23,8 +23,8 @@ return {
 		lampjawFrom = 2, -- Lampjaw starts haunting the lights from this sublevel
 		tenantAtStartFrom = 3, -- from here the Tenant is in the level from the start, not after the first Shift
 		secondTenantFrom = 4, -- a second Tenant from here
-		tenantSpeedPerDepth = 0.4, -- chase speed + this per sublevel after the first...
-		tenantSpeedCap = 24.5, -- ...but never as fast as a sprint (25.6)
+		tenantSpeedPerDepth = 0.35, -- chase speed + this per sublevel after the first...
+		tenantSpeedCap = 21, -- ...but never near a sprint (25.6)
 		shiftFasterPerDepth = 0.07, -- Shifts come this much more often per sublevel...
 		shiftMinScale = 0.55, -- ...down to this fraction of the normal gap
 	},
@@ -76,28 +76,41 @@ return {
 		enabled = true,
 		height = 9.5, -- studs (ceiling is 11)
 		-- Speeds (studs/s). You walk at 16 and sprint at 25.6 until stamina
-		-- runs out (about 5.5 s from full). It chases faster than you walk,
-		-- a little slower than you sprint: you can just about pull away, but
-		-- it stays close, and when your stamina goes it gains fast. Break
-		-- line of sight and go quiet to lose it.
-		wanderSpeed = 6,
-		investigateSpeed = 12, -- heading to a noise
-		chaseSpeed = 21.5,
-		noticeSeconds = 1.6, -- when it spots you it stops and shrieks this long before it chases
+		-- runs out (about 5.5 s from full). On sublevel 1 it chases about as
+		-- fast as you walk, so a sprint always pulls away and a walk keeps
+		-- your lead; deeper down it gains on a walker (DEPTH). It sets off
+		-- slowly and only runs flat out after chaseRampSeconds.
+		wanderSpeed = 5,
+		investigateSpeed = 10, -- heading to a noise or to where it lost you: slower than your walk
+		chaseSpeed = 18,
+		chaseRampSeconds = 1.2, -- from investigateSpeed up to full chase speed
+		firstRunChaseScale = 0.92, -- sublevel 1 only: chase speed x this (18 -> ~16.6)
+		-- The warning: when it spots you it stops, lifts its pale face at you
+		-- and screeches this long before it moves. Get out of its sight in
+		-- that time and it doesn't chase at all: it walks to where it saw you.
+		noticeSeconds = 2.5,
+		renoticeSeconds = 1, -- ...shorter if it catches sight of someone it lost a few seconds ago
 		killRange = 4, -- studs: caught
-		sightRange = 45, -- studs: will chase what it can see this close
+		-- Sight: it sees what's in front of it, not behind.
+		sightRange = 35, -- studs
+		sightCone = 0.5, -- how wide it looks (0.5 = 120 degrees across; 0 = 180)
+		senseRange = 7, -- this close it notices you from any side
 		-- Hearing: how far away each sound reaches it, in studs (a cell is
 		-- 20, a level is ~600 across). Nothing carries across the map.
-		hearWalk = 16, -- walking: only right next to it
-		hearSprint = 50, -- sprinting: a couple of cells
+		hearWalk = 12, -- walking: only right next to it
+		hearSprint = 40, -- sprinting: about two cells
 		hearPerWeight = 0.6, -- extra studs per point of carried weight (rattling loot)
 		hearDrop = 75, -- dropping loot: the loudest thing you can do
-		forgetAfter = 8, -- seconds without hearing or seeing you before it gives up
+		rethinkSeconds = 1.5, -- it re-aims at a sound only this often (it lags behind someone moving)
+		listenSeconds = 2.5, -- where it lost you, it stands still and listens this long
+		forgetAfter = 6, -- seconds without hearing or seeing you before it gives up
 		arriveMinCells = 4, -- after a Shift it appears at least this many cells (by path) from everyone
 		arriveMaxCells = 7, -- ...and at most this far from the loudest player
 		killCooldown = 6, -- seconds it lingers after taking someone
+		dazedSeconds = 2, -- after a melee stun wears off it can't see anyone for this long, and wanders
 		arriveGraceSeconds = 6, -- after it arrives it can't take anyone for this long
-		firstRunChaseScale = 0.95, -- run 1 only: chase speed x this (21.5 -> ~20.4)
+		faceGlow = 0.35, -- its pale face catches a faint light, so it shows in the dark (0 = off)
+		faceGlowNotice = 1.6, -- ...brighter while it screeches at you
 	},
 
 	-- LAMPJAW: lives in the flickering light fittings. It takes over one

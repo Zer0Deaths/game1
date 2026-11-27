@@ -4,9 +4,10 @@
 -- AnimationController and Animator), so animations made in Studio's
 -- Animation Editor play on them as they are.
 --
---   The Tenant:  very tall and thin, near-black, featureless. Arms that
---                hang past its knees, a small blank head pushed forward
---                on a hunched spine.
+--   The Tenant:  very tall and thin, near-black, with a bone-white face
+--                (it catches a faint light: Tenant.luau hangs it on the
+--                FaceLight attachment). Arms that hang past its knees, a
+--                small head pushed forward on a hunched spine.
 --   Lampjaw:     a thin black thing that drops out of a light fitting:
 --                a long neck ending in a hinged jaw full of pale teeth.
 --   The Foreman: broad and square in a work jacket, an old hard hat over a
@@ -124,6 +125,27 @@ local function tenant(height: number): Model
 	headMesh.MeshType = Enum.MeshType.Sphere
 	headMesh.Parent = head
 	stuck(m, upper, "Neck", v(0.28, 0.9, 0.28), CFrame.new(v(0, 7.25, -0.7)) * CFrame.Angles(math.rad(-40), 0, 0))
+	-- The bone-white face on the front of the head, and the point just in
+	-- front of it where the faint light it catches hangs.
+	local faceCF = headCF * CFrame.new(v(0, -0.05, -0.34))
+	local face = part(m, "Face", v(0.5, 0.74, 0.22), faceCF)
+	face.MaterialVariant = ""
+	face.Material = Enum.Material.SmoothPlastic
+	face.Color = Color3.fromRGB(226, 221, 208)
+	local faceMesh = Instance.new("SpecialMesh")
+	faceMesh.MeshType = Enum.MeshType.Sphere
+	faceMesh.Parent = face
+	local faceWeld = Instance.new("WeldConstraint")
+	faceWeld.Part0, faceWeld.Part1 = head, face
+	faceWeld.Parent = face
+	for _, ex in { -1, 1 } do
+		stuck(m, face, "Pit", v(0.12, 0.09, 0.06), faceCF * CFrame.new(v(ex * 0.11, 0.1, -0.09)), true)
+	end
+	stuck(m, face, "Mouth", v(0.07, 0.24, 0.05), faceCF * CFrame.new(v(0, -0.17, -0.09)))
+	local glow = Instance.new("Attachment")
+	glow.Name = "FaceLight"
+	glow.Position = v(0, 0, -0.9)
+	glow.Parent = face
 
 	motor("Root", root, lower, CFrame.new(v(0, 4.6, 0)))
 	motor("Waist", lower, upper, CFrame.new(v(0, 5.05, 0)))
@@ -378,6 +400,16 @@ local function rigFromMesh(name: string, height: number): Model?
 			w.C0 = to.CFrame:Inverse() * p.CFrame
 			w.Parent = p
 		end
+	end
+	-- A point the script marked in front of the face ("FaceLight" in the
+	-- joints, not a joint): the entity's code hangs a light there.
+	local glowAt = spec.joints.FaceLight
+	local face = parts.Face
+	if glowAt and face then
+		local a = Instance.new("Attachment")
+		a.Name = "FaceLight"
+		a.Position = face.CFrame:PointToObjectSpace(glowAt * k)
+		a.Parent = face
 	end
 	animator(m)
 	return m
