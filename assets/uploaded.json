@@ -9,6 +9,56 @@
   "id": "decal:81942948737839",
   "sha": "9cefbea92c2feff9"
  },
+ "decals/corner_grime.png": {
+  "decal": "99624967495954",
+  "id": "decal:99624967495954",
+  "sha": "d50ec592e4def9a9"
+ },
+ "decals/drip_stain.png": {
+  "decal": "107014690361239",
+  "id": "decal:107014690361239",
+  "sha": "5e910ea16e100240"
+ },
+ "decals/floor_stain.png": {
+  "decal": "139860133169071",
+  "id": "decal:139860133169071",
+  "sha": "888e8e8e45bcdbd7"
+ },
+ "decals/oil_stain.png": {
+  "decal": "120885889176673",
+  "id": "decal:120885889176673",
+  "sha": "e6aa40e997ef47d8"
+ },
+ "decals/peel.png": {
+  "decal": "93660406779531",
+  "id": "decal:93660406779531",
+  "sha": "bba1d72c451815dc"
+ },
+ "decals/rust_streak.png": {
+  "decal": "93214289873818",
+  "id": "decal:93214289873818",
+  "sha": "1e43139af7395c58"
+ },
+ "decals/scuff.png": {
+  "decal": "73282973247086",
+  "id": "decal:73282973247086",
+  "sha": "57dcd433aec1bdf7"
+ },
+ "decals/wall_grime.png": {
+  "decal": "98230967649307",
+  "id": "decal:98230967649307",
+  "sha": "3ffaccbbe0b55abf"
+ },
+ "decals/water_stain.png": {
+  "decal": "129853679144896",
+  "id": "decal:129853679144896",
+  "sha": "540734c9cb4a7f4c"
+ },
+ "decals/wear_path.png": {
+  "decal": "137173839456064",
+  "id": "decal:137173839456064",
+  "sha": "71112682ccb8deaa"
+ },
  "sounds/BLACKOUT.ogg": {
   "decal": null,
   "id": "108787335070634",
