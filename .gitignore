@@ -17,3 +17,4 @@ desktop.ini
 !.vscode/extensions.json
 __pycache__/
 *.pyc
+tools/last_sound_page.html
