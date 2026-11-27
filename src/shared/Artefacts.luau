@@ -20,7 +20,7 @@ local Artefacts: { ArtefactDef } = {
 	{
 		id = "pager", name = "Dead Pager", minValue = 8, maxValue = 18, weight = 0.5,
 		size = Vector3.new(0.8, 0.4, 1.2), shape = Enum.PartType.Block,
-		color = Color3.fromRGB(40, 40, 44), material = Enum.Material.SmoothPlastic, rarity = 10,
+		color = Color3.fromRGB(40, 40, 44), material = Enum.Material.Plastic, rarity = 10,
 	},
 	{
 		id = "stapler", name = "Rusted Stapler", minValue = 10, maxValue = 22, weight = 0.5,
@@ -35,7 +35,7 @@ local Artefacts: { ArtefactDef } = {
 	{
 		id = "phone", name = "Rotary Phone", minValue = 30, maxValue = 55, weight = 1.5,
 		size = Vector3.new(1.4, 0.9, 1.2), shape = Enum.PartType.Block,
-		color = Color3.fromRGB(150, 30, 30), material = Enum.Material.SmoothPlastic, rarity = 7,
+		color = Color3.fromRGB(150, 30, 30), material = Enum.Material.Plastic, rarity = 7,
 	},
 	{
 		id = "fan", name = "Desk Fan", minValue = 40, maxValue = 70, weight = 2,

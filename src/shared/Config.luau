@@ -11,7 +11,7 @@ return {
 	QUOTA_GROWTH = 1.35, -- each sublevel deeper multiplies the quota by this
 	LOOT_VALUE_PER_DEPTH = 0.2, -- loot is worth +20% per sublevel deeper (x1.0, x1.2, x1.4 ...)
 	ARTEFACTS_PER_100_CELLS = 8, -- how much loot a level holds (a 30x30 level: 72)
-	LEVEL_SIZE_BY_CREW = { 22, 26, 28, 30 }, -- level width/depth in cells for crews of 1-4
+	LEVEL_SIZE_BY_CREW = { 30, 30, 32, 32 }, -- level width/depth in cells for crews of 1-4 (Jason: at least 30x30)
 	LEVEL_SPACING = 4000, -- studs between crews' levels (keeps them out of each other's streaming range)
 	DESCENT_COUNTDOWN = 5, -- seconds after a crew is all Ready (or chooses Deeper) before the lift drops
 	WIPE_LOSES_KIT = true, -- a wiped crew loses everything bought in the shop (Cash is kept)
@@ -162,13 +162,5 @@ return {
 	SHIFT_SAFE_RADIUS = 0, -- 0 = only the cell you stand in keeps its walls; 1 = 3x3 (too safe: changes happened out of sight)
 	SHIFT_NOT_BEFORE_END = 25, -- no Shift this close to the end of a run
 
-	-- SHIFT's surface textures (assets/textures). Paste the uploaded image
-	-- IDs here (just the number is fine) and the level switches from
-	-- built-in materials to these. See TODO.md.
-	TEXTURES = {
-		wallpaper = { colour = "", normal = "", roughness = "" },
-		carpet = { colour = "", normal = "", roughness = "" },
-		ceiling = { colour = "", normal = "", roughness = "" },
-		concrete = { colour = "", normal = "", roughness = "" },
-	},
+	-- Texture and sound IDs live in AssetIds.luau (written by tools/upload_assets.py).
 }

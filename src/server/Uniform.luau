@@ -1,9 +1,10 @@
 --!strict
 -- Uniform: everyone spawns in the same SHIFT crew suit instead of their own
--- avatar. Built from basic parts and colours (no uploaded models): a teal
--- work suit, dark rubber gloves and boots, reflective tape on the forearms
--- and shins, a hood with a dark visor, and a "SHIFT" crew patch on the chest.
--- A proper modelled suit would need a Creator Store asset or a modeller.
+-- avatar: a work coverall (classic Shirt + Pants from assets/clothing,
+-- tinted to the suit colour: zip, pocket, knee pads, hi-vis tape), rubber
+-- gloves and boots, a hood with a dark visor, and a "SHIFT" crew patch.
+-- Gloves, boots and hood use the PBR rubber and canvas surfaces. Until the
+-- clothing templates are uploaded the suit is plain fabric in the colour.
 --
 -- Tape is parented to the arm parts so the first-person arms (Arms.client)
 -- show it too.
@@ -11,6 +12,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local AssetIds = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("AssetIds"))
+local Surfaces = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Surfaces"))
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local Uniform = {}
@@ -49,7 +52,7 @@ local function band(limb: BasePart, along: number)
 	tape.Name = "Tape"
 	tape.Size = Vector3.new(size.X + 0.06, 0.16, size.Z + 0.06)
 	tape.Color = TAPE
-	tape.Material = Enum.Material.SmoothPlastic
+	tape.Material = Enum.Material.Fabric
 	weldTo(tape, limb, CFrame.new(0, along, 0))
 end
 
@@ -81,7 +84,7 @@ local function dress(character: Model)
 		local part = character:FindFirstChild(name)
 		if part and part:IsA("BasePart") then
 			part.Color = RUBBER
-			part.Material = Enum.Material.SmoothPlastic
+			Surfaces.apply(part, "SHIFT_Rubber")
 		end
 	end
 
@@ -103,6 +106,7 @@ local function dress(character: Model)
 		local mesh = Instance.new("SpecialMesh")
 		mesh.MeshType = Enum.MeshType.Sphere
 		mesh.Parent = hood
+		Surfaces.apply(hood, "SHIFT_SuitFabric")
 		weldTo(hood, head, CFrame.new(0, 0.05, 0.05))
 
 		local visor = Instance.new("Part")
@@ -112,6 +116,24 @@ local function dress(character: Model)
 		visor.Material = Enum.Material.Glass
 		visor.Reflectance = 0.25
 		weldTo(visor, head, CFrame.new(0, 0.08, -head.Size.Z * 0.62))
+	end
+
+	-- The coverall itself: classic clothing, tinted to the suit colour.
+	local shirtId = Surfaces.image(AssetIds.clothing.shirt)
+	local pantsId = Surfaces.image(AssetIds.clothing.pants)
+	if shirtId ~= "" then
+		local shirt = Instance.new("Shirt")
+		shirt.Name = "SuitShirt"
+		shirt.ShirtTemplate = shirtId
+		shirt.Color3 = SUIT
+		shirt.Parent = character
+	end
+	if pantsId ~= "" then
+		local pants = Instance.new("Pants")
+		pants.Name = "SuitPants"
+		pants.PantsTemplate = pantsId
+		pants.Color3 = SUIT
+		pants.Parent = character
 	end
 
 	-- Crew patch on the chest.

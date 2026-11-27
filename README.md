@@ -83,11 +83,11 @@ Shared (`src/shared`, pure logic, mostly tested offline):
 
 Server (`src/server`):
 - `main.server` the game loop: safehouse, descent, run, results.
-- `LevelBuilder`, `Atmosphere`, `ExitLift`, `Safehouse` build the world. `Materials` the SHIFT textures (`assets/textures`, regenerate with `python tools/make_textures.py`).
+- `LevelBuilder`, `Atmosphere`, `ExitLift`, `Safehouse` build the world. `Shared.Surfaces` installs SHIFT's PBR sets as MaterialVariants and SurfaceAppearances and dresses every part (no SmoothPlastic). Assets: `assets/textures` (`python tools/make_textures.py`), `assets/sounds` (`python tools/make_sounds.py`), `assets/clothing`; `tools/fetch_cc0.py` swaps in CC0 recordings and scans, `tools/upload_assets.py` uploads everything and writes `Shared.AssetIds`.
 - `Sublevels` the crew loop: each crew's level, quota, lift, deeper/return, wipes. `CrewService` crews and Cash. `ArtefactService` loot.
 - `ShiftService` the Shift. `Tenant`, `Lampjaw` the entities. `NoiseService` what they can hear.
 - `MapService` crew map. `ShopService` shop and flashlight. `DataService` saving. `MonetisationService` paid extras (off until IDs are set). `Uniform` the crew suit.
 
-Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Footsteps`, `Ambience`, `TenantSounds`, `Controls`, `StartupLight`, `Dust`, `CrewMirror` (your crew's state onto Workspace), `Arms` (off for now).
+Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Audio` (sound module: groups, 3D one-shots, loops), `Ambience` (hum, drone, whispers, blackout silence), `Cues` (entity cues, heartbeat, stingers, loop sounds), `Footsteps`, `Controls`, `StartupLight`, `Dust`, `CrewMirror` (your crew's state onto Workspace), `Arms` (off for now).
 
 Offline tests (need the [Luau CLI](https://github.com/luau-lang/luau/releases)): `luau tests/levelgen.test.luau`, `tests/map.test.luau`, `tests/crews.test.luau`, `tests/playerdata.test.luau`.

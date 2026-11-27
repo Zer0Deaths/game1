@@ -37,7 +37,7 @@ check(Crews.split(550, 4) == 137 and Crews.split(100, 0) == 0, "split")
 -- gets hard: quota as a share of all the loot in the level, by depth.
 local avgValue = 41.5 -- average artefact value on sublevel 1 (Artefacts.luau rarities)
 for members = 1, 4 do
-	local size = Crews.levelSize(members, { 22, 26, 28, 30 })
+	local size = Crews.levelSize(members, { 30, 30, 32, 32 })
 	local loot = math.floor(size * size * 8 / 100) * avgValue
 	local share1 = Crews.quota(1, members, 250, 100, 1.35) / loot
 	local share6 = Crews.quota(6, members, 250, 100, 1.35) / (loot * Crews.lootMultiplier(6, 0.2))

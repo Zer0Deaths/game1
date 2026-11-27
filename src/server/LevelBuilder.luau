@@ -13,14 +13,16 @@
 -- never from a running random number. So anything a player is standing
 -- next to during a Shift is rebuilt exactly as it was.
 --
--- Surfaces use MaterialVariants when they exist (see Materials.luau and
--- TODO.md), otherwise Roblox's built-in materials.
+-- Every part gets a PBR surface (Shared.Surfaces): the level type's
+-- wallpaper/carpet/ceiling sets on the big surfaces, and a set matched to
+-- each prop's material (painted metal, wood, fabric...). Until the
+-- textures are uploaded, built-in materials stand in. No SmoothPlastic.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LevelGen"))
-local Materials = require(script.Parent:WaitForChild("Materials"))
+local Surfaces = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Surfaces"))
 
 local LevelBuilder = {}
 
@@ -36,7 +38,7 @@ local COLORS = {
 	ceiling = Color3.fromRGB(206, 201, 178), -- yellowed ceiling tiles
 	grid = Color3.fromRGB(150, 146, 128), -- metal T-bar ceiling grid
 	housing = Color3.fromRGB(186, 184, 174), -- light fitting frame
-	lightOn = Color3.fromRGB(246, 242, 212), -- cold-warm fluorescent
+	lightOn = Color3.fromRGB(252, 236, 186), -- warm yellow fluorescent
 	lightDead = Color3.fromRGB(64, 62, 56),
 	pillar = Color3.fromRGB(190, 170, 96),
 	stain = Color3.fromRGB(92, 70, 30), -- water damage
@@ -47,7 +49,7 @@ local MATERIALS = {
 	wall = Enum.Material.Plaster,
 	carpet = Enum.Material.Carpet,
 	ceiling = Enum.Material.Plaster,
-	trim = Enum.Material.SmoothPlastic,
+	trim = Enum.Material.Metal, -- skirting, ceiling grid: painted metal
 }
 
 -- MaterialVariant names per surface for the current level type ("" = none).
@@ -78,10 +80,13 @@ end
 -- Puts a texture variant on a part when one is set up for this surface.
 local function surface(p: BasePart, kind: string)
 	local name = VARIANTS[kind]
-	if name and name ~= "" and Materials.has(name) then
-		p.Material = Materials.base(name)
-		p.MaterialVariant = name
-		p.Color = Color3.new(1, 1, 1) -- the texture brings its own colour
+	if name and name ~= "" and Surfaces.has(name) then
+		-- Keep the patchy per-wall shading as a light grey over the texture.
+		local c = p.Color
+		local base = COLORS[kind] or c
+		local shade = math.clamp((c.R + c.G + c.B) / math.max(0.01, base.R + base.G + base.B), 0.82, 1)
+		Surfaces.apply(p, name)
+		p.Color = Color3.new(shade, shade, shade)
 	end
 end
 
@@ -103,6 +108,7 @@ local function makePart(props: { [string]: any }, parent: Instance): Part
 	for k, v in props do
 		(p :: any)[k] = v
 	end
+	Surfaces.auto(p) -- PBR set by material; never SmoothPlastic
 	p.Parent = parent
 	return p
 end
@@ -182,15 +188,15 @@ local function desk(parent: Instance, at: CFrame, h: (number) -> number)
 		-- An old CRT-ish monitor, left on its stand or knocked over.
 		local fallen = h(2) < 0.2
 		local m = if fallen then at * CFrame.new(0.4, 2.9, -0.2) * CFrame.Angles(math.rad(-90), 0, 0) else at * CFrame.new(0.4, 3.55, -0.6)
-		detail({ Name = "Monitor", Size = Vector3.new(1.7, 1.25, 1.1), CFrame = m, Color = Color3.fromRGB(196, 190, 172), Material = Enum.Material.SmoothPlastic }, parent)
+		detail({ Name = "Monitor", Size = Vector3.new(1.7, 1.25, 1.1), CFrame = m, Color = Color3.fromRGB(196, 190, 172), Material = Enum.Material.Plastic }, parent)
 		detail({ Name = "Screen", Size = Vector3.new(1.4, 0.95, 0.05), CFrame = m * CFrame.new(0, 0, 0.56), Color = Color3.fromRGB(24, 28, 26), Material = Enum.Material.Glass, Reflectance = 0.15 }, parent)
 	end
 	if h(3) < 0.6 then
-		detail({ Name = "Keyboard", Size = Vector3.new(1.5, 0.08, 0.5), CFrame = at * CFrame.new(0.4, 2.77, 0.5) * CFrame.Angles(0, math.rad((h(4) - 0.5) * 30), 0), Color = Color3.fromRGB(186, 180, 162), Material = Enum.Material.SmoothPlastic }, parent)
+		detail({ Name = "Keyboard", Size = Vector3.new(1.5, 0.08, 0.5), CFrame = at * CFrame.new(0.4, 2.77, 0.5) * CFrame.Angles(0, math.rad((h(4) - 0.5) * 30), 0), Color = Color3.fromRGB(186, 180, 162), Material = Enum.Material.Plastic }, parent)
 	end
 	-- Paper left lying around.
 	for i = 1, math.floor(h(5) * 4) do
-		detail({ Name = "Paper", Size = Vector3.new(0.85, 0.02, 1.1), CFrame = at * CFrame.new((h(10 + i) - 0.5) * 7, 0.02, (h(20 + i) - 0.5) * 6) * CFrame.Angles(0, h(30 + i) * 6.28, 0), Color = PAPER, Material = Enum.Material.SmoothPlastic }, parent)
+		detail({ Name = "Paper", Size = Vector3.new(0.85, 0.02, 1.1), CFrame = at * CFrame.new((h(10 + i) - 0.5) * 7, 0.02, (h(20 + i) - 0.5) * 6) * CFrame.Angles(0, h(30 + i) * 6.28, 0), Color = PAPER, Material = Enum.Material.Plastic }, parent)
 	end
 	chair(parent, at * CFrame.new((h(6) - 0.5) * 1.5, 0, 2.2 + h(7)) * CFrame.Angles(0, (h(8) - 0.5) * 1.6, 0), h(9) < 0.15)
 end
@@ -205,7 +211,7 @@ end
 
 local function box(parent: Instance, cf: CFrame, size: Vector3)
 	prop({ Name = "Box", Size = size, CFrame = cf * CFrame.new(0, size.Y / 2, 0), Color = CARDBOARD, Material = Enum.Material.Cardboard }, parent)
-	detail({ Name = "Tape", Size = Vector3.new(size.X + 0.02, 0.02, 0.35), CFrame = cf * CFrame.new(0, size.Y + 0.01, 0), Color = Color3.fromRGB(190, 170, 120), Material = Enum.Material.SmoothPlastic }, parent)
+	detail({ Name = "Tape", Size = Vector3.new(size.X + 0.02, 0.02, 0.35), CFrame = cf * CFrame.new(0, size.Y + 0.01, 0), Color = Color3.fromRGB(190, 170, 120), Material = Enum.Material.Plastic }, parent)
 end
 
 local function shelving(parent: Instance, at: CFrame, h: (number) -> number)
@@ -323,7 +329,7 @@ function LevelBuilder.applyLights(layout: LevelGen.Layout, model: Instance)
 					-- First build: set the look on the server too, for anyone
 					-- whose device hasn't run its light script yet.
 					panel.Color = if dead then COLORS.lightDead else COLORS.lightOn
-					panel.Material = if dead then Enum.Material.SmoothPlastic else Enum.Material.Neon
+					panel.Material = if dead then Enum.Material.Glass else Enum.Material.Neon
 					local light = panel:FindFirstChildOfClass("SurfaceLight")
 					if light then
 						light.Enabled = not dead
@@ -465,9 +471,9 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		end
 		local along = (h(1) - 0.5) * (S - 4)
 		if h(2) < 0.07 then
-			detail({ Name = "Outlet", Size = Vector3.new(0.55, 0.85, 0.08), CFrame = frame * CFrame.new(along, 1.4, -0.04), Color = Color3.fromRGB(226, 220, 200), Material = Enum.Material.SmoothPlastic }, details)
+			detail({ Name = "Outlet", Size = Vector3.new(0.55, 0.85, 0.08), CFrame = frame * CFrame.new(along, 1.4, -0.04), Color = Color3.fromRGB(226, 220, 200), Material = Enum.Material.Plastic }, details)
 			for _, dy in { 0.18, -0.18 } do
-				detail({ Name = "Socket", Size = Vector3.new(0.22, 0.14, 0.04), CFrame = frame * CFrame.new(along, 1.4 + dy, -0.09), Color = DARK, Material = Enum.Material.SmoothPlastic }, details)
+				detail({ Name = "Socket", Size = Vector3.new(0.22, 0.14, 0.04), CFrame = frame * CFrame.new(along, 1.4 + dy, -0.09), Color = DARK, Material = Enum.Material.Plastic }, details)
 			end
 		end
 		if h(3) < 0.035 then
@@ -482,7 +488,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 				Size = Vector3.new(sw, sh, 0.04),
 				CFrame = frame * CFrame.new((h(7) - 0.5) * (S - sw - 2), H - sh / 2, -0.03),
 				Color = COLORS.stain,
-				Material = Enum.Material.SmoothPlastic,
+				Material = Enum.Material.Plastic,
 				Transparency = 0.55 + h(8) * 0.25,
 			}, details)
 			-- A darker tide line where the water stopped.
@@ -491,7 +497,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 				Size = Vector3.new(sw * 0.8, 0.25, 0.04),
 				CFrame = frame * CFrame.new((h(7) - 0.5) * (S - sw - 2), H - sh + 0.15, -0.035),
 				Color = COLORS.stain:Lerp(Color3.new(0, 0, 0), 0.3),
-				Material = Enum.Material.SmoothPlastic,
+				Material = Enum.Material.Plastic,
 				Transparency = 0.5,
 			}, details)
 		end
@@ -708,7 +714,7 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 				local roll = h(3)
 				if roll < 0.05 then
 					-- Missing tile: a black hole into the ceiling void.
-					detail({ Name = "MissingTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = Color3.fromRGB(8, 8, 8), Material = Enum.Material.SmoothPlastic }, damage)
+					detail({ Name = "MissingTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = Color3.fromRGB(8, 8, 8), Material = Enum.Material.Plastic }, damage)
 				elseif roll < 0.2 then
 					detail({ Name = "StainedTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = COLORS.ceiling:Lerp(COLORS.stain, 0.35 + h(4) * 0.3), Material = MATERIALS.ceiling }, damage)
 				end

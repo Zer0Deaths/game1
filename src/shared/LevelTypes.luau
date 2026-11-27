@@ -27,7 +27,7 @@ export type LevelType = {
 	},
 	colours: { [string]: Color3 }, -- overrides LevelBuilder's palette keys
 	materials: { [string]: string }, -- Enum.Material names for wall, carpet (floor), ceiling, trim
-	variants: { [string]: string }, -- texture MaterialVariants for wall, carpet, ceiling (Materials.luau), used once uploaded
+	variants: { [string]: string }, -- PBR surfaces for wall, carpet (floor), ceiling (Shared.Surfaces), used once uploaded
 	light: Color3,
 	haze: { colour: Color3, decay: Color3, density: number },
 	tint: Color3,
@@ -52,8 +52,8 @@ local LevelTypes: { LevelType } = {
 		colours = {},
 		materials = {},
 		variants = { wall = "SHIFT_Wallpaper", carpet = "SHIFT_Carpet", ceiling = "SHIFT_CeilingTile" },
-		light = rgb(246, 242, 212),
-		haze = { colour = rgb(150, 128, 70), decay = rgb(60, 46, 18), density = 0.42 },
+		light = rgb(252, 236, 186), -- warm yellow tubes
+		haze = { colour = rgb(150, 128, 70), decay = rgb(52, 40, 14), density = 0.46 },
 		tint = rgb(255, 240, 200),
 	},
 	{
@@ -62,7 +62,7 @@ local LevelTypes: { LevelType } = {
 		blurb = "Tiled corridors, cold light, more of it broken.",
 		unlockRun = 2,
 		weight = 2,
-		sizeBonus = -2,
+		sizeBonus = 0, -- tighter corridors, same size (Jason: never under 30x30)
 		gen = { loopChance = 0.1, roomCount = 4, atriumCount = 0, officeCount = 5, storageCount = 1, hallCount = 8, deadChance = 0.32, flickerChance = 0.14 },
 		colours = {
 			wall = rgb(196, 206, 200),
@@ -73,10 +73,10 @@ local LevelTypes: { LevelType } = {
 			pillar = rgb(180, 192, 186),
 			lightOn = rgb(220, 236, 246),
 		},
-		materials = { wall = "Marble", carpet = "Slate", ceiling = "Plaster", trim = "SmoothPlastic" },
-		variants = { ceiling = "SHIFT_CeilingTile" },
+		materials = { wall = "Marble", carpet = "Slate", ceiling = "Plaster", trim = "Metal" },
+		variants = { wall = "SHIFT_WardTile", carpet = "SHIFT_WardFloor", ceiling = "SHIFT_CeilingTile" },
 		light = rgb(220, 236, 246),
-		haze = { colour = rgb(110, 130, 130), decay = rgb(30, 44, 46), density = 0.45 },
+		haze = { colour = rgb(110, 130, 130), decay = rgb(30, 44, 46), density = 0.48 },
 		tint = rgb(225, 240, 245),
 	},
 	{
@@ -96,10 +96,10 @@ local LevelTypes: { LevelType } = {
 			pillar = rgb(110, 106, 98),
 			lightOn = rgb(255, 190, 120),
 		},
-		materials = { wall = "Concrete", carpet = "DiamondPlate", ceiling = "Concrete", trim = "Metal" },
-		variants = { wall = "SHIFT_Concrete", ceiling = "SHIFT_Concrete" },
+		materials = { wall = "Concrete", carpet = "DiamondPlate", ceiling = "Concrete", trim = "CorrodedMetal" },
+		variants = { wall = "SHIFT_Concrete", carpet = "SHIFT_SteelPlate", ceiling = "SHIFT_Concrete" },
 		light = rgb(255, 190, 120),
-		haze = { colour = rgb(120, 90, 60), decay = rgb(50, 30, 14), density = 0.46 },
+		haze = { colour = rgb(120, 90, 60), decay = rgb(50, 30, 14), density = 0.5 },
 		tint = rgb(255, 226, 196),
 	},
 }
