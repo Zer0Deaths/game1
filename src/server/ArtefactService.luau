@@ -177,7 +177,8 @@ local function makeArtefact(def: Artefacts.ArtefactDef, value: number): Tool
 	prompt.ObjectText = `{def.name}  ${value}`
 	prompt.MaxActivationDistance = 8
 	prompt.RequiresLineOfSight = false
-	prompt.HoldDuration = 0.2
+	prompt.HoldDuration = Config.PICKUP_HOLD -- 0 = a single tap of E
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.Parent = handle
 	prompt.Triggered:Connect(function(player)
 		pickUp(player, tool)
