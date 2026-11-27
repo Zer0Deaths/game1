@@ -6,8 +6,11 @@
 --   * Hears moving players (sprinting and heavy loads carry much further)
 --     and dropped loot, and walks the maze to the noise.
 --   * When it spots you it stops and shrieks first (Config.TENANT.noticeSeconds),
---     then chases. Slower than walking, so you can always get away if you
---     keep moving; dead ends and hesitation are what kill you.
+--     then chases: faster than walking, a little slower than sprinting.
+--     Out of sight it only knows where it last saw you, so break line of
+--     sight and go quiet to lose it.
+--   * Hearing has a range per sound (Config.TENANT): walking carries a
+--     few studs, sprinting a couple of cells, dropped loot further.
 --   * Catching you kills you; your loot spills where you fell.
 --   * The exit lift is safe: it won't take anyone standing inside it.
 -- Counter: stay quiet, split up, don't drop loot near it.
@@ -51,6 +54,7 @@ local target: Player? = nil
 local lastNoticed = 0
 local lingerUntil = 0
 local noticeUntil = 0 -- it stops and shrieks before every chase
+local lastSeenAt: Vector3? = nil -- where it last saw its target (it can't see through walls)
 local loudness: { [Player]: number } = {} -- running average of how loud each player is
 
 -- Body -----------------------------------------------------------------------
@@ -200,6 +204,7 @@ local function hide()
 	end
 	route = {}
 	target = nil
+	lastSeenAt = nil
 end
 
 local function show()
@@ -387,12 +392,15 @@ local function decide()
 			setState("notice")
 			noticeUntil = now + T.noticeSeconds
 			lastNoticed = now
+			lastSeenAt = (rootOf(seen) :: BasePart).Position
 			route = {}
 			return
 		end
 		target = seen
 		lastNoticed = now
 		local r = rootOf(seen) :: BasePart
+		lastSeenAt = r.Position
+		goalCell = nil
 		route = { Vector3.new(r.Position.X, 0, r.Position.Z) } -- straight at you: nothing is in the way
 		return
 	end
@@ -424,14 +432,18 @@ local function decide()
 		setState("wander")
 		target = nil
 		route = {}
-	elseif state == "chase" and target then
-		-- Lost sight: keep after their last known cell for a while.
-		local r = rootOf(target)
-		if r then
-			local cx, cz = cellOf(r.Position, l)
-			if not goalCell or goalCell[1] ~= cx or goalCell[2] ~= cz or #route == 0 then
-				walkTo(cx, cz)
+	elseif state == "chase" and target and lastSeenAt then
+		-- Lost sight: run to where it last saw them, then listen. It does
+		-- not know where you went unless it hears you.
+		local cx, cz = cellOf(lastSeenAt, l)
+		if not goalCell or goalCell[1] ~= cx or goalCell[2] ~= cz then
+			walkTo(cx, cz)
+			if #route == 0 then
+				route = { Vector3.new(lastSeenAt.X, 0, lastSeenAt.Z) }
 			end
+		elseif #route == 0 then
+			setState("investigate") -- got there, you're gone: listen
+			lastSeenAt = nil
 		end
 	end
 	if #route == 0 and state ~= "chase" then

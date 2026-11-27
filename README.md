@@ -54,7 +54,7 @@ Save the place in Studio (File > Save to Roblox) to keep non-code stuff like map
 **The Shift:** every 80-120 s the hum rises and the lights stutter, then 3 s of black while the maze rewires around you and the lift may move. Testing: tick a Boolean Workspace attribute `ForceShift`.
 
 **Entities**
-- **The Tenant** (tall, faceless, long coat) hunts by sound. It turns up after the first Shift, near whoever has been loudest. It walks to noises. When it sees you it stops and shrieks, then chases, slower than you walk: keep moving and you get away. You hear its drone and heavy steps first. The exit lift is safe.
+- **The Tenant** (tall, faceless, long coat) hunts by sound. It turns up after the first Shift, near whoever has been loudest. It only hears what is near it: walking a few studs, sprinting a couple of cells, dropped loot further. When it sees you it stops and shrieks, then chases, faster than you walk but a little slower than you sprint. Out of sight it only knows where it last saw you, so break line of sight and go quiet. You hear its drone and heavy steps first. The exit lift is safe.
 - **Lampjaw** hides in flickering lights. When one strobes **red and buzzes**, don't stop under it: linger about a second and it takes you. More active when a Shift is coming.
 
 **Levels:** The Carpet (run 1), The Ward (from run 2), The Plant Room (from run 3). Each is about 30x30 cells (600 studs across), with long walled halls, a pillared atrium, offices, storage rooms and open rooms between the maze corridors. The Shift rewires everything out of sight but keeps the level stocked with these set pieces.

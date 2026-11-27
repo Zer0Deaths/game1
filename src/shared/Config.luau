@@ -51,22 +51,29 @@ return {
 	TENANT = {
 		enabled = true,
 		height = 9.5, -- studs (ceiling is 11)
-		wanderSpeed = 5, -- studs/s
-		investigateSpeed = 8, -- heading to a noise
-		chaseSpeed = 14, -- slower than walking (16) and sprinting (25.6): keep moving and you get away
+		-- Speeds (studs/s). You walk at 16 and sprint at 25.6 until stamina
+		-- runs out (about 5.5 s from full). It chases faster than you walk,
+		-- a little slower than you sprint: you can just about pull away, but
+		-- it stays close, and when your stamina goes it gains fast. Break
+		-- line of sight and go quiet to lose it.
+		wanderSpeed = 6,
+		investigateSpeed = 12, -- heading to a noise
+		chaseSpeed = 21.5,
 		noticeSeconds = 1.6, -- when it spots you it stops and shrieks this long before it chases
 		killRange = 4, -- studs: caught
-		sightRange = 40, -- studs: will chase what it can see this close
-		hearWalk = 40, -- studs: hears a walking player this far away
-		hearSprint = 110, -- studs: hears a sprinting player this far away
-		hearPerWeight = 2, -- extra studs per point of carried weight
-		hearDrop = 90, -- studs: hears dropped loot this far away
+		sightRange = 45, -- studs: will chase what it can see this close
+		-- Hearing: how far away each sound reaches it, in studs (a cell is
+		-- 20, a level is ~600 across). Nothing carries across the map.
+		hearWalk = 16, -- walking: only right next to it
+		hearSprint = 50, -- sprinting: a couple of cells
+		hearPerWeight = 0.6, -- extra studs per point of carried weight (rattling loot)
+		hearDrop = 75, -- dropping loot: the loudest thing you can do
 		forgetAfter = 8, -- seconds without hearing or seeing you before it gives up
 		arriveMinCells = 4, -- after a Shift it appears at least this many cells (by path) from everyone
 		arriveMaxCells = 7, -- ...and at most this far from the loudest player
 		killCooldown = 6, -- seconds it lingers after taking someone
 		arriveGraceSeconds = 6, -- after it arrives it can't take anyone for this long
-		firstRunChaseScale = 0.85, -- run 1 only: chase speed x this (14 -> ~12)
+		firstRunChaseScale = 0.95, -- run 1 only: chase speed x this (21.5 -> ~20.4)
 	},
 
 	-- LAMPJAW: lives in the flickering light fittings. It takes over one
