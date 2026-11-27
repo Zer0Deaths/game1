@@ -189,16 +189,16 @@ return {
 	},
 	exit_lift = {
 		tris = 1948,
-		size = Vector3.new(10.8, 11, 10.8),
+		size = Vector3.new(16.8, 11, 16.8),
 		origin = Vector3.new(0, 0, 0), -- where the origin sits in the frame the script modelled it in
 		parts = {
-			{ name = "Deck", size = Vector3.new(10, 0.2, 10), centre = Vector3.new(0, 0.1, 0), look = "steel_plate", material = "DiamondPlate", surface = "SHIFT_SteelPlate", colour = Color3.fromRGB(70, 70, 74), transparency = 0, shadow = true, attach = "" },
-			{ name = "Trim", size = Vector3.new(10.2, 0.22, 10.2), centre = Vector3.new(0, 0.11, 0), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(56, 56, 58), transparency = 0, shadow = true, attach = "" },
-			{ name = "Posts", size = Vector3.new(10.8, 11, 10.8), centre = Vector3.new(0, 5.5, 0), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(90, 88, 80), transparency = 0, shadow = true, attach = "" },
-			{ name = "Bolts", size = Vector3.new(10.624, 0.08, 10.6079), centre = Vector3.new(0, 0.3, 0), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(130, 128, 120), transparency = 0, shadow = true, attach = "" },
+			{ name = "Deck", size = Vector3.new(16, 0.2, 16), centre = Vector3.new(0, 0.1, 0), look = "steel_plate", material = "DiamondPlate", surface = "SHIFT_SteelPlate", colour = Color3.fromRGB(70, 70, 74), transparency = 0, shadow = true, attach = "" },
+			{ name = "Trim", size = Vector3.new(16.2, 0.22, 16.2), centre = Vector3.new(0, 0.11, 0), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(56, 56, 58), transparency = 0, shadow = true, attach = "" },
+			{ name = "Posts", size = Vector3.new(16.8, 11, 16.8), centre = Vector3.new(0, 5.5, 0), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(90, 88, 80), transparency = 0, shadow = true, attach = "" },
+			{ name = "Bolts", size = Vector3.new(16.624, 0.08, 16.6079), centre = Vector3.new(0, 0.3, 0), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(130, 128, 120), transparency = 0, shadow = true, attach = "" },
 			{ name = "Ropes", size = Vector3.new(2.8, 0.82, 0.5), centre = Vector3.new(0, 10.59, 0), look = "rubber", material = "Rubber", surface = "SHIFT_Rubber", colour = Color3.fromRGB(40, 40, 38), transparency = 0, shadow = true, attach = "" },
-			{ name = "ControlBox", size = Vector3.new(1.0465, 2.9, 1.0465), centre = Vector3.new(4.6, 3.05, 4.6), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(46, 44, 40), transparency = 0, shadow = true, attach = "" },
-			{ name = "Buttons", size = Vector3.new(0.3677, 1.02, 0.3677), centre = Vector3.new(4.4515, 3.9, 4.4515), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(190, 170, 60), transparency = 0, shadow = true, attach = "" },
+			{ name = "ControlBox", size = Vector3.new(1.0465, 2.9, 1.0465), centre = Vector3.new(7.6, 3.05, 7.6), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(46, 44, 40), transparency = 0, shadow = true, attach = "" },
+			{ name = "Buttons", size = Vector3.new(0.3677, 1.02, 0.3677), centre = Vector3.new(7.4515, 3.9, 7.4515), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(190, 170, 60), transparency = 0, shadow = true, attach = "" },
 			{ name = "LampGuard", size = Vector3.new(2.5, 0.545, 2.5), centre = Vector3.new(0, 10.3275, 0), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(60, 58, 54), transparency = 0, shadow = true, attach = "" },
 		},
 	},
@@ -436,6 +436,21 @@ return {
 			{ name = "Keys", size = Vector3.new(1.285, 0.053, 0.37), centre = Vector3.new(-0.02, 0.0805, -0.0075), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(206, 200, 182), transparency = 0, shadow = true, attach = "" },
 		},
 	},
+	lift_armoury = {
+		tris = 972,
+		size = Vector3.new(6.2, 8.75, 1.47),
+		origin = Vector3.new(0, 0, 0.04), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Cabinet", size = Vector3.new(6, 3, 1.3), centre = Vector3.new(0, 1.5, 0.06), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(62, 72, 64), transparency = 0, shadow = true, attach = "" },
+			{ name = "Worktop", size = Vector3.new(6.1, 0.12, 1.45), centre = Vector3.new(0, 3.04, 0.01), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(120, 118, 110), transparency = 0, shadow = true, attach = "" },
+			{ name = "Doors", size = Vector3.new(5.88, 2.6, 0.06), centre = Vector3.new(0, 1.55, -0.62), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(74, 86, 76), transparency = 0, shadow = true, attach = "" },
+			{ name = "Handles", size = Vector3.new(2.83, 0.85, 0.085), centre = Vector3.new(1.135, 2.225, -0.6925), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(150, 146, 136), transparency = 0, shadow = true, attach = "" },
+			{ name = "Board", size = Vector3.new(6, 4.2, 0.2), centre = Vector3.new(0, 5.1, 0.58), look = "wood", material = "Wood", surface = "SHIFT_Wood", colour = Color3.fromRGB(150, 140, 112), transparency = 0, shadow = true, attach = "" },
+			{ name = "BoardFrame", size = Vector3.new(6.2, 4.46, 0.3), centre = Vector3.new(0, 5.1, 0.56), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(56, 56, 58), transparency = 0, shadow = true, attach = "" },
+			{ name = "Hooks", size = Vector3.new(4.9, 2.79, 0.315), centre = Vector3.new(0, 4.805, 0.3325), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(140, 138, 130), transparency = 0, shadow = true, attach = "" },
+			{ name = "SignHousing", size = Vector3.new(4.3, 1.525, 0.14), centre = Vector3.new(0, 7.9875, 0.58), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(36, 34, 30), transparency = 0, shadow = true, attach = "" },
+		},
+	},
 	lift_doors = {
 		tris = 772,
 		size = Vector3.new(9.2, 10, 0.9),
@@ -472,6 +487,47 @@ return {
 			{ name = "Fittings", size = Vector3.new(0.9, 3.875, 0.14), centre = Vector3.new(0, 3.4375, -0.7), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(176, 176, 170), transparency = 0, shadow = true, attach = "" },
 			{ name = "SharpsBin", size = Vector3.new(0.8525, 0.75, 0.6784), centre = Vector3.new(1, 5.775, 0.07), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(200, 170, 40), transparency = 0, shadow = true, attach = "" },
 			{ name = "SharpsLid", size = Vector3.new(0.8995, 0.16, 0.7254), centre = Vector3.new(1, 6.22, 0.07), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(160, 40, 34), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	melee_axe = {
+		tris = 404,
+		size = Vector3.new(0.24, 3.22, 1.48),
+		origin = Vector3.new(0, 0, -0.02), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Handle", size = Vector3.new(0.24, 3.1, 0.18), centre = Vector3.new(0, 1.55, 0.02), look = "wood", material = "Wood", surface = "SHIFT_Wood", colour = Color3.fromRGB(150, 112, 70), transparency = 0, shadow = true, attach = "" },
+			{ name = "Head", size = Vector3.new(0.2, 0.7, 1.37), centre = Vector3.new(0, 2.8, 0.055), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(150, 32, 26), transparency = 0, shadow = true, attach = "" },
+			{ name = "Edge", size = Vector3.new(0.08, 0.84, 0.12), centre = Vector3.new(0, 2.8, -0.68), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(170, 170, 164), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	melee_crowbar = {
+		tris = 332,
+		size = Vector3.new(0.2, 2.6848, 0.6463),
+		origin = Vector3.new(0, -0.0502, -0.2478), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Shaft", size = Vector3.new(0.16, 2.5345, 0.6265), centre = Vector3.new(0, 1.4175, 0.0099), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(150, 32, 26), transparency = 0, shadow = true, attach = "" },
+			{ name = "Tips", size = Vector3.new(0.2, 2.5068, 0.6034), centre = Vector3.new(0, 1.2534, -0.0215), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(110, 108, 102), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	melee_pipe = {
+		tris = 1112,
+		size = Vector3.new(0.3234, 3.03, 0.51),
+		origin = Vector3.new(0, 0, -0.085), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Pipe", size = Vector3.new(0.27, 2.62, 0.27), centre = Vector3.new(0, 1.31, 0.085), look = "rust", material = "CorrodedMetal", surface = "SHIFT_Rust", colour = Color3.fromRGB(120, 116, 108), transparency = 0, shadow = true, attach = "" },
+			{ name = "Elbow", size = Vector3.new(0.3234, 0.46, 0.51), centre = Vector3.new(0, 2.8, 0), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(88, 86, 80), transparency = 0, shadow = true, attach = "" },
+			{ name = "Grip", size = Vector3.new(0.284, 0.7668, 0.295), centre = Vector3.new(0, 0.48, 0.085), look = "rubber", material = "Rubber", surface = "SHIFT_Rubber", colour = Color3.fromRGB(30, 30, 28), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	melee_sledge = {
+		tris = 408,
+		size = Vector3.new(0.5, 3.285, 1.16),
+		origin = Vector3.new(0, 0.005, 0), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Handle", size = Vector3.new(0.17, 2.85, 0.17), centre = Vector3.new(0, 1.425, 0), look = "wood", material = "Wood", surface = "SHIFT_Wood", colour = Color3.fromRGB(176, 150, 96), transparency = 0, shadow = true, attach = "" },
+			{ name = "Head", size = Vector3.new(0.5, 0.5, 1), centre = Vector3.new(0, 2.995, 0), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(52, 52, 50), transparency = 0, shadow = true, attach = "" },
+			{ name = "Faces", size = Vector3.new(0.44, 0.44, 1.16), centre = Vector3.new(0, 2.995, 0), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(130, 128, 122), transparency = 0, shadow = true, attach = "" },
+			{ name = "Wedge", size = Vector3.new(0.06, 0.04, 0.14), centre = Vector3.new(0, 3.265, 0), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(100, 98, 92), transparency = 0, shadow = true, attach = "" },
+			{ name = "Grip", size = Vector3.new(0.22, 0.7, 0.22), centre = Vector3.new(0, 0.395, 0), look = "rubber", material = "Rubber", surface = "SHIFT_Rubber", colour = Color3.fromRGB(30, 30, 28), transparency = 0, shadow = true, attach = "" },
 		},
 	},
 	notice_board = {
