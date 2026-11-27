@@ -100,12 +100,16 @@ local function onShiftState()
 	elseif mode == "blackout" then
 		Audio.play("BLACKOUT", { volume = 0.9 })
 		Audio.silence(true) -- total silence while the maze rewires
+		print("[Audio] blackout: ambience, entities and heartbeat silenced")
 	else
 		tweenHum(0.05, { PlaybackSpeed = 1, Volume = HUM_VOLUME })
 		if was == "blackout" then
 			Audio.play("LIGHTS_ON", { volume = 0.8 })
 		end
 		Audio.silence(false)
+		if was == "blackout" then
+			print("[Audio] lights back: ambience restored")
+		end
 	end
 end
 workspace:GetAttributeChangedSignal("ShiftWarning"):Connect(onShiftState)
