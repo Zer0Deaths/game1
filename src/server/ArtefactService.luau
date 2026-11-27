@@ -16,6 +16,7 @@ local LevelGen = require(Shared:WaitForChild("LevelGen"))
 local Surfaces = require(Shared:WaitForChild("Surfaces"))
 local Remotes = require(script.Parent:WaitForChild("Remotes"))
 local NoiseService = require(script.Parent:WaitForChild("NoiseService"))
+local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
 
 local ArtefactService = {}
 
@@ -224,6 +225,99 @@ function ArtefactService.spawnAll(layout: LevelGen.Layout, levelModel: Instance,
 	return folder
 end
 
+-- After a level is built or a Shift rewires it, new props, pillars, door
+-- frames and the lift can land on top of loot lying on the floor, which
+-- then looks like it vanished. Move any covered item to the nearest clear
+-- spot: first elsewhere in its own cell, then the nearest open cells
+-- (walking distance, so it stays reachable). Nothing is ever deleted.
+-- `blockers` are the folders/models that count as solid (Structure, lift).
+-- Returns (items on the floor, items moved, items that found no clear spot
+-- and were left where they were).
+function ArtefactService.resettle(folder: Instance, layout: LevelGen.Layout, origin: Vector3, blockers: { Instance }): (number, number, number)
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = blockers
+	params.RespectCanCollide = false
+
+	-- Footprint of an item lying flat, from just above the floor (so thin
+	-- floor clutter like puddles and fallen tiles doesn't count) to its top.
+	local function clear(at: Vector3, handle: BasePart): boolean
+		local s = handle.Size
+		local r = math.sqrt(s.X * s.X + s.Z * s.Z) / 2 + 0.4
+		local h = math.max(s.Y, 1)
+		local hits = workspace:GetPartBoundsInBox(CFrame.new(at.X, 0.3 + h / 2, at.Z), Vector3.new(r * 2, h, r * 2), params)
+		for _, part in hits do
+			if part.Transparency < 0.95 then
+				return false
+			end
+		end
+		return true
+	end
+
+	-- Spots in a cell, nearest to `from` first, kept clear of the walls.
+	local grid = {}
+	for i = -4, 4 do
+		for j = -4, 4 do
+			table.insert(grid, Vector3.new(i * 1.75, 0, j * 1.75))
+		end
+	end
+	local function spots(x: number, z: number, from: Vector3): { Vector3 }
+		local c = LevelBuilder.cellCenter(x, z, origin)
+		local list = {}
+		for _, o in grid do
+			table.insert(list, c + o)
+		end
+		table.sort(list, function(a, b)
+			return (a - from).Magnitude < (b - from).Magnitude
+		end)
+		return list
+	end
+
+	local total, moved, stuck = 0, 0, 0
+	for _, tool in folder:GetChildren() do
+		local handle = tool:IsA("Tool") and tool:FindFirstChild("Handle") :: BasePart?
+		if not handle then
+			continue
+		end
+		total += 1
+		local pos = handle.Position
+		if LevelBuilder.inLevel(layout, pos, origin) and clear(pos, handle) then
+			continue
+		end
+		-- Breadth-first out from its cell through open walls.
+		local sx, sz = LevelBuilder.cellOf(layout, pos, origin)
+		local seen = { [sx * 1000 + sz] = true }
+		local queue = { { sx, sz } }
+		local head, found = 1, nil
+		while head <= #queue and head <= 40 and not found do
+			local x, z = queue[head][1], queue[head][2]
+			head += 1
+			for _, spot in spots(x, z, pos) do
+				if clear(spot, handle) then
+					found = spot
+					break
+				end
+			end
+			for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+				local nx, nz = x + d[1], z + d[2]
+				local k = nx * 1000 + nz
+				if nx >= 1 and nz >= 1 and nx <= layout.width and nz <= layout.depth and not seen[k] and not LevelGen.hasWall(layout, x, z, d[1], d[2]) then
+					seen[k] = true
+					table.insert(queue, { nx, nz })
+				end
+			end
+		end
+		if found then
+			local _, yaw, _ = handle.CFrame:ToOrientation()
+			handle.CFrame = CFrame.new(found.X, handle.Size.Y / 2 + 0.05, found.Z) * CFrame.Angles(0, yaw, 0)
+			moved += 1
+		else
+			stuck += 1
+		end
+	end
+	return total, moved, stuck
+end
+
 -- Remove every artefact a player is carrying and return their total value.
 function ArtefactService.takeAll(player: Player): (number, number)
 	local total, count = 0, 0
@@ -248,7 +342,24 @@ local function dropHeld(player: Player)
 		Remotes.Notify:FireClient(player, "Hold an artefact (number keys) to drop it.", "warn")
 		return
 	end
-	local pos = root.Position + root.CFrame.LookVector * 3
+	-- Three studs in front of you, but never through a wall or into a prop
+	-- (it would be inside it or on the far side, and look like it vanished).
+	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	look = if look.Magnitude > 0.01 then look.Unit else Vector3.new(0, 0, -1)
+	local level = folder.Parent
+	local reach = 3
+	local structure = level and level:FindFirstChild("Structure")
+	if structure then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { structure }
+		local from = Vector3.new(root.Position.X, 1, root.Position.Z)
+		local hit = workspace:Raycast(from, look * 4.5, params)
+		if hit then
+			reach = math.max(0, (hit.Position - from).Magnitude - 1.5)
+		end
+	end
+	local pos = root.Position + look * reach
 	local _, yaw, _ = root.CFrame:ToOrientation()
 	placeInWorld(tool, pos, yaw, folder)
 	ArtefactService.refreshCarry(player)

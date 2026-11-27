@@ -22,6 +22,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local LevelGen = require(Shared:WaitForChild("LevelGen"))
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
+local ArtefactService = require(script.Parent:WaitForChild("ArtefactService"))
 
 local ShiftService = {}
 
@@ -102,6 +103,7 @@ function ShiftService.create(ctx: any, exitMoved: (LevelGen.Layout) -> ()): Shif
 
 		local started = os.clock()
 		local oldExit = current.exit
+		local lootBefore = if ctx.artefacts then #ctx.artefacts:GetChildren() else 0
 		local protected = protectedCells(current)
 		local protectedCount = 0
 		for _ in protected do
@@ -119,6 +121,32 @@ function ShiftService.create(ctx: any, exitMoved: (LevelGen.Layout) -> ()): Shif
 			`[Shift] crew {ctx.crew} #{count}: {changed} walls changed, {protectedCount} of {current.width * current.depth} cells protected, `
 				.. `lift {if moved then "moved" else "stayed"}, rebuilt in {math.round((os.clock() - started) * 1000)} ms`
 		)
+
+		-- Loot survives the Shift: anything the new walls, props or lift
+		-- landed on is moved to the nearest clear spot. Carried loot is in
+		-- players' hands and backpacks, which the rebuild never touches.
+		task.wait() -- let the new parts register for spatial queries
+		local folder: Instance? = ctx.artefacts
+		if alive and folder and folder.Parent then
+			local blockers = {}
+			for _, b in { model:FindFirstChild("Structure"), ctx.liftModel } do
+				if b then
+					table.insert(blockers, b)
+				end
+			end
+			local ok, onFloor, shifted, stuck = pcall(ArtefactService.resettle, folder, current, ctx.origin, blockers)
+			local carried = 0
+			for _, p in Players:GetPlayers() do
+				if p:GetAttribute("Crew") == ctx.crew then
+					carried += #ArtefactService.carried(p)
+				end
+			end
+			if ok then
+				print(`[Shift] crew {ctx.crew} #{count} loot: {lootBefore} on the floor before, {onFloor} after ({shifted} moved out of new walls/props, {stuck} stuck), {carried} carried`)
+			else
+				warn(`[Shift] loot check failed: {onFloor}`)
+			end
+		end
 
 		task.wait(math.max(0, Config.SHIFT_BLACKOUT_SECONDS - 0.4 - (os.clock() - started)))
 

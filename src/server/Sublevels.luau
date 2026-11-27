@@ -308,6 +308,21 @@ local function start(crew: number, depth: number, seed: number?)
 	st:SetAttribute("LevelSeed", chosenSeed)
 	st:SetAttribute("LevelOrigin", origin)
 	placeLift(ctx)
+	-- Loot that spawned inside a desk, rack or the lift is moved somewhere
+	-- you can see and reach it.
+	task.spawn(function()
+		task.wait() -- let the new level register for spatial queries
+		if not ctx.alive then
+			return
+		end
+		local blockers = { model:FindFirstChild("Structure"), ctx.liftModel }
+		local ok, onFloor, shifted, stuck = pcall(ArtefactService.resettle, artefacts, layout, origin, blockers :: { Instance })
+		if ok then
+			print(`[Level] crew {crew} loot: {onFloor} on the floor, {shifted} moved off props, {stuck} stuck`)
+		else
+			warn(`[Level] loot check failed: {onFloor}`)
+		end
+	end)
 
 	ctx.shift = ShiftService.create(ctx, function()
 		placeLift(ctx)
