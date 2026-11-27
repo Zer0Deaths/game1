@@ -58,6 +58,8 @@ end
 local mode = "normal"
 local nextStorm = 0
 local nextBlip = 0
+local nextHaunt = 0
+local TENANT_FLICKER_RADIUS = 34 -- tubes this close to the Tenant stutter
 
 -- Lampjaw's light: a red strobe (its sound is in Cues.client).
 local RED_ON = Color3.fromRGB(255, 120, 90)
@@ -170,7 +172,29 @@ RunService.Heartbeat:Connect(function()
 
 	-- Normal: the dying tubes stutter, Lampjaw's light strobes red, and now
 	-- and then any healthy tube blinks once, so no corridor feels static.
+	-- Tubes near the Tenant stutter too: you mostly catch it in the flicker.
 	updateLampjaw(now, true)
+	if now >= nextHaunt then
+		nextHaunt = now + 0.09 + math.random() * 0.12
+		for _, t in CollectionService:GetTagged("SHIFT_Tenant") do
+			if t:IsA("Model") and t:IsDescendantOf(workspace) and mine(t) then
+				local at = t:GetPivot().Position
+				for _, inst in CollectionService:GetTagged("CeilingLight") do
+					if inst:IsA("BasePart") and mine(inst) and inst ~= lampjawPanel and math.random() < 0.3 then
+						local d = inst.Position - at
+						if d.X * d.X + d.Z * d.Z < TENANT_FLICKER_RADIUS * TENANT_FLICKER_RADIUS then
+							setLevel(inst, randomLevel(0.5))
+							task.delay(0.05 + math.random() * 0.08, function()
+								if mode == "normal" and inst.Parent and inst:GetAttribute("LightState") ~= "dead" and not states[inst] then
+									setLevel(inst, 1)
+								end
+							end)
+						end
+					end
+				end
+			end
+		end
+	end
 	if now >= nextBlip then
 		nextBlip = now + 0.4 + math.random() * 0.9
 		local all = CollectionService:GetTagged("CeilingLight")

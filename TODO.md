@@ -31,6 +31,9 @@ SHIFT now has 19 PBR texture sets, the crew suit's clothing and 25 sounds in `as
   3. It writes `src/shared/AssetIds.luau`. Commit and push that file so it's saved.
 - [ ] In Studio, after the next pull: Play. Output shows `[Surfaces] ...` and the sounds play.
 
+## Entities (optional, when you want them to look modelled)
+- [ ] Real Tenant and Lampjaw meshes (Cube or Tripo, under 20k triangles) and Animation Editor animations. Step by step: `docs/ENTITY_GUIDE.md`. The built-in rigs and procedural animations work until then.
+
 ## Money and publishing (Claude will never do these)
 - [ ] Publish the place when you're happy with it.
 - [ ] Monetisation is wired but **off**. To turn it on, create these on the Creator Hub (your call on prices), then paste each ID into `Config.MONETISATION` in `src/shared/Config.luau`:

@@ -17,8 +17,10 @@
 --
 -- Fully server-side and cheap: one anchored model, a maze-grid path search
 -- (196 cells) a few times a second, and a handful of raycasts.
--- Built from basic shapes. A modelled creature would need an asset.
--- Its sounds are played on each player's device (TenantSounds.client).
+-- Its body is an R15-style rig (EntityRig): tall, thin, near-black and
+-- featureless, animated on each player's device (Entities.client). Its
+-- one cue, a wet clicking breath, is played there too (Cues.client).
+-- The tubes around it stutter, so you mostly catch it in the flicker.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -31,6 +33,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local LevelGen = require(Shared:WaitForChild("LevelGen"))
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
 local NoiseService = require(script.Parent:WaitForChild("NoiseService"))
+local EntityRig = require(script.Parent:WaitForChild("EntityRig"))
 
 local T = Config.TENANT
 local DECIDE_EVERY = 0.25
@@ -38,97 +41,6 @@ local DECIDE_EVERY = 0.25
 local Tenant = {}
 
 type State = "dormant" | "wander" | "investigate" | "notice" | "chase" | "linger"
-
--- Body -----------------------------------------------------------------------
-
-local COAT = Color3.fromRGB(44, 40, 34)
-local SKIN = Color3.fromRGB(172, 166, 146)
-
-local function shape(m: Model, name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material, round: boolean?)
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Size = size
-	p.Color = colour
-	p.Material = material
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CFrame = offset
-	if round then
-		local mesh = Instance.new("SpecialMesh")
-		mesh.MeshType = Enum.MeshType.Sphere
-		mesh.Parent = p
-	end
-	p.Parent = m
-	return p
-end
-
--- A cylinder from point a to point b (Roblox cylinders run along X).
-local function limb(m: Model, name: string, a: Vector3, b: Vector3, thick: number, colour: Color3, material: Enum.Material)
-	local p = shape(m, name, Vector3.new((b - a).Magnitude, thick, thick), CFrame.lookAt((a + b) / 2, b) * CFrame.Angles(0, math.rad(90), 0), colour, material)
-	p.Shape = Enum.PartType.Cylinder
-	return p
-end
-
-local function joint(m: Model, name: string, at: Vector3, size: number, colour: Color3, material: Enum.Material)
-	local p = shape(m, name, Vector3.new(size, size, size), CFrame.new(at), colour, material)
-	p.Shape = Enum.PartType.Ball
-	return p
-end
-
--- Built from rounded primitives: jointed legs, a hunched spine under a
--- long coat, arms that hang past the knees with long fingers, and a smooth
--- featureless head pushed forward. A real modelled mesh would still be
--- better (see TODO.md); this is as far as code-built shapes go.
-local function buildBody(): Model
-	local m = Instance.new("Model")
-	m.Name = "Tenant"
-	m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-	local h = T.height / 9.5 -- everything scales with height
-	local function v(x: number, y: number, z: number): Vector3
-		return Vector3.new(x, y, z) * h
-	end
-	local base = shape(m, "Root", Vector3.new(2, 0.2, 2), CFrame.new(), COAT, Enum.Material.Rubber)
-	base.Transparency = 1
-	m.PrimaryPart = base
-	local TROUSERS = Color3.fromRGB(30, 28, 25)
-	local fabric, skin = Enum.Material.Fabric, Enum.Material.Rubber
-
-	for _, side in { -1, 1 } do
-		-- Legs: thigh, knee, shin, foot.
-		local hip, knee, ankle, toe = v(side * 0.42, 4.4, 0), v(side * 0.5, 2.3, -0.22), v(side * 0.44, 0.3, 0.05), v(side * 0.46, 0.12, -0.75)
-		limb(m, "Thigh", hip, knee, 0.55 * h, TROUSERS, fabric)
-		joint(m, "Knee", knee, 0.5 * h, TROUSERS, fabric)
-		limb(m, "Shin", knee, ankle, 0.42 * h, TROUSERS, fabric)
-		limb(m, "Foot", ankle, toe, 0.36 * h, TROUSERS, Enum.Material.Leather)
-		-- Arms: coat sleeve to the elbow, then long bare forearms.
-		local shoulder, elbow, wrist = v(side * 1.05, 7.15, -0.7), v(side * 1.28, 4.95, -0.95), v(side * 1.18, 2.55, -1.15)
-		joint(m, "Shoulder", shoulder, 0.72 * h, COAT, fabric)
-		limb(m, "UpperArm", shoulder, elbow, 0.44 * h, COAT, fabric)
-		joint(m, "Elbow", elbow, 0.36 * h, SKIN, skin)
-		limb(m, "Forearm", elbow, wrist, 0.3 * h, SKIN, skin)
-		joint(m, "Hand", wrist, 0.36 * h, SKIN, skin)
-		for f = -1, 1 do
-			local tip = wrist + v(side * (0.08 + f * 0.1), -1.05 + math.abs(f) * 0.15, -0.12 + f * 0.08)
-			limb(m, "Finger", wrist, tip, 0.08 * h, SKIN, skin)
-		end
-	end
-	-- Hunched spine under the coat: two coat sections bent forward.
-	local hunch = CFrame.Angles(math.rad(-16), 0, 0)
-	shape(m, "CoatLower", v(1.75, 2.4, 1.0), CFrame.new(v(0, 4.2, 0.05)) * CFrame.Angles(math.rad(-5), 0, 0), COAT, fabric)
-	shape(m, "CoatUpper", v(1.95, 2.6, 1.05), CFrame.new(v(0, 6.2, -0.35)) * hunch, COAT, fabric)
-	-- Coat tails hanging behind the legs, flaring slightly.
-	for _, side in { -1, 1 } do
-		shape(m, "CoatTail", v(0.9, 2.6, 0.12), CFrame.new(v(side * 0.5, 2.0, 0.5)) * CFrame.Angles(math.rad(8), 0, math.rad(side * 6)), COAT, fabric)
-	end
-	shape(m, "Collar", v(1.5, 0.5, 0.9), CFrame.new(v(0, 7.45, -0.75)) * hunch, COAT, fabric)
-	-- A smooth, featureless head pushed forward on a long neck.
-	local neckBase, neckTop = v(0, 7.35, -0.8), v(0, 8.2, -1.35)
-	limb(m, "Neck", neckBase, neckTop, 0.36 * h, SKIN, skin)
-	shape(m, "Head", v(0.95, 1.6, 1.1), CFrame.new(v(0, 8.75, -1.6)) * CFrame.Angles(math.rad(-25), 0, 0), SKIN, skin, true)
-	return m
-end
 
 -- Public -----------------------------------------------------------------------
 
@@ -341,6 +253,9 @@ function Tenant.create(ctx: any): Tenant
 
 	local function take(player: Player)
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if model then
+			model:SetAttribute("AttackAt", workspace:GetServerTimeNow()) -- clients play the lunge
+		end
 		if humanoid then
 			humanoid.Health = 0
 		end
@@ -496,14 +411,16 @@ function Tenant.create(ctx: any): Tenant
 				moving = true
 			end
 		end
-		-- A slow, heavy lurch from side to side while it walks.
-		local t = os.clock()
-		local sway = if moving then math.sin(t * speed() * 0.45) * 0.05 else math.sin(t * 0.8) * 0.015
-		model:PivotTo(CFrame.new(position) * CFrame.Angles(0, facing, 0) * CFrame.Angles(0, 0, sway))
+		-- Only the root moves; the walk itself is animated on each device.
+		model:PivotTo(CFrame.new(position) * CFrame.Angles(0, facing, 0))
+		local gait = if not moving then "idle" elseif state == "chase" then "run" else "walk"
+		if model:GetAttribute("Gait") ~= gait then
+			model:SetAttribute("Gait", gait)
+		end
 	end
 
 
-	model = buildBody()
+	model = EntityRig.build("Tenant", T.height)
 	root = (model :: Model).PrimaryPart
 	CollectionService:AddTag(model :: Model, "SHIFT_Tenant") -- clients hang its sounds on this
 	;(model :: Model):SetAttribute("Crew", ctx.crew)

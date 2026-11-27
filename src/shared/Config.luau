@@ -163,4 +163,12 @@ return {
 	SHIFT_NOT_BEFORE_END = 25, -- no Shift this close to the end of a run
 
 	-- Texture and sound IDs live in AssetIds.luau (written by tools/upload_assets.py).
+
+	-- Entity animations made in Studio's Animation Editor (docs/ENTITY_GUIDE.md).
+	-- Paste the number from each published animation. Empty = the built-in
+	-- procedural animation is used instead, so nothing breaks.
+	ANIMATIONS = {
+		Tenant = { idle = "", walk = "", run = "", attack = "" },
+		Lampjaw = { idle = "", attack = "" },
+	},
 }
