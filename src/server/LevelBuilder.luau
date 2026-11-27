@@ -62,7 +62,7 @@ local KIND = "carpet"
 
 -- Each level keeps the theme it was built with, so a Shift in one crew's
 -- level rebuilds with its own look even if another crew built since.
-local themes: { [Instance]: { colors: { [string]: Color3 }, materials: { [string]: Enum.Material }, variants: { [string]: string }, kind: string } } = setmetatable({}, { __mode = "k" }) :: any
+local themes: { [Instance]: { colors: { [string]: Color3 }, materials: { [string]: Enum.Material }, variants: { [string]: string }, kind: string } } = {} -- strong: weak Instance keys can vanish while the level still exists
 
 local DEFAULT_COLORS = table.clone(COLORS)
 local DEFAULT_MATERIALS = table.clone(MATERIALS)
@@ -558,7 +558,7 @@ end
 
 -- STRUCTURE (rebuilt by the Shift) --------------------------------------------
 
-local panelsByModel: { [Instance]: { [number]: BasePart } } = setmetatable({}, { __mode = "k" }) :: any
+local panelsByModel: { [Instance]: { [number]: BasePart } } = {}
 
 -- Switches each fitting to match its cell's light state ("on", "flicker",
 -- "dead"). The server only sets the LightState attribute and the tags;
@@ -965,6 +965,10 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 	model:SetAttribute("Origin", ORIGIN)
 	model:SetAttribute("Crew", crew or 0)
 	themes[model] = { colors = table.clone(COLORS), materials = table.clone(MATERIALS), variants = table.clone(VARIANTS), kind = KIND }
+	model.Destroying:Connect(function()
+		themes[model] = nil
+		panelsByModel[model] = nil
+	end)
 
 	-- Floor and ceiling: one big slab each.
 	local floor = makePart({

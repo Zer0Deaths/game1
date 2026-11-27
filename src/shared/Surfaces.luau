@@ -329,7 +329,9 @@ end
 -- Server only (Textures replicate). Small props keep their material.
 
 local colourUrl: { [string]: string } = {}
-local waitingParts: { [BasePart]: string } = setmetatable({}, { __mode = "k" }) :: any
+-- A plain (strong) table on purpose: Roblox can drop Instance keys from a
+-- weak table while the part still exists, which left nothing to texture.
+local waitingParts: { [BasePart]: string } = {}
 local preparing = false
 
 local function bigFaces(part: BasePart): { Enum.NormalId }
