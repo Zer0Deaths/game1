@@ -26,7 +26,39 @@ local function event(name: string): RemoteEvent
 	return e
 end
 
+-- Every client -> server remote goes through guard(): it drops calls from
+-- players spamming it (more than `perSecond` a second, with a small burst
+-- allowance) and never lets a handler error take the remote down. Each
+-- handler still checks its own arguments and the player's state.
+local buckets: { [RemoteEvent]: { [Player]: { tokens: number, at: number } } } = {}
+local function guard(remote: RemoteEvent, perSecond: number, handler: (Player, ...any) -> ()): RBXScriptConnection
+	buckets[remote] = buckets[remote] or {}
+	local b = buckets[remote]
+	game:GetService("Players").PlayerRemoving:Connect(function(p)
+		b[p] = nil
+	end)
+	return remote.OnServerEvent:Connect(function(player: Player, ...)
+		local now = os.clock()
+		local entry = b[player]
+		if not entry then
+			entry = { tokens = perSecond * 2, at = now }
+			b[player] = entry
+		end
+		entry.tokens = math.min(perSecond * 2, entry.tokens + (now - entry.at) * perSecond)
+		entry.at = now
+		if entry.tokens < 1 then
+			return -- too fast: ignore
+		end
+		entry.tokens -= 1
+		local ok, err = pcall(handler, player, ...)
+		if not ok then
+			warn(`[Remotes] {remote.Name} from {player.Name} failed: {err}`)
+		end
+	end)
+end
+
 return {
+	guard = guard,
 	DropArtefact = event("DropArtefact"),
 	Notify = event("Notify"),
 	MapSync = event("MapSync"),

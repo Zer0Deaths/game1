@@ -78,6 +78,9 @@ RunService.RenderStepped:Connect(function(dt)
 		end
 	end
 
+	if player:GetAttribute("Sprinting") ~= sprinting then
+		player:SetAttribute("Sprinting", sprinting) -- local only: CameraFx widens the view
+	end
 	local walk = math.max(Config.MIN_WALK_SPEED, Config.WALK_SPEED - weight * Config.SPEED_PER_WEIGHT)
 	humanoid.WalkSpeed = if sprinting then walk * Config.SPRINT_MULTIPLIER else walk
 	humanoid.UseJumpPower = false

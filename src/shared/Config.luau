@@ -26,6 +26,7 @@ return {
 		shiftMinScale = 0.55, -- ...down to this fraction of the normal gap
 	},
 	MAX_CARRY = 4, -- artefacts one player can hold at once (the shop's bigger pack adds to this)
+	PICKUP_HOLD = 0, -- seconds to hold E to pick loot up (0 = one tap, Jason's call)
 	WALK_SPEED = 16, -- Roblox default
 	MIN_WALK_SPEED = 6, -- slowest you can get from carrying heavy loot
 	SPEED_PER_WEIGHT = 1.1, -- studs/s lost per point of carried weight
@@ -163,4 +164,12 @@ return {
 	SHIFT_NOT_BEFORE_END = 25, -- no Shift this close to the end of a run
 
 	-- Texture and sound IDs live in AssetIds.luau (written by tools/upload_assets.py).
+
+	-- Entity animations made in Studio's Animation Editor (docs/ENTITY_GUIDE.md).
+	-- Paste the number from each published animation. Empty = the built-in
+	-- procedural animation is used instead, so nothing breaks.
+	ANIMATIONS = {
+		Tenant = { idle = "", walk = "", run = "", attack = "" },
+		Lampjaw = { idle = "", attack = "" },
+	},
 }

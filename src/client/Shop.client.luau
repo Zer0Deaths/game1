@@ -6,6 +6,7 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local ShopItems = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ShopItems"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -34,6 +35,42 @@ panel.BackgroundColor3 = Color3.fromRGB(18, 16, 12)
 panel.BackgroundTransparency = 0.05
 panel.BorderSizePixel = 0
 panel.Parent = gui
+local panelScale = Instance.new("UIScale")
+panelScale.Parent = panel
+
+local function openPanel()
+	panelScale.Scale = 0.9
+	gui.Enabled = true
+	TweenService:Create(panelScale, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+end
+local function closePanel()
+	local t = TweenService:Create(panelScale, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0.92 })
+	t:Play()
+	t.Completed:Once(function()
+		gui.Enabled = false
+	end)
+end
+
+-- Buttons lean in under the mouse and press down when clicked.
+local function juice(button: GuiButton)
+	local s = Instance.new("UIScale")
+	s.Parent = button
+	local function to(v: number, seconds: number)
+		TweenService:Create(s, TweenInfo.new(seconds, Enum.EasingStyle.Quad), { Scale = v }):Play()
+	end
+	button.MouseEnter:Connect(function()
+		to(1.05, 0.12)
+	end)
+	button.MouseLeave:Connect(function()
+		to(1, 0.12)
+	end)
+	button.MouseButton1Down:Connect(function()
+		to(0.94, 0.06)
+	end)
+	button.MouseButton1Up:Connect(function()
+		to(1.05, 0.1)
+	end)
+end
 
 local function text(parent: Instance, props: { [string]: any }): TextLabel
 	local l = Instance.new("TextLabel")
@@ -64,9 +101,10 @@ close.TextSize = 16
 close.TextColor3 = PALE
 close.Text = "Close"
 close.Parent = panel
+juice(close)
 close.Activated:Connect(function()
 	Audio.ui("UI_CLOSE")
-	gui.Enabled = false
+	closePanel()
 end)
 
 type Row = { item: ShopItems.Item, button: TextButton, status: TextLabel }
@@ -92,6 +130,7 @@ for i, item in ShopItems do
 	button.TextSize = 15
 	button.TextColor3 = PALE
 	button.Parent = row
+	juice(button)
 	button.Activated:Connect(function()
 		Audio.ui("UI_CLICK")
 		BuyItem:FireServer(item.id)
@@ -142,8 +181,8 @@ OpenShop.OnClientEvent:Connect(function()
 	refresh()
 	if not gui.Enabled then
 		Audio.ui("UI_OPEN")
+		openPanel()
 	end
-	gui.Enabled = true
 end)
 
 -- Flashlight: F (or gamepad D-pad up, or the on-screen button once owned).

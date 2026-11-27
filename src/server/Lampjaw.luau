@@ -5,18 +5,24 @@
 -- see main.client). Stand under it too long and it takes you; your loot
 -- spills where you were. It is more active while the Shift is coming.
 -- Counter: watch the lights, move fast, never stop under a red flicker.
+-- Its body (EntityRig) hangs out of the fitting it's in: a thin black
+-- neck and a long jaw. Clients only show it in the red flashes, so it's
+-- glimpsed, never seen clearly. Its one cue is an electrical crackle
+-- with chattering teeth (Cues.client).
 --
 -- One per crew level from Config.DEPTH.lampjawFrom (Sublevels creates it).
 -- State for clients: the crew's CrewState attribute "LampjawCell" = the
 -- cell key (x * 1000 + z) of the light it's in, or 0.
 
 local Players = game:GetService("Players")
+local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local LevelGen = require(Shared:WaitForChild("LevelGen"))
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
+local EntityRig = require(script.Parent:WaitForChild("EntityRig"))
 
 local L = Config.LAMPJAW
 local TICK = 0.1
@@ -33,10 +39,23 @@ function Lampjaw.create(ctx: any): Lampjaw
 	local nextPossess = 0
 	local dwell: { [Player]: number } = {}
 
+	local body = EntityRig.build("Lampjaw")
+	body:SetAttribute("Crew", ctx.crew)
+	body.Parent = ServerStorage
+
 	local function setCell(key: number)
 		cellKey = key
 		state:SetAttribute("LampjawCell", key)
 		table.clear(dwell)
+		if key == 0 then
+			body.Parent = ServerStorage
+		else
+			-- Hang it from the fitting, facing a random way.
+			local c = LevelBuilder.cellCenter(key // 1000, key % 1000, ctx.origin)
+			body:PivotTo(CFrame.new(c.X, c.Y + LevelBuilder.HEIGHT - 0.45, c.Z) * CFrame.Angles(0, math.random() * math.pi * 2, 0))
+			body:SetAttribute("Cell", key)
+			body.Parent = workspace
+		end
 	end
 
 	local function rootOf(player: Player): BasePart?
@@ -118,10 +137,18 @@ function Lampjaw.create(ctx: any): Lampjaw
 				dwell[player] = (dwell[player] or 0) + TICK
 				if dwell[player] >= limit then
 					local humanoid = (player.Character :: Model):FindFirstChildOfClass("Humanoid") :: Humanoid
+					body:SetAttribute("AttackAt", workspace:GetServerTimeNow()) -- clients play the bite
 					humanoid.Health = 0
 					ctx.notify(`{player.DisplayName} lingered under the wrong light.`, "warn")
 					print(`[Lampjaw] crew {ctx.crew}: took {player.Name}`)
-					setCell(0)
+					task.delay(0.6, function()
+						if cellKey == 0 then
+							body.Parent = ServerStorage
+						end
+					end)
+					cellKey = 0
+					state:SetAttribute("LampjawCell", 0)
+					table.clear(dwell)
 					rest(now)
 					return
 				end
@@ -150,6 +177,7 @@ function Lampjaw.create(ctx: any): Lampjaw
 			alive = false
 			conn:Disconnect()
 			state:SetAttribute("LampjawCell", 0)
+			body:Destroy()
 		end,
 	}
 end

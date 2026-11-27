@@ -88,7 +88,7 @@ function MapService.create(ctx: any): CrewMap
 end
 
 function MapService.init()
-	Remotes.MapRequest.OnServerEvent:Connect(function(player)
+	Remotes.guard(Remotes.MapRequest, 0.5, function(player)
 		local m = active[(player:GetAttribute("Crew") or 0) :: number]
 		if m then
 			m.send(player)

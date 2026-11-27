@@ -103,6 +103,21 @@ local banner = label({
 	TextStrokeTransparency = 1,
 })
 
+-- Small eased pops, so nothing on the HUD just blinks into place.
+local function scaleOf(g: GuiObject): UIScale
+	local s = g:FindFirstChildOfClass("UIScale")
+	if not s then
+		s = Instance.new("UIScale")
+		s.Parent = g
+	end
+	return s :: UIScale
+end
+local function pop(g: GuiObject, from: number, seconds: number?)
+	local s = scaleOf(g)
+	s.Scale = from
+	TweenService:Create(s, TweenInfo.new(seconds or 0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+end
+
 local toastCount = 0
 local function toast(text: string, kind: string)
 	toastCount += 1
@@ -114,7 +129,11 @@ local function toast(text: string, kind: string)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = text,
 		TextColor3 = if kind == "money" then GREEN elseif kind == "warn" then RED else PALE,
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
 	})
+	TweenService:Create(t, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { TextTransparency = 0, TextStrokeTransparency = 0.5 }):Play()
+	pop(t, 0.85, 0.3)
 	task.delay(3, function()
 		TweenService:Create(t, TweenInfo.new(0.6), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		task.wait(0.7)
@@ -127,8 +146,10 @@ local function showBanner(text: string)
 	bannerToken += 1
 	local mine = bannerToken
 	banner.Text = text
-	banner.TextTransparency = 0
-	banner.TextStrokeTransparency = 0.3
+	banner.TextTransparency = 1
+	banner.TextStrokeTransparency = 1
+	TweenService:Create(banner, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { TextTransparency = 0, TextStrokeTransparency = 0.3 }):Play()
+	pop(banner, 1.25, 0.5)
 	task.delay(4, function()
 		if mine == bannerToken then
 			TweenService:Create(banner, TweenInfo.new(1), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
@@ -144,6 +165,8 @@ Notify.OnClientEvent:Connect(function(text: string, kind: string)
 	end
 end)
 
+local lastBanked = 0
+local lastSecond = -1
 RunService.Heartbeat:Connect(function()
 	local crew = player:GetAttribute("Crew") or 1
 	local quota = workspace:GetAttribute("CrewQuota") or 0
@@ -152,6 +175,12 @@ RunService.Heartbeat:Connect(function()
 	local where = if depth > 0 then `  ·  SUBLEVEL {depth}` else ""
 	quotaLabel.Text = `{string.upper(Config.CREW_NAMES[crew] or "CREW")}{where}  ${banked} / ${quota}`
 	quotaLabel.TextColor3 = if banked >= quota and quota > 0 then GREEN else AMBER
+	if banked ~= lastBanked then
+		if banked > lastBanked then
+			pop(quotaLabel, 1.18, 0.45) -- money in: the quota line jumps
+		end
+		lastBanked = banked
+	end
 
 	local raw = workspace:GetAttribute("CrewRunState")
 	local endsAt = workspace:GetAttribute("RunEndsAt")
@@ -164,6 +193,10 @@ RunService.Heartbeat:Connect(function()
 		else
 			timerLabel.Text = string.format("%02d:%02d", left // 60, left % 60)
 			timerLabel.TextColor3 = if left <= 60 then RED else PALE
+			if left <= 60 and left ~= lastSecond then
+				pop(timerLabel, 1.12, 0.4) -- the last minute ticks at you
+			end
+			lastSecond = left
 		end
 	elseif raw == "countdown" or raw == "descending" then
 		local left = math.max(0, math.ceil(((workspace:GetAttribute("DescendAt") or now) :: number) - now))

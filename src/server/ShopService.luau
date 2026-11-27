@@ -101,8 +101,8 @@ local function buy(player: Player, id: unknown)
 end
 
 function ShopService.init()
-	Remotes.BuyItem.OnServerEvent:Connect(buy)
-	Remotes.ToggleFlashlight.OnServerEvent:Connect(function(player)
+	Remotes.guard(Remotes.BuyItem, 3, buy)
+	Remotes.guard(Remotes.ToggleFlashlight, 4, function(player)
 		if (player:GetAttribute("Own_flashlight") or 0) == 0 then
 			return
 		end

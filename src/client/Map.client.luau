@@ -8,6 +8,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local MapSync = Remotes:WaitForChild("MapSync") :: RemoteEvent
@@ -182,6 +183,13 @@ ContextActionService:BindAction("ToggleMap", function(_, state: Enum.UserInputSt
 	if state == Enum.UserInputState.Begin then
 		gui.Enabled = not gui.Enabled
 		Audio.ui(if gui.Enabled then "UI_OPEN" else "UI_CLOSE")
+		if gui.Enabled then
+			-- Unfold: a quick eased scale-in.
+			local s = panel:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+			s.Parent = panel
+			s.Scale = 0.9
+			TweenService:Create(s, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		end
 	end
 	return Enum.ContextActionResult.Sink
 end, true, Enum.KeyCode.M, Enum.KeyCode.ButtonY)
