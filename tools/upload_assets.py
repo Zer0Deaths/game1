@@ -124,7 +124,10 @@ def main():
         try:
             asset_id = upload(full, kind, key, user_id)
             image = image_id_for(asset_id, key) if kind == "Decal" else None
-            ledger[rel] = {"sha": digest, "id": image or asset_id, "decal": asset_id if kind == "Decal" else None}
+            # A decal ID the script couldn't turn into an image ID is marked
+            # "decal:"; the game looks those up itself (Surfaces.image).
+            ident = image or (f"decal:{asset_id}" if kind == "Decal" else asset_id)
+            ledger[rel] = {"sha": digest, "id": ident, "decal": asset_id if kind == "Decal" else None}
             print(f"uploaded {rel} -> {ledger[rel]['id']}")
         except Exception as e:
             failed += 1

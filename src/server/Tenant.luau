@@ -89,11 +89,11 @@ local function buildBody(): Model
 	local function v(x: number, y: number, z: number): Vector3
 		return Vector3.new(x, y, z) * h
 	end
-	local base = shape(m, "Root", Vector3.new(2, 0.2, 2), CFrame.new(), COAT, Enum.Material.SmoothPlastic)
+	local base = shape(m, "Root", Vector3.new(2, 0.2, 2), CFrame.new(), COAT, Enum.Material.Rubber)
 	base.Transparency = 1
 	m.PrimaryPart = base
 	local TROUSERS = Color3.fromRGB(30, 28, 25)
-	local fabric, skin = Enum.Material.Fabric, Enum.Material.SmoothPlastic
+	local fabric, skin = Enum.Material.Fabric, Enum.Material.Rubber
 
 	for _, side in { -1, 1 } do
 		-- Legs: thigh, knee, shin, foot.

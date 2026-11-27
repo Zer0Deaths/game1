@@ -29,11 +29,11 @@ local Safehouse = require(script.Parent:WaitForChild("Safehouse"))
 local ShopService = require(script.Parent:WaitForChild("ShopService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local MonetisationService = require(script.Parent:WaitForChild("MonetisationService"))
-local Materials = require(script.Parent:WaitForChild("Materials"))
+local Surfaces = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Surfaces"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
-Materials.init() -- SHIFT's textures, once uploaded
+Surfaces.init() -- SHIFT's PBR textures, once uploaded (before anything is built)
 
 -- Nobody spawns until the safehouse exists.
 Players.CharacterAutoLoads = false

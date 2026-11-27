@@ -3,6 +3,9 @@
 -- carrying artefacts and they are sold into the shared quota.
 -- It sits in the cell furthest from the spawn (see LevelGen exit).
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Surfaces = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Surfaces"))
+
 local ExitLift = {}
 
 local AMBER = Color3.fromRGB(255, 170, 60)
@@ -115,6 +118,7 @@ function ExitLift.build(center: Vector3, height: number, parent: Instance): (Vec
 	prompt("Deeper", "Go deeper", Enum.KeyCode.E)
 	prompt("Surface", "Return to safehouse", Enum.KeyCode.R)
 
+	Surfaces.autoAll(model) -- PBR steel, rust and paint
 	model.Parent = parent
 	return center, model
 end

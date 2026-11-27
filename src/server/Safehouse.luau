@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local Surfaces = require(Shared:WaitForChild("Surfaces"))
 
 local Safehouse = {}
 
@@ -27,6 +28,14 @@ local function part(props: { [string]: any }, parent: Instance): Part
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	for k, v in props do
 		(p :: any)[k] = v
+	end
+	-- PBR surfaces: the break room's walls are bare concrete, the ceiling
+	-- tiled; everything else by its material. No SmoothPlastic.
+	local named = ({ WallN = "SHIFT_Concrete", WallS = "SHIFT_Concrete", WallW = "SHIFT_Concrete", WallE = "SHIFT_Concrete", Ceiling = "SHIFT_CeilingTile" } :: { [string]: string })[p.Name]
+	if named then
+		Surfaces.apply(p, named)
+	else
+		Surfaces.auto(p)
 	end
 	p.Parent = parent
 	return p
@@ -103,7 +112,7 @@ function Safehouse.build(): Hub
 	end
 
 	-- Title on the west wall.
-	local titleBoard = part({ Name = "Title", Size = Vector3.new(0.2, 3, 16), Position = o + Vector3.new(-W / 2 + 0.6, 7, 0), Color = Color3.fromRGB(28, 26, 20), Material = Enum.Material.SmoothPlastic }, model)
+	local titleBoard = part({ Name = "Title", Size = Vector3.new(0.2, 3, 16), Position = o + Vector3.new(-W / 2 + 0.6, 7, 0), Color = Color3.fromRGB(28, 26, 20), Material = Enum.Material.Plastic }, model)
 	textOn(titleBoard, Enum.NormalId.Right, "SHIFT  ·  CREW SAFEHOUSE", AMBER)
 
 	-- Spawn in the middle.
@@ -123,7 +132,7 @@ function Safehouse.build(): Hub
 	local crewSigns, crewPrompts = {}, {}
 	for c = 1, Config.CREW_COUNT do
 		local x = (c - (Config.CREW_COUNT + 1) / 2) * 12
-		local board = part({ Name = `Crew{c}Sign`, Size = Vector3.new(9, 4, 0.3), Position = o + Vector3.new(x, 5, -D / 2 + 0.8), Color = Color3.fromRGB(30, 28, 22), Material = Enum.Material.SmoothPlastic }, model)
+		local board = part({ Name = `Crew{c}Sign`, Size = Vector3.new(9, 4, 0.3), Position = o + Vector3.new(x, 5, -D / 2 + 0.8), Color = Color3.fromRGB(30, 28, 22), Material = Enum.Material.Plastic }, model)
 		part({ Name = "Stripe", Size = Vector3.new(9, 0.4, 0.32), Position = o + Vector3.new(x, 7.2, -D / 2 + 0.8), Color = Config.CREW_COLOURS[c], Material = Enum.Material.Neon, CanCollide = false }, model)
 		table.insert(crewSigns, textOn(board, Enum.NormalId.Back, Config.CREW_NAMES[c], Config.CREW_COLOURS[c]))
 		table.insert(crewPrompts, prompt(board, "Join crew", Config.CREW_NAMES[c]))
@@ -150,7 +159,7 @@ function Safehouse.build(): Hub
 	for _, corner in { Vector3.new(5, 0, 5), Vector3.new(-5, 0, 5), Vector3.new(5, 0, -5), Vector3.new(-5, 0, -5) } do
 		part({ Name = "Post", Size = Vector3.new(0.6, H, 0.6), Position = liftCentre + corner + Vector3.new(0, H / 2, 0), Color = Color3.fromRGB(90, 88, 80), Material = Enum.Material.CorrodedMetal }, model)
 	end
-	local liftBoard = part({ Name = "LiftSign", Size = Vector3.new(10, 2.4, 0.3), Position = liftCentre + Vector3.new(0, 9, -5), Color = Color3.fromRGB(28, 26, 20), Material = Enum.Material.SmoothPlastic, CanCollide = false }, model)
+	local liftBoard = part({ Name = "LiftSign", Size = Vector3.new(10, 2.4, 0.3), Position = liftCentre + Vector3.new(0, 9, -5), Color = Color3.fromRGB(28, 26, 20), Material = Enum.Material.Plastic, CanCollide = false }, model)
 	local liftSign = textOn(liftBoard, Enum.NormalId.Front, "DESCENT", AMBER)
 	local readyPost = part({ Name = "ReadyPanel", Size = Vector3.new(1.2, 2, 0.4), Position = liftCentre + Vector3.new(4.2, 3.5, -5.2), Color = AMBER, Material = Enum.Material.Neon }, model)
 	local readyPrompt = prompt(readyPost, "Ready", "Descent")

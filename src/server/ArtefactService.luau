@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Artefacts = require(Shared:WaitForChild("Artefacts"))
 local Config = require(Shared:WaitForChild("Config"))
 local LevelGen = require(Shared:WaitForChild("LevelGen"))
+local Surfaces = require(Shared:WaitForChild("Surfaces"))
 local Remotes = require(script.Parent:WaitForChild("Remotes"))
 local NoiseService = require(script.Parent:WaitForChild("NoiseService"))
 
@@ -166,6 +167,7 @@ local function makeArtefact(def: Artefacts.ArtefactDef, value: number): Tool
 	handle.Color = def.color
 	handle.Material = def.material
 	handle.CanTouch = false -- no touch pickup
+	Surfaces.auto(handle) -- PBR metal, rust, plastic...
 	handle.TopSurface = Enum.SurfaceType.Smooth
 	handle.BottomSurface = Enum.SurfaceType.Smooth
 	handle.Parent = tool

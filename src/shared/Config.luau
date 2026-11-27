@@ -162,13 +162,5 @@ return {
 	SHIFT_SAFE_RADIUS = 0, -- 0 = only the cell you stand in keeps its walls; 1 = 3x3 (too safe: changes happened out of sight)
 	SHIFT_NOT_BEFORE_END = 25, -- no Shift this close to the end of a run
 
-	-- SHIFT's surface textures (assets/textures). Paste the uploaded image
-	-- IDs here (just the number is fine) and the level switches from
-	-- built-in materials to these. See TODO.md.
-	TEXTURES = {
-		wallpaper = { colour = "", normal = "", roughness = "" },
-		carpet = { colour = "", normal = "", roughness = "" },
-		ceiling = { colour = "", normal = "", roughness = "" },
-		concrete = { colour = "", normal = "", roughness = "" },
-	},
+	-- Texture and sound IDs live in AssetIds.luau (written by tools/upload_assets.py).
 }

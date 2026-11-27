@@ -16,7 +16,7 @@ local function mine(inst: Instance): boolean
 	return inst:GetAttribute("Crew") == localPlayer:GetAttribute("Crew")
 end
 
-local ON = Color3.fromRGB(246, 242, 212)
+local ON = Color3.fromRGB(252, 236, 186)
 local DIM = Color3.fromRGB(150, 146, 120)
 local OFF = Color3.fromRGB(64, 62, 56)
 local FULL_BRIGHTNESS = 2
@@ -31,7 +31,7 @@ local states: { [BasePart]: FlickerState } = {}
 
 local function setLevel(panel: BasePart, level: number)
 	-- level: 0 = off, 0.5 = dim, 1 = full
-	panel.Material = if level > 0 then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	panel.Material = if level > 0 then Enum.Material.Neon else Enum.Material.Glass -- a dead tube behind its diffuser
 	local on = (workspace:GetAttribute("LightColour") or ON) :: Color3 -- level types tint the lights
 	panel.Color = if level >= 1 then on elseif level > 0 then DIM else OFF
 	local light = panel:FindFirstChildOfClass("SurfaceLight")
@@ -57,6 +57,7 @@ end
 
 local mode = "normal"
 local nextStorm = 0
+local nextBlip = 0
 
 -- Lampjaw's light: a red strobe (its sound is in Cues.client).
 local RED_ON = Color3.fromRGB(255, 120, 90)
@@ -90,7 +91,7 @@ local function updateLampjaw(now: number, strobe: boolean)
 	if panel and strobe and now >= nextStrobe then
 		nextStrobe = now + 0.04 + math.random() * 0.09
 		local on = math.random() < 0.55
-		panel.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		panel.Material = if on then Enum.Material.Neon else Enum.Material.Glass
 		panel.Color = if on then RED_ON else RED_DIM
 		local light = panel:FindFirstChildOfClass("SurfaceLight")
 		if light then
@@ -167,8 +168,24 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
-	-- Normal: only the dying tubes stutter, and Lampjaw's light strobes red.
+	-- Normal: the dying tubes stutter, Lampjaw's light strobes red, and now
+	-- and then any healthy tube blinks once, so no corridor feels static.
 	updateLampjaw(now, true)
+	if now >= nextBlip then
+		nextBlip = now + 0.4 + math.random() * 0.9
+		local all = CollectionService:GetTagged("CeilingLight")
+		if #all > 0 then
+			local panel = all[math.random(1, #all)]
+			if panel:IsA("BasePart") and mine(panel) and panel:GetAttribute("LightState") ~= "dead" and panel ~= lampjawPanel and not states[panel] then
+				setLevel(panel, 0.5)
+				task.delay(0.04 + math.random() * 0.1, function()
+					if mode == "normal" and panel.Parent and panel:GetAttribute("LightState") ~= "dead" then
+						setLevel(panel, 1)
+					end
+				end)
+			end
+		end
+	end
 	for _, inst in CollectionService:GetTagged("FlickerLight") do
 		if not inst:IsA("BasePart") or inst == lampjawPanel or not mine(inst) then
 			continue
