@@ -27,6 +27,18 @@ function NoiseService.emit(position: Vector3, radius: number, player: Player?)
 	table.insert(events, { position = position, radius = radius, player = player, at = os.clock() })
 end
 
+-- Has this player made a one-off noise (dropped loot, ...) since `since`
+-- (an os.clock() time)? The Quiet uses it.
+function NoiseService.madeSince(player: Player, since: number): boolean
+	local now = os.clock()
+	for _, e in events do
+		if e.player == player and e.at >= since and now - e.at <= EVENT_LIFETIME then
+			return true
+		end
+	end
+	return false
+end
+
 -- How far this player's movement carries right now (0 = silent).
 function NoiseService.playerRadius(player: Player): number
 	local character = player.Character

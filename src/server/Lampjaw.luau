@@ -88,10 +88,17 @@ function Lampjaw.create(ctx: any): Lampjaw
 		local r = living[math.random(1, #living)]
 		local cx, cz = LevelBuilder.cellOf(l, r.Position, ctx.origin)
 		local dist = LevelGen.distancesFrom(l, cx, cz)
+		-- Never a light inside the Quiet's ring: you can't be told to freeze
+		-- and to move at once.
+		local quietCell = if state:GetAttribute("QuietState") ~= "idle" then (state:GetAttribute("QuietCell") or 0) :: number else 0
+		local quietRadius = (state:GetAttribute("QuietRadius") or 1) :: number
 		local near: { number } = {}
 		for key, d in dist do
 			local cell = l.cells[key // 1000][key % 1000]
-			if cell.light == "flicker" and d >= 1 and d <= L.nearCells then
+			local inRing = quietCell ~= 0
+				and math.abs(key // 1000 - quietCell // 1000) <= quietRadius
+				and math.abs(key % 1000 - quietCell % 1000) <= quietRadius
+			if cell.light == "flicker" and d >= 1 and d <= L.nearCells and not inRing then
 				table.insert(near, key)
 			end
 		end

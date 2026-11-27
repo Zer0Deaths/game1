@@ -212,6 +212,34 @@ def LAMPJAW_CUE():
 # STINGERS
 
 
+def QUIET_INHALE():
+    # The Quiet: one long, slow breath in, very close, through a slack mouth,
+    # that stops dead at the top: it's holding its breath, listening.
+    # Breath noise through two drifting vowel bands (an "aah" opening
+    # toward "ooh"), a thin whistle through the teeth, a low chest
+    # rumble, and a small dry room. 2.4 s, not looped.
+    seconds = 2.4
+    t = t_axis(seconds)
+    n = len(t)
+    held = 2.05  # where the breath stops
+    swell = np.clip(t / held, 0, 1) ** 1.6
+    swell *= 0.85 + 0.15 * np.sin(2 * np.pi * 3.3 * t) * (t < held)  # the slight judder of a slow breath
+    stop = np.ones(n)
+    k = int(held * SR)
+    r = int(0.05 * SR)
+    stop[k:k + r] = np.linspace(1, 0, r) ** 2
+    stop[k + r:] = 0
+    air = noise(n)
+    mouth = bandpass(air, 700, 1300) * (1.0 - 0.5 * t / seconds) + bandpass(air, 1700, 2900) * 0.6
+    mouth += bandpass(air, 300, 600) * (0.3 + 0.5 * t / seconds)  # the vowel closing as the lungs fill
+    whistle = bandpass(noise(n), 1500, 1650) * (0.15 + 0.35 * swell)
+    chest = lowpass(brown(n), 220) * 0.25
+    x = (mouth + whistle + chest) * swell * stop
+    x *= env(n, 0.25, 0.01)
+    out = reverb(x, 0.6, 0.18, 3500)
+    write("QUIET_INHALE", out[: int(SR * (seconds + 0.5))], 0.75)
+
+
 def stinger(seconds, base, cluster, bite=1.0):
     t = t_axis(seconds)
     n = len(t)
@@ -399,7 +427,7 @@ def ERROR():
 
 
 KEYS = {f.__name__: f for f in [
-    DRONE, HEARTBEAT, WHISPERS, TENANT_CUE, LAMPJAW_CUE, STING_REVEAL, STING_DEATH, STING_WIPE,
+    DRONE, HEARTBEAT, WHISPERS, TENANT_CUE, LAMPJAW_CUE, QUIET_INHALE, STING_REVEAL, STING_DEATH, STING_WIPE,
     STING_GLIMPSE, SHIFT_WARN, BLACKOUT, LIGHTS_ON, LIFT_DING, LIFT_MOTOR, DEPOSIT, QUOTA_MET,
     COUNTDOWN, PICKUP, DROP, FLASHLIGHT, UI_CLICK, UI_OPEN, UI_CLOSE, PURCHASE, ERROR,
 ]}

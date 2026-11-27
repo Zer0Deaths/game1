@@ -116,6 +116,25 @@ return {
 		nearCells = 4, -- picks a flickering light within this many cells of someone
 	},
 
+	-- THE QUIET: lives in the hum. The hum dies in a ring of cells around a
+	-- player; make a sound inside it before the hum comes back and you're
+	-- taken. Counter: freeze. Never during a Shift. (Quiet.luau)
+	QUIET = {
+		enabled = true,
+		fromDepth = 3, -- strikes from this sublevel down (ForceQuiet in Studio works on any)
+		firstDelay = 40, -- seconds into a sublevel before it can first strike
+		restMin = 60, -- seconds after the hum comes back before it can strike again...
+		meanWait = 75, -- ...then on average this much longer (a steady random chance; about 3 or 4 a sublevel)
+		afterShiftWindow = 60, -- seconds after a Shift's lights come back: twice as likely...
+		afterShiftGrace = 6, -- ...but never in the first few seconds of light
+		radiusCells = 1, -- the ring: every cell within this many of the player's (1 = 3x3 cells, 60 studs across)
+		warnSeconds = 2, -- the hum drains away and the tubes dim; moving is still safe
+		silentMin = 4, -- seconds of dead silence: a sound now and you're taken
+		silentMax = 6,
+		tolerance = 0.3, -- seconds of movement it lets go in all (a twitch, coming to a stop)
+		tenantClearance = 50, -- studs: never rings a player a Tenant is this close to
+	},
+
 	-- Shared map (M key): fills in wherever anyone on the server has looked.
 	MAP_SIGHT_CELLS = 2, -- how far down an open corridor you "see" for the map
 	MAP_UPDATE_SECONDS = 0.5,
