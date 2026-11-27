@@ -209,8 +209,8 @@ local function tenantPose(r: Rig, t: number, dt: number)
 		jx, jy, jz = (math.random() - 0.5) * 0.35, (math.random() - 0.5) * 0.5, (math.random() - 0.5) * 0.7
 	end
 	local ease = math.min(1, dt * 5)
-	r.lift += ((if st == "notice" then 0.7 elseif st == "chase" then 0.35 else 0) - r.lift) * ease
-	r.roll += ((if st == "notice" then 0.55 else 0) - r.roll) * ease
+	r.lift += ((if st == "notice" then 0.7 elseif st == "chase" then 0.35 elseif st == "stunned" then -0.45 else 0) - r.lift) * ease
+	r.roll += ((if st == "notice" then 0.55 elseif st == "stunned" then -0.3 else 0) - r.roll) * ease
 	set(r, "Neck", CFrame.Angles(math.sin(t * 0.37) * 0.08 + jx + r.lift, math.sin(t * 0.23) * 0.45 * (1 - r.lift) + jy, math.sin(t * 0.61) * 0.1 + jz + r.roll))
 end
 
