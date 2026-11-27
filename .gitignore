@@ -18,3 +18,4 @@ desktop.ini
 __pycache__/
 *.pyc
 tools/last_sound_page.html
+blender/exports/
