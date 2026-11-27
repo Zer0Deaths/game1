@@ -112,17 +112,21 @@ function ArtefactService.updateBackLoad(player: Player)
 end
 
 -- Put a tool on the floor at a position, ready to be picked up.
-local function placeInWorld(tool: Tool, position: Vector3, yaw: number, folder: Instance)
+local function placeAt(tool: Tool, cf: CFrame, folder: Instance)
 	local handle = handleOf(tool)
 	tool.Parent = folder
 	handle.Anchored = true
 	handle.CanCollide = true
 	handle.Massless = false
-	handle.CFrame = CFrame.new(position.X, handle.Size.Y / 2 + 0.05, position.Z) * CFrame.Angles(0, yaw, 0)
+	handle.CFrame = cf
 	local prompt = promptOf(tool)
 	if prompt then
 		prompt.Enabled = true
 	end
+end
+
+local function placeInWorld(tool: Tool, position: Vector3, yaw: number, folder: Instance)
+	placeAt(tool, CFrame.new(position.X, handleOf(tool).Size.Y / 2 + 0.05, position.Z) * CFrame.Angles(0, yaw, 0), folder)
 end
 
 local function pickUp(player: Player, tool: Tool)
@@ -177,7 +181,7 @@ local function makeArtefact(def: Artefacts.ArtefactDef, value: number): Tool
 	prompt.ActionText = "Pick up"
 	prompt.ObjectText = `{def.name}  ${value}`
 	prompt.MaxActivationDistance = 8
-	prompt.RequiresLineOfSight = false
+	prompt.RequiresLineOfSight = true -- only loot you can actually see (walls block; props are CanQuery off so they don't)
 	prompt.HoldDuration = Config.PICKUP_HOLD -- 0 = a single tap of E
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.Parent = handle
@@ -205,23 +209,58 @@ end
 
 -- Scatter artefacts across a level. cellCenter converts a grid cell to a
 -- world position. Deeper sublevels pass a valueMultiplier > 1.
-function ArtefactService.spawnAll(layout: LevelGen.Layout, levelModel: Instance, cellCenter: (number, number) -> Vector3, count: number, valueMultiplier: number): Folder
+-- Scatter artefacts across a level. cellCenter converts a grid cell to a
+-- world position. Deeper sublevels pass a valueMultiplier > 1. `shelves`
+-- are gaps on storage racks (LevelBuilder.shelfSlots): about
+-- Config.SHELF_LOOT_SHARE of the loot is left on those instead of the floor.
+function ArtefactService.spawnAll(
+	layout: LevelGen.Layout,
+	levelModel: Instance,
+	cellCenter: (number, number) -> Vector3,
+	count: number,
+	valueMultiplier: number,
+	shelves: { { cf: CFrame, width: number } }?
+): Folder
 	local folder = Instance.new("Folder")
 	folder.Name = "Artefacts"
 	folder.Parent = levelModel
 
 	local rng = LevelGen.makeRng(layout.seed + 101)
+	local slots = table.clone(shelves or {})
+	for i = #slots, 2, -1 do
+		local j = rng.int(1, i)
+		slots[i], slots[j] = slots[j], slots[i]
+	end
+	local onShelves = 0
 	for _ = 1, count do
-		local x, z
-		repeat
-			x, z = rng.int(1, layout.width), rng.int(1, layout.depth)
-		until not (x == layout.spawn.x and z == layout.spawn.z) and not (x == layout.exit.x and z == layout.exit.z)
 		local def = pickDef(rng)
 		local value = math.floor(rng.int(def.minValue, def.maxValue) * valueMultiplier + 0.5)
-		local center = cellCenter(x, z)
-		local offset = Vector3.new((rng.float() - 0.5) * 12, 0, (rng.float() - 0.5) * 12)
-		placeInWorld(makeArtefact(def, value), center + offset, rng.float() * math.pi * 2, folder)
+		local tool = makeArtefact(def, value)
+		local placed = false
+		if #slots > 0 and rng.float() < Config.SHELF_LOOT_SHARE and def.size.Y < 1.9 then
+			-- The first gap it fits in, lengthwise along the shelf.
+			for i, slot in slots do
+				if def.size.X <= slot.width - 0.2 then
+					local cf = slot.cf * CFrame.new((rng.float() - 0.5) * (slot.width - def.size.X - 0.2), def.size.Y / 2 + 0.02, (rng.float() - 0.5) * 0.4)
+					placeAt(tool, cf * CFrame.Angles(0, (rng.float() - 0.5) * 0.3, 0), folder)
+					table.remove(slots, i)
+					placed = true
+					onShelves += 1
+					break
+				end
+			end
+		end
+		if not placed then
+			local x, z
+			repeat
+				x, z = rng.int(1, layout.width), rng.int(1, layout.depth)
+			until not (x == layout.spawn.x and z == layout.spawn.z) and not (x == layout.exit.x and z == layout.exit.z)
+			local center = cellCenter(x, z)
+			local offset = Vector3.new((rng.float() - 0.5) * 12, 0, (rng.float() - 0.5) * 12)
+			placeInWorld(tool, center + offset, rng.float() * math.pi * 2, folder)
+		end
 	end
+	folder:SetAttribute("OnShelves", onShelves)
 	return folder
 end
 
@@ -267,13 +306,17 @@ function ArtefactService.resettle(folder: Instance, layout: LevelGen.Layout, ori
 		end
 	end
 
-	-- Is the item's footprint at `at` (from just above the floor to its
-	-- top) free of every part near it?
-	local function clear(at: Vector3, handle: BasePart): boolean
+	-- Is the item's footprint free of every part near it? `at` is where
+	-- its centre would be; `bottom` the world height of its underside.
+	-- Measured from just above what it rests on, so the floor clutter or
+	-- the shelf under it doesn't count.
+	local floorY = origin.Y
+	local function clear(at: Vector3, handle: BasePart, bottom: number): boolean
 		local s = handle.Size
 		local r = math.sqrt(s.X * s.X + s.Z * s.Z) / 2 + 0.3
-		local h = math.max(s.Y, 1)
-		local centre = Vector3.new(at.X, 0.3 + h / 2, at.Z)
+		local base = math.max(bottom + 0.1, floorY + 0.3)
+		local h = math.max(bottom + s.Y - base, 0.4)
+		local centre = Vector3.new(at.X, base + h / 2, at.Z)
 		local cx, cz = LevelBuilder.cellOf(layout, centre, origin)
 		for dx = -1, 1 do
 			for dz = -1, 1 do
@@ -287,6 +330,23 @@ function ArtefactService.resettle(folder: Instance, layout: LevelGen.Layout, ori
 			end
 		end
 		return true
+	end
+
+	-- Off the floor (on a shelf): is there still something flat right under
+	-- it? After a Shift the rack may be gone, leaving it floating.
+	local function supported(at: Vector3, bottom: number): boolean
+		if bottom < floorY + 0.4 then
+			return true
+		end
+		local cx, cz = LevelBuilder.cellOf(layout, at, origin)
+		for _, part in buckets[cx * 1000 + cz] or {} do
+			local p = part.CFrame:PointToObjectSpace(Vector3.new(at.X, bottom, at.Z))
+			local half = part.Size / 2
+			if math.abs(p.X) < half.X and math.abs(p.Z) < half.Z and p.Y > half.Y - 0.35 and p.Y < half.Y + 0.35 then
+				return true
+			end
+		end
+		return false
 	end
 
 	-- Spots in a cell, nearest to `from` first, kept clear of the walls.
@@ -316,7 +376,8 @@ function ArtefactService.resettle(folder: Instance, layout: LevelGen.Layout, ori
 		end
 		total += 1
 		local pos = handle.Position
-		if LevelBuilder.inLevel(layout, pos, origin) and clear(pos, handle) then
+		local bottom = pos.Y - handle.Size.Y / 2
+		if LevelBuilder.inLevel(layout, pos, origin) and supported(pos, bottom) and clear(pos, handle, bottom) then
 			continue
 		end
 		-- Breadth-first out from its cell through open walls.
@@ -328,7 +389,7 @@ function ArtefactService.resettle(folder: Instance, layout: LevelGen.Layout, ori
 			local x, z = queue[head][1], queue[head][2]
 			head += 1
 			for _, spot in spots(x, z, pos) do
-				if clear(spot, handle) then
+				if clear(spot, handle, floorY + 0.05) then -- moved items go on the floor
 					found = spot
 					break
 				end

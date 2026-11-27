@@ -265,7 +265,8 @@ local function start(crew: number, depth: number, seed: number?)
 			return LevelBuilder.cellCenter(x, z, origin)
 		end,
 		math.floor(cells * Config.ARTEFACTS_PER_100_CELLS / 100),
-		Crews.lootMultiplier(depth, Config.LOOT_VALUE_PER_DEPTH)
+		Crews.lootMultiplier(depth, Config.LOOT_VALUE_PER_DEPTH),
+		LevelBuilder.shelfSlots(model)
 	)
 	local st = CrewState.folder(crew)
 	local quota = Crews.quota(depth, #members, Config.QUOTA_SOLO, Config.QUOTA_PER_EXTRA, Config.QUOTA_GROWTH)
@@ -318,7 +319,7 @@ local function start(crew: number, depth: number, seed: number?)
 		local blockers = { model:FindFirstChild("Structure"), ctx.liftModel }
 		local ok, onFloor, shifted, stuck = pcall(ArtefactService.resettle, artefacts, layout, origin, blockers :: { Instance })
 		if ok then
-			print(`[Level] crew {crew} loot: {onFloor} on the floor, {shifted} moved off props, {stuck} stuck`)
+			print(`[Level] crew {crew} loot: {onFloor} placed ({artefacts:GetAttribute("OnShelves") or 0} on shelves), {shifted} moved off props, {stuck} stuck`)
 		else
 			warn(`[Level] loot check failed: {onFloor}`)
 		end

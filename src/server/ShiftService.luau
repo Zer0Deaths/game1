@@ -142,7 +142,7 @@ function ShiftService.create(ctx: any, exitMoved: (LevelGen.Layout) -> ()): Shif
 				end
 			end
 			if ok then
-				print(`[Shift] crew {ctx.crew} #{count} loot: {lootBefore} on the floor before, {onFloor} after ({shifted} moved out of new walls/props, {stuck} stuck), {carried} carried`)
+				print(`[Shift] crew {ctx.crew} #{count} loot: {lootBefore} in the level before, {onFloor} after ({shifted} moved out of new walls/props or off vanished shelves, {stuck} stuck), {carried} carried`)
 			else
 				warn(`[Shift] loot check failed: {onFloor}`)
 			end
