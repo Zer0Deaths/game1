@@ -65,5 +65,16 @@ return {
 		pants = "decal:135223071668249",
 		shirt = "decal:81942948737839",
 	},
-	decals = {},
+	decals = {
+		corner_grime = "decal:99624967495954",
+		drip_stain = "decal:107014690361239",
+		floor_stain = "decal:139860133169071",
+		oil_stain = "decal:120885889176673",
+		peel = "decal:93660406779531",
+		rust_streak = "decal:93214289873818",
+		scuff = "decal:73282973247086",
+		wall_grime = "decal:98230967649307",
+		water_stain = "decal:129853679144896",
+		wear_path = "decal:137173839456064",
+	},
 }
