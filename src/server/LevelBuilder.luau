@@ -93,6 +93,8 @@ local function surface(p: BasePart, kind: string)
 		local shade = math.clamp((c.R + c.G + c.B) / math.max(0.01, base.R + base.G + base.B), 0.82, 1)
 		Surfaces.apply(p, name)
 		p.Color = Color3.new(shade, shade, shade)
+	elseif name and name ~= "" then
+		Surfaces.texture(p, name) -- colour map on the big faces until the variants are installed
 	end
 end
 
