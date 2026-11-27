@@ -147,6 +147,25 @@ local function load(name: string)
 		local map: { [string]: Template } = {}
 		local used: { [MeshPart]: boolean } = {}
 		local turned = {}
+		if #found == 1 and #spec.parts > 1 then
+			-- The importer merged everything into one mesh: place it whole
+			-- (Meshes.build), in the look of its biggest piece.
+			local mp = found[1]
+			local meshSize = mp.Size
+			pcall(function()
+				meshSize = (mp :: any).MeshSize
+			end)
+			local rot, perm = fit(meshSize, spec.size)
+			local template = mp:Clone()
+			for _, child in template:GetChildren() do
+				if not child:IsA("SurfaceAppearance") then
+					child:Destroy()
+				end
+			end
+			map.__whole = { mesh = template, rot = rot, perm = perm }
+			warn(`[Meshes] {name} came in as one merged mesh: placed whole, in one look (tell Claude)`)
+			found = {}
+		end
 		for _, p in spec.parts do
 			-- By name first ("Door_Frame"), then the unused mesh closest in shape.
 			local pick: MeshPart? = nil
@@ -196,7 +215,7 @@ local function load(name: string)
 			return
 		end
 		templates[name] = map
-		if count < #spec.parts then
+		if count < #spec.parts and not map.__whole then
 			warn(`[Meshes] {name}: only {count} of {#spec.parts} meshes found in its upload`)
 		end
 		if #turned > 0 then
@@ -243,6 +262,34 @@ function Meshes.build(name: string, frame: CFrame, opts: Opts?): Model?
 	local k = o.scale or 1
 	local model = Instance.new("Model")
 	model.Name = name
+	local whole = map.__whole
+	if whole then
+		-- Merged on import: no picking pieces out of it, so a caller that
+		-- wanted only some of them keeps its plain parts instead.
+		if o.only or o.skip then
+			model:Destroy()
+			return nil
+		end
+		local biggest = spec.parts[1]
+		for _, p in spec.parts do
+			if p.size.X * p.size.Y * p.size.Z > biggest.size.X * biggest.size.Y * biggest.size.Z then
+				biggest = p
+			end
+		end
+		local want = axes(spec.size * k)
+		local mp = whole.mesh:Clone()
+		mp.Name = name
+		mp.Size = Vector3.new(want[whole.perm[1]], want[whole.perm[2]], want[whole.perm[3]])
+		mp.CFrame = frame * CFrame.new((spec.origin + Vector3.new(0, spec.size.Y / 2, 0)) * k) * whole.rot
+		mp.Anchored = true
+		mp.CanCollide = o.solid == true
+		mp.CanQuery = o.solid == true
+		mp.CanTouch = false
+		mp:SetAttribute("Visual", true)
+		paint(mp, biggest)
+		mp.Parent = model
+		return model
+	end
 	for _, p in spec.parts do
 		if (o.skip and table.find(o.skip, p.name)) or (o.only and not table.find(o.only, p.name)) then
 			continue

@@ -17,6 +17,7 @@ Tick them off as you go. Nothing here is urgent unless marked.
 - [ ] The Tenant shows up after the first Shift (tick `ForceShift`), follows your noise, and the lift is safe.
 - [ ] Map (M) fills in and fades after a Shift.
 - [ ] **Blender models:** Output says `[Meshes] 32 models loaded` a few seconds after Play. Check that loot shows its model (and the white outline when you look at it), the tube fittings switch off in a Shift blackout, the lockers have crates on top, and desks, chairs, pillars, door frames, vents and pipes look right. Anything floating, sunk or turned the wrong way: tell Claude which piece. If a line says `came in turned`, mention that too.
+- [ ] **The new Tenant** (after the PC uploads `tenant`): when it arrives, Output says `[EntityRig] Tenant: the Blender model`. Head hung low in front of its chest, shoulders hunched over it, arms past its knees, elbows bending the wrong way, up on its toes. When it spots you the head comes up and tips over. If it looks broken (limbs detached or spinning), say so: the old body comes back by deleting `tenant` from `AssetIds.models`.
 
 ## Uploads (done 27 Nov: 99 assets uploaded, IDs in `src/shared/AssetIds.luau`)
 - [ ] **After the realism pass:** the PC session runs `python tools/upload_assets.py` once more (it only uploads the 10 new grime decals in `assets/decals`) and commits `src/shared/AssetIds.luau` and `assets/uploaded.json`. Until then the stains use the old flat patches.

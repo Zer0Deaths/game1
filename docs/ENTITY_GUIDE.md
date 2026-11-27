@@ -1,5 +1,7 @@
 # Entities: making real meshes and animations
 
+**The Tenant now has a Blender model** (`blender/scripts/tenant.py`, 15 R15 body parts, about 6,100 triangles, the 1024 TenantSkin PBR set). Once it's uploaded the game builds the Tenant from it, on the skeleton the script writes into `MeshManifest`; the built body below is the fallback. A model you put in `ServerStorage.SHIFT_Models` (below) still wins over both. New entity ideas are in `docs/entities.md`.
+
 The Tenant and Lampjaw already work with built-in bodies: proper R15-style rigs with a procedural walk, run, idle and attack. Everything below is optional and swaps in your own versions. Nothing breaks if you skip a step; the game falls back to the built-in body or animation on its own.
 
 **The look to aim for:** tall, thin, near-black, featureless. No face, no clothes detail. You glimpse them at the end of a corridor or in a flicker, so a strong silhouette matters more than fine detail.
