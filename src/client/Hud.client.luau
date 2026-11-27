@@ -1,6 +1,6 @@
 -- On-screen HUD: quota and timer at the top, carry load at the bottom,
 -- short toasts for pickups and deposits, and a big banner for run events.
--- Reads Workspace attributes set by the server's RunManager.
+-- Reads your crew's state, mirrored onto Workspace by CrewMirror.client.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -50,7 +50,7 @@ local timerLabel = label({
 	Name = "Timer",
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 34),
-	Size = UDim2.fromOffset(260, 22),
+	Size = UDim2.fromOffset(420, 22),
 	TextSize = 20,
 })
 
@@ -146,20 +146,31 @@ end)
 
 RunService.Heartbeat:Connect(function()
 	local crew = player:GetAttribute("Crew") or 1
-	local quota = workspace:GetAttribute(`Crew{crew}Quota`) or 0
-	local banked = workspace:GetAttribute(`Crew{crew}Banked`) or 0
-	quotaLabel.Text = `{string.upper(Config.CREW_NAMES[crew] or "CREW")}  ${banked} / ${quota}`
+	local quota = workspace:GetAttribute("CrewQuota") or 0
+	local banked = workspace:GetAttribute("CrewBanked") or 0
+	local depth = (workspace:GetAttribute("Depth") or 0) :: number
+	local where = if depth > 0 then `  ·  SUBLEVEL {depth}` else ""
+	quotaLabel.Text = `{string.upper(Config.CREW_NAMES[crew] or "CREW")}{where}  ${banked} / ${quota}`
 	quotaLabel.TextColor3 = if banked >= quota and quota > 0 then GREEN else AMBER
 
+	local raw = workspace:GetAttribute("CrewRunState")
 	local endsAt = workspace:GetAttribute("RunEndsAt")
-	if workspace:GetAttribute("RunState") == "playing" and endsAt then
-		local left = math.max(0, math.ceil(endsAt - workspace:GetServerTimeNow()))
-		timerLabel.Text = string.format("%02d:%02d", left // 60, left % 60)
-		timerLabel.TextColor3 = if left <= 60 then RED else PALE
-	elseif workspace:GetAttribute("RunState") == "hub" then
-		local hubEnds = workspace:GetAttribute("HubEndsAt") or 0
-		local left = math.max(0, math.ceil(hubEnds - workspace:GetServerTimeNow()))
-		timerLabel.Text = string.format("DESCENT %02d:%02d", left // 60, left % 60)
+	local now = workspace:GetServerTimeNow()
+	if raw == "playing" and endsAt then
+		local left = math.max(0, math.ceil(endsAt - now))
+		if workspace:GetAttribute("LiftReady") then
+			timerLabel.Text = string.format("TO THE LIFT %d/%d  %02d:%02d", workspace:GetAttribute("Aboard") or 0, workspace:GetAttribute("Needed") or 0, left // 60, left % 60)
+			timerLabel.TextColor3 = GREEN
+		else
+			timerLabel.Text = string.format("%02d:%02d", left // 60, left % 60)
+			timerLabel.TextColor3 = if left <= 60 then RED else PALE
+		end
+	elseif raw == "countdown" or raw == "descending" then
+		local left = math.max(0, math.ceil(((workspace:GetAttribute("DescendAt") or now) :: number) - now))
+		timerLabel.Text = `GOING DOWN  {left}`
+		timerLabel.TextColor3 = PALE
+	elseif raw == "hub" then
+		timerLabel.Text = "READY UP AT THE DESCENT LIFT"
 		timerLabel.TextColor3 = PALE
 	else
 		timerLabel.Text = "--:--"

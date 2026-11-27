@@ -132,35 +132,6 @@ function ShopService.init()
 		inUse[p] = nil
 	end)
 
-	-- One-run items: locked in when a run starts, used up when it ends.
-	workspace:GetAttributeChangedSignal("RunState"):Connect(function()
-		local state = workspace:GetAttribute("RunState")
-		if state == "playing" then
-			for _, p in Players:GetPlayers() do
-				local list = {}
-				for _, item in ShopItems do
-					if item.kind == "run" and p:GetAttribute(`Run_{item.id}`) then
-						table.insert(list, item.id)
-					end
-				end
-				inUse[p] = list
-				p:SetAttribute("Battery", 100)
-			end
-		elseif state == "intermission" then
-			for p, list in inUse do
-				for _, id in list do
-					p:SetAttribute(`Run_{id}`, nil)
-				end
-			end
-			table.clear(inUse)
-		elseif state == "hub" then
-			for _, p in Players:GetPlayers() do
-				p:SetAttribute("Battery", 100)
-				setFlashlight(p, false)
-			end
-		end
-	end)
-
 	-- Battery drains while the flashlight is on.
 	task.spawn(function()
 		local drain = 100 / Config.FLASHLIGHT_SECONDS
@@ -178,6 +149,45 @@ function ShopService.init()
 			end
 		end
 	end)
+end
+
+-- A crew drops into its first sublevel: one-run items are locked in and
+-- the flashlight battery is topped up.
+function ShopService.startRun(players: { Player })
+	for _, p in players do
+		local list = {}
+		for _, item in ShopItems do
+			if item.kind == "run" and p:GetAttribute(`Run_{item.id}`) then
+				table.insert(list, item.id)
+			end
+		end
+		inUse[p] = list
+		p:SetAttribute("Battery", 100)
+	end
+end
+
+-- A crew is back in the safehouse (returned or wiped): one-run items are
+-- used up and the flashlight goes off.
+function ShopService.endRun(players: { Player })
+	for _, p in players do
+		for _, id in inUse[p] or {} do
+			p:SetAttribute(`Run_{id}`, nil)
+		end
+		inUse[p] = nil
+		p:SetAttribute("Battery", 100)
+		setFlashlight(p, false)
+	end
+end
+
+-- A wiped crew loses everything it bought (Config.WIPE_LOSES_KIT).
+function ShopService.wipeKit(player: Player)
+	for _, item in ShopItems do
+		player:SetAttribute(`Own_{item.id}`, nil)
+		player:SetAttribute(`Run_{item.id}`, nil)
+	end
+	inUse[player] = nil
+	setFlashlight(player, false)
+	ShopService.apply(player)
 end
 
 return ShopService

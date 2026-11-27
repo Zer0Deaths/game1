@@ -8,12 +8,14 @@ Tick them off as you go. Nothing here is urgent unless marked.
 - [ ] **Avatar type R15.** Home > Game Settings > Avatar > Avatar Type: R15. The crew suit and arms are built for R15.
 - [ ] **Allow Studio access to API services** (needed for saving progress): Home > Game Settings > Security > *Enable Studio Access to API Services* ON. Only matters once the place is published.
 
-## Play-test checklist (Studio, Play with 1 player, or Test > Clients and Servers with 2-4)
-- [ ] Safehouse: crew board switches crews, shop buys work (you start with $0, so earn some first), Ready starts the descent.
-- [ ] The Tenant shows up after the first Shift (use `ForceShift`), follows your noise, and the lift is safe.
-- [ ] Lampjaw's red light: stand under it and you die; sprint past and you live.
+## Play-test checklist (Studio: Play for solo, or Test > Clients and Servers with 2-4)
+- [ ] Safehouse: press Ready at the descent lift. "GOING DOWN 5" on the HUD, then you land on sublevel 1 (Output: `[Level] crew 1, sublevel 1 ...`).
+- [ ] HUD shows your crew, sublevel and `$banked / $quota`. Deposit at the lift until the quota is met: the lift turns green and the HUD says TO THE LIFT.
+- [ ] Stand in the lift: the panel offers Go deeper (E) and Return to safehouse (R). Deeper builds sublevel 2 (Lampjaw shows up from here); Return takes you to the safehouse with your Cash.
+- [ ] Let the timer run out (or set `SUBLEVEL_SECONDS` to 60 in Config to test): the crew is wiped, back in the safehouse, shop kit gone.
+- [ ] Two players in different crews: each crew gets its own level and never sees the other's.
+- [ ] The Tenant shows up after the first Shift (tick `ForceShift`), follows your noise, and the lift is safe.
 - [ ] Map (M) fills in and fades after a Shift.
-- [ ] After the timer: results, then back to the safehouse.
 
 ## Uploads (Creator Hub or Studio Asset Manager)
 - [ ] **Surface textures (biggest visual upgrade, ~10 minutes).** SHIFT has its own wallpaper, carpet, ceiling tile and concrete textures in `assets/textures/` (12 images, made for SHIFT, free to use). Roblox can only show uploaded images:

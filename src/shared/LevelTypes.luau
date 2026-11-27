@@ -2,8 +2,8 @@
 -- The kinds of level a descent can land in. Each one changes the generator
 -- (rooms, loops, how many lights are broken), the colours and materials,
 -- the light colour, and the haze. All original SHIFT locations.
---   unlockRun: first run number this level can appear on (runs count up
---              while at least one crew keeps meeting quota)
+--   unlockRun: first sublevel (depth) this level can appear on
+--   sizeBonus: cells added to the crew's level size (Config.LEVEL_SIZE_BY_CREW)
 --   weight:    how likely it is once unlocked
 
 export type LevelType = {
@@ -12,6 +12,7 @@ export type LevelType = {
 	blurb: string,
 	unlockRun: number,
 	weight: number,
+	sizeBonus: number,
 	gen: {
 		width: number?,
 		depth: number?,
@@ -46,6 +47,7 @@ local LevelTypes: { LevelType } = {
 		blurb = "Damp carpet, yellow walls, the hum.",
 		unlockRun = 1,
 		weight = 3,
+		sizeBonus = 0,
 		gen = {},
 		colours = {},
 		materials = {},
@@ -60,7 +62,8 @@ local LevelTypes: { LevelType } = {
 		blurb = "Tiled corridors, cold light, more of it broken.",
 		unlockRun = 2,
 		weight = 2,
-		gen = { width = 28, depth = 28, loopChance = 0.1, roomCount = 4, atriumCount = 0, officeCount = 5, storageCount = 1, hallCount = 8, deadChance = 0.32, flickerChance = 0.14 },
+		sizeBonus = -2,
+		gen = { loopChance = 0.1, roomCount = 4, atriumCount = 0, officeCount = 5, storageCount = 1, hallCount = 8, deadChance = 0.32, flickerChance = 0.14 },
 		colours = {
 			wall = rgb(196, 206, 200),
 			skirting = rgb(90, 110, 104),
@@ -82,7 +85,8 @@ local LevelTypes: { LevelType } = {
 		blurb = "Concrete, grating and sodium light. Lots of it flickers.",
 		unlockRun = 3,
 		weight = 2,
-		gen = { width = 32, depth = 32, loopChance = 0.26, roomCount = 6, atriumCount = 2, officeCount = 1, storageCount = 6, hallCount = 3, flickerChance = 0.24, deadChance = 0.18 },
+		sizeBonus = 2,
+		gen = { loopChance = 0.26, roomCount = 6, atriumCount = 2, officeCount = 1, storageCount = 6, hallCount = 3, flickerChance = 0.24, deadChance = 0.18 },
 		colours = {
 			wall = rgb(120, 116, 108),
 			skirting = rgb(70, 66, 60),
@@ -112,7 +116,7 @@ function M.get(id: string): LevelType
 	return byId[id] or LevelTypes[1]
 end
 
--- Pick a level type for this run number with a 0..1 roll.
+-- Pick a level type for this sublevel (depth) with a 0..1 roll.
 function M.pick(runNumber: number, roll: number): LevelType
 	local total = 0
 	for _, t in LevelTypes do

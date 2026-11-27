@@ -14,8 +14,9 @@ PlayerData.FIELDS = {
 	Own_flashlight = 0,
 	Own_bigpack = 0,
 	Stat_Deposited = 0, -- lifetime value deposited at exit lifts
-	Stat_QuotasMet = 0, -- runs your crew met quota
+	Stat_QuotasMet = 0, -- sublevels your crew cleared
 	Stat_Deaths = 0,
+	Stat_Deepest = 0, -- deepest sublevel reached
 }
 
 local LIMITS = {

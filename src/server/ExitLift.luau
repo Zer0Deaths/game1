@@ -19,8 +19,9 @@ local function part(props: { [string]: any }, parent: Instance): Part
 	return p
 end
 
--- Builds the lift and returns the world position of the pad centre.
-function ExitLift.build(center: Vector3, height: number, parent: Instance): Vector3
+-- Builds the lift and returns the world position of the pad centre and
+-- the lift model.
+function ExitLift.build(center: Vector3, height: number, parent: Instance): (Vector3, Model)
 	local model = Instance.new("Model")
 	model.Name = "ExitLift"
 
@@ -89,8 +90,62 @@ function ExitLift.build(center: Vector3, height: number, parent: Instance): Vect
 	label.Text = "EXIT LIFT\nDEPOSIT HERE"
 	label.Parent = sign
 
+	-- Control panel on one post: Go deeper / Return to safehouse, enabled
+	-- once the quota is met and the whole crew is aboard (Sublevels).
+	local panel = part({
+		Name = "Panel",
+		Size = Vector3.new(1.2, 1.8, 0.4),
+		CFrame = CFrame.new(center + Vector3.new(4.6, 3.6, 4.6)) * CFrame.Angles(0, math.rad(45), 0),
+		Color = Color3.fromRGB(46, 44, 40),
+		Material = Enum.Material.Metal,
+		CanCollide = false,
+	}, model)
+	local function prompt(name: string, action: string, key: Enum.KeyCode)
+		local pr = Instance.new("ProximityPrompt")
+		pr.Name = name
+		pr.ActionText = action
+		pr.ObjectText = "Lift"
+		pr.KeyboardKeyCode = key
+		pr.HoldDuration = 0.6
+		pr.MaxActivationDistance = 12
+		pr.RequiresLineOfSight = false
+		pr.Enabled = false
+		pr.Parent = panel
+	end
+	prompt("Deeper", "Go deeper", Enum.KeyCode.E)
+	prompt("Surface", "Return to safehouse", Enum.KeyCode.R)
+
 	model.Parent = parent
-	return center
+	return center, model
+end
+
+local GREEN = Color3.fromRGB(120, 255, 150)
+
+-- Quota met: the lift turns green and says so. `aboard` / `needed` show
+-- how many of the crew are inside.
+function ExitLift.setReady(model: Model, ready: boolean, aboard: number?, needed: number?)
+	local colour = if ready then GREEN else AMBER
+	for _, p in model:GetChildren() do
+		if p:IsA("BasePart") and (p.Name == "Edge" or p.Name == "Lamp") then
+			p.Color = colour
+		end
+	end
+	local lamp = model:FindFirstChild("Lamp")
+	local light = lamp and lamp:FindFirstChildOfClass("PointLight")
+	if light then
+		light.Color = colour
+	end
+	local label = lamp and lamp:FindFirstChild("Sign") and (lamp :: any).Sign:FindFirstChildOfClass("TextLabel")
+	if label then
+		label.TextColor3 = colour
+		label.Text = if ready then `QUOTA MET\nALL ABOARD  {aboard or 0}/{needed or 0}` else "EXIT LIFT\nDEPOSIT HERE"
+	end
+end
+
+-- The two choices on the panel.
+function ExitLift.prompts(model: Model): (ProximityPrompt, ProximityPrompt)
+	local panel = model:FindFirstChild("Panel") :: BasePart
+	return panel:FindFirstChild("Deeper") :: ProximityPrompt, panel:FindFirstChild("Surface") :: ProximityPrompt
 end
 
 return ExitLift

@@ -151,7 +151,11 @@ local LevelTypes = require("../src/shared/LevelTypes")
 local typeFailures = 0
 for _, t in LevelTypes.list do
 	for seed = 1, 100 do
-		local layout = LevelGen.generate(seed, t.gen)
+		-- Every crew size (22..30 cells) plus the type's size bonus.
+		local gen = table.clone(t.gen) :: any
+		local size = ({ 22, 26, 28, 30 })[seed % 4 + 1] + t.sizeBonus
+		gen.width, gen.depth = size, size
+		local layout = LevelGen.generate(seed, gen)
 		if LevelGen.reachableCount(layout) ~= layout.width * layout.depth then
 			typeFailures += 1
 			check(false, `{t.id} seed {seed}: unreachable cells`)

@@ -53,6 +53,10 @@ local MATERIALS = {
 -- MaterialVariant names per surface for the current level type ("" = none).
 local VARIANTS = { wall = "", carpet = "", ceiling = "" }
 
+-- Each level keeps the theme it was built with, so a Shift in one crew's
+-- level rebuilds with its own look even if another crew built since.
+local themes: { [Instance]: { colors: { [string]: Color3 }, materials: { [string]: Enum.Material }, variants: { [string]: string } } } = setmetatable({}, { __mode = "k" }) :: any
+
 local DEFAULT_COLORS = table.clone(COLORS)
 local DEFAULT_MATERIALS = table.clone(MATERIALS)
 
@@ -81,7 +85,17 @@ local function surface(p: BasePart, kind: string)
 	end
 end
 
+-- Each crew's level is built at its own origin (see Sublevels). Every part
+-- is positioned in level space and shifted by this while it's created.
+local ORIGIN = Vector3.zero
+
 local function makePart(props: { [string]: any }, parent: Instance): Part
+	if props.Position then
+		props.Position += ORIGIN
+	end
+	if props.CFrame then
+		props.CFrame += ORIGIN
+	end
 	local p = Instance.new("Part")
 	p.Anchored = true
 	p.TopSurface = Enum.SurfaceType.Smooth
@@ -117,16 +131,26 @@ local function hash(a: number, b: number, c: number, seed: number): number
 	return h - math.floor(h)
 end
 
--- Is this position inside the level (not the safehouse)?
-function LevelBuilder.inLevel(layout: LevelGen.Layout, pos: Vector3): boolean
+-- Is this position inside the level built at `origin` (not the safehouse,
+-- not another crew's level)?
+function LevelBuilder.inLevel(layout: LevelGen.Layout, pos: Vector3, origin: Vector3?): boolean
 	local s = LevelBuilder.CELL
-	return pos.X >= 0 and pos.Z >= 0 and pos.X <= layout.width * s and pos.Z <= layout.depth * s and pos.Y > -20
+	local p = pos - (origin or Vector3.zero)
+	return p.X >= 0 and p.Z >= 0 and p.X <= layout.width * s and p.Z <= layout.depth * s and p.Y > -20 and p.Y < 40
 end
 
--- World position of the middle of a cell, at floor height.
-function LevelBuilder.cellCenter(x: number, z: number): Vector3
+-- Position of the middle of a cell, at floor height. Without an origin
+-- it's in level space; with one it's in the world.
+function LevelBuilder.cellCenter(x: number, z: number, origin: Vector3?): Vector3
 	local s = LevelBuilder.CELL
-	return Vector3.new((x - 0.5) * s, 0, (z - 0.5) * s)
+	return Vector3.new((x - 0.5) * s, 0, (z - 0.5) * s) + (origin or Vector3.zero)
+end
+
+-- The cell a world position is in (clamped to the grid).
+function LevelBuilder.cellOf(layout: LevelGen.Layout, pos: Vector3, origin: Vector3?): (number, number)
+	local p = pos - (origin or Vector3.zero)
+	local s = LevelBuilder.CELL
+	return math.clamp(math.floor(p.X / s) + 1, 1, layout.width), math.clamp(math.floor(p.Z / s) + 1, 1, layout.depth)
 end
 
 -- PROPS ------------------------------------------------------------------------
@@ -331,6 +355,19 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 	local old = model:FindFirstChild("Structure")
 	if old then
 		old:Destroy()
+	end
+	ORIGIN = (model:GetAttribute("Origin") or Vector3.zero) :: Vector3
+	local theme = themes[model]
+	if theme then
+		for k, v in theme.colors do
+			COLORS[k] = v
+		end
+		for k, v in theme.materials do
+			MATERIALS[k] = v
+		end
+		for k, v in theme.variants do
+			VARIANTS[k] = v
+		end
 	end
 	local structure = Instance.new("Folder")
 	structure.Name = "Structure"
@@ -609,14 +646,18 @@ end
 
 -- STATIC LAYER -----------------------------------------------------------------
 
-function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
+function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: Vector3?, crew: number?): Model
 	local S, H, T = LevelBuilder.CELL, LevelBuilder.HEIGHT, LevelBuilder.THICK
 	local W, D = layout.width, layout.depth
 	local seed = layout.seed
+	ORIGIN = origin or Vector3.zero
 
 	local model = Instance.new("Model")
-	model.Name = "Level"
+	model.Name = if crew then `Level{crew}` else "Level"
 	model:SetAttribute("Seed", layout.seed)
+	model:SetAttribute("Origin", ORIGIN)
+	model:SetAttribute("Crew", crew or 0)
+	themes[model] = { colors = table.clone(COLORS), materials = table.clone(MATERIALS), variants = table.clone(VARIANTS) }
 
 	-- Floor and ceiling: one big slab each.
 	local floor = makePart({
@@ -708,17 +749,19 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance): Model
 			light.Shadows = false -- shadows on ~900 lights would kill phones
 			light.Parent = panel
 			panel:SetAttribute("Cell", x * 1000 + z) -- lets entities find "the light over this cell"
+			panel:SetAttribute("Crew", crew or 0) -- whose level this light is in
 			panels[x * 1000 + z] = panel
 		end
 	end
 	panelsByModel[model] = panels
 
 	LevelBuilder.buildStructure(layout, model)
+	ORIGIN = origin or Vector3.zero
 
-	-- If the place uses StreamingEnabled (new places do by default), parts
-	-- only reach players gradually, so walls and lights could pop in.
-	-- Persistent sends the whole level to everyone up front.
-	model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	-- With StreamingEnabled (new places have it on), Atomic sends the whole
+	-- level at once when you get near it, so walls and lights never pop in,
+	-- and other crews' levels (LEVEL_SPACING away) never reach you at all.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 
 	model.Parent = parent
 	return model

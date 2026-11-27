@@ -6,7 +6,15 @@
 --   Lampjaw:  (Workspace.LampjawCell) the light it is hiding in strobes red and buzzes
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+
+-- Every crew has its own level; only your crew's lights follow your
+-- crew's Shift and Lampjaw (state mirrored onto Workspace by CrewMirror).
+local localPlayer = Players.LocalPlayer
+local function mine(inst: Instance): boolean
+	return inst:GetAttribute("Crew") == localPlayer:GetAttribute("Crew")
+end
 
 local ON = Color3.fromRGB(246, 242, 212)
 local DIM = Color3.fromRGB(150, 146, 120)
@@ -41,7 +49,7 @@ end
 
 local function eachCeilingLight(fn: (BasePart) -> ())
 	for _, inst in CollectionService:GetTagged("CeilingLight") do
-		if inst:IsA("BasePart") then
+		if inst:IsA("BasePart") and mine(inst) then
 			fn(inst)
 		end
 	end
@@ -72,7 +80,7 @@ local function findLampjawPanel(key: number): BasePart?
 		return nil
 	end
 	for _, inst in CollectionService:GetTagged("FlickerLight") do
-		if inst:IsA("BasePart") and inst:GetAttribute("Cell") == key then
+		if inst:IsA("BasePart") and inst:GetAttribute("Cell") == key and mine(inst) then
 			return inst
 		end
 	end
@@ -120,7 +128,7 @@ local function syncFitting(inst: Instance)
 		return
 	end
 	local dead = inst:GetAttribute("LightState") == "dead"
-	setLevel(inst, if dead or mode == "blackout" then 0 else 1)
+	setLevel(inst, if dead or (mode == "blackout" and mine(inst)) then 0 else 1)
 end
 local function watchFitting(inst: Instance)
 	syncFitting(inst)
@@ -135,7 +143,7 @@ end
 -- Lights that start working during a blackout must start dark too.
 CollectionService:GetInstanceAddedSignal("CeilingLight"):Connect(function(inst)
 	if inst:IsA("BasePart") then
-		setLevel(inst, if mode == "blackout" then 0 else 1)
+		setLevel(inst, if mode == "blackout" and mine(inst) then 0 else 1)
 	end
 end)
 
@@ -181,7 +189,7 @@ RunService.Heartbeat:Connect(function()
 	-- Normal: only the dying tubes stutter, and Lampjaw's light strobes red.
 	updateLampjaw(now, true)
 	for _, inst in CollectionService:GetTagged("FlickerLight") do
-		if not inst:IsA("BasePart") or inst == lampjawPanel then
+		if not inst:IsA("BasePart") or inst == lampjawPanel or not mine(inst) then
 			continue
 		end
 		local panel = inst :: BasePart
