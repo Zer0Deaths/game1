@@ -21,6 +21,7 @@ Everything fetched is CC0: free to use, no credit needed. Sources are
 written to assets/CREDITS.txt anyway.
 After this, run tools/upload_assets.py to upload the lot in one go.
 """
+import http.cookiejar
 import io
 import json
 import os
@@ -76,15 +77,32 @@ SOUNDS = {
 credits = []
 
 
-def get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+# One opener with a cookie jar: Kenney only hands out its download link to
+# a browser session that has loaded the asset page first.
+OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
+
+def get(url, referer=None):
+    headers = dict(UA)
+    if referer:
+        headers["Referer"] = referer
+    with OPENER.open(urllib.request.Request(url, headers=headers), timeout=60) as r:
         return r.read()
 
 
-# Pages that link the Impact Sounds zip (Kenney's own page first, then a mirror).
+def kenney_link(page, page_url):
+    """Kenney's current flow: the page has data-download-id="..."; with the
+    page's session cookie, /download-link/<id> returns JSON {"url": signed zip}."""
+    m = re.search(r"""data-download-id=["']([^"']+)["']""", page)
+    if not m:
+        return None
+    data = json.loads(get(f"https://kenney.nl/download-link/{m.group(1)}", referer=page_url))
+    return data.get("url")
+
+
+# Pages that link the Impact Sounds zip.
 SOUND_PAGES = (
     "https://kenney.nl/assets/impact-sounds",
-    "https://opengameart.org/content/impact-sounds",
 )
 
 
@@ -128,7 +146,15 @@ def sound_zip():
         except Exception as e:
             print(f"! {page_url}: {e}")
             continue
-        links = zip_links(page, page_url)
+        links = []
+        if "kenney.nl" in page_url:
+            try:
+                signed = kenney_link(page, page_url)
+                if signed:
+                    links.append(signed)
+            except Exception as e:
+                print(f"! Kenney download-link step failed: {e}")
+        links += [u for u in zip_links(page, page_url) if u not in links]
         if not links:
             dump = os.path.join(os.path.dirname(__file__), "last_sound_page.html")
             with open(dump, "w", encoding="utf-8") as f:
@@ -139,7 +165,7 @@ def sound_zip():
         for url in links:
             try:
                 print("downloading", url)
-                return zipfile.ZipFile(io.BytesIO(get(url)))
+                return zipfile.ZipFile(io.BytesIO(get(url, referer=page_url)))
             except Exception as e:
                 print(f"! {url}: {e}")
     return None
