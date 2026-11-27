@@ -29,11 +29,23 @@ type FlickerState = {
 
 local states: { [BasePart]: FlickerState } = {}
 
+-- A panel and, once the Blender fitting is in, the tubes under it (the
+-- panel itself is invisible then, see LevelBuilder).
+local function paint(panel: BasePart, material: Enum.Material, colour: Color3)
+	panel.Material = material
+	panel.Color = colour
+	local tubes = panel:FindFirstChild("Tubes")
+	if tubes and tubes:IsA("BasePart") then
+		tubes.Material = material
+		tubes.Color = colour
+	end
+end
+
 local function setLevel(panel: BasePart, level: number)
 	-- level: 0 = off, 0.5 = dim, 1 = full
-	panel.Material = if level > 0 then Enum.Material.Neon else Enum.Material.Glass -- a dead tube behind its diffuser
 	local on = (workspace:GetAttribute("LightColour") or ON) :: Color3 -- level types tint the lights
-	panel.Color = if level >= 1 then on elseif level > 0 then DIM else OFF
+	-- Off is a dead tube behind its diffuser.
+	paint(panel, if level > 0 then Enum.Material.Neon else Enum.Material.Glass, if level >= 1 then on elseif level > 0 then DIM else OFF)
 	local light = panel:FindFirstChildOfClass("SurfaceLight")
 	if light then
 		light.Enabled = level > 0
@@ -93,8 +105,7 @@ local function updateLampjaw(now: number, strobe: boolean)
 	if panel and strobe and now >= nextStrobe then
 		nextStrobe = now + 0.04 + math.random() * 0.09
 		local on = math.random() < 0.55
-		panel.Material = if on then Enum.Material.Neon else Enum.Material.Glass
-		panel.Color = if on then RED_ON else RED_DIM
+		paint(panel, if on then Enum.Material.Neon else Enum.Material.Glass, if on then RED_ON else RED_DIM)
 		local light = panel:FindFirstChildOfClass("SurfaceLight")
 		if light then
 			light.Enabled = on
@@ -118,6 +129,13 @@ local function watchFitting(inst: Instance)
 	syncFitting(inst)
 	inst:GetAttributeChangedSignal("LightState"):Connect(function()
 		syncFitting(inst)
+	end)
+	-- The Blender tubes can arrive after the panel: match them to it.
+	inst.ChildAdded:Connect(function(child)
+		if child.Name == "Tubes" and child:IsA("BasePart") and inst:IsA("BasePart") then
+			child.Material = inst.Material
+			child.Color = inst.Color
+		end
 	end)
 end
 CollectionService:GetInstanceAddedSignal("LightFitting"):Connect(watchFitting)
