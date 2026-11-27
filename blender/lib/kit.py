@@ -205,6 +205,23 @@ class Mesh:
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
         return self._add(bm, cf())
 
+    def sheet(self, w, h, at=None, curl=0.0, wave=0.0, nx=6, ny=8, thickness=0.012, seed=0):
+        """A sheet of paper w x h in the XY plane (front -Z), a hair thick.
+        curl lifts the bottom-right corner off the surface (studs); wave adds
+        a gentle ripple. Its edges are naturally soft, nothing to bevel."""
+        import random
+        rnd = random.Random(seed)
+        bm = bmesh.new()
+        grid = bmesh.ops.create_grid(bm, x_segments=nx, y_segments=ny, size=0.5)
+        for v in grid["verts"]:
+            u, t = v.co.x + 0.5, v.co.y + 0.5  # 0..1 across, 0..1 up
+            lift = curl * max(0.0, u - 0.55) * max(0.0, 0.45 - t) * 8
+            ripple = wave * math.sin(u * 5.1 + t * 3.3 + rnd.random()) * 0.5
+            v.co = Vector(((u - 0.5) * w, (t - 0.5) * h, -(lift + ripple)))
+        bmesh.ops.solidify(bm, geom=list(bm.faces), thickness=thickness)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        return self._add(bm, at or cf())
+
     def pipe(self, points, radius, segments=10, joints=True):
         """Straight runs between points (studs), with a ball at each bend."""
         for p, q in zip(points, points[1:]):
