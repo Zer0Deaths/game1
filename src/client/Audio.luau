@@ -152,17 +152,19 @@ function Audio.loop(key: string, parent: Instance, o: Options?): Sound
 		s.RollOffMode = Enum.RollOffMode.InverseTapered
 		s.RollOffMinDistance = opts.minDistance or 8
 		s.RollOffMaxDistance = opts.maxDistance or 90
-		s:SetAttribute("Key", key)
-		s:SetAttribute("Fallback", opts.fallback)
 		s.Parent = parent
 	end
+	-- Remembered so Audio.refresh can swap in a fallback if this ID turns
+	-- out not to load (an upload still in moderation).
+	s:SetAttribute("Key", key)
+	s:SetAttribute("Fallback", opts.fallback)
 	s:Play()
 	return s
 end
 
 -- Fill in a looping sound's ID if it has been uploaded since. Cheap.
 function Audio.refresh(s: Sound)
-	if s.SoundId ~= "" then
+	if s.SoundId ~= "" and not SoundIds.isBad(s.SoundId) then
 		return
 	end
 	local key = s:GetAttribute("Key") or s.Name
