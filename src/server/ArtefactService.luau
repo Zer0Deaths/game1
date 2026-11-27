@@ -298,7 +298,7 @@ function ArtefactService.init()
 	StarterPlayer.EnableMouseLockOption = false
 	-- First person only, for everyone.
 	StarterPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
-	Remotes.DropArtefact.OnServerEvent:Connect(dropHeld)
+	Remotes.guard(Remotes.DropArtefact, 4, dropHeld)
 	local function onPlayer(player: Player)
 		-- Left Shift is our sprint key, so Roblox's Shift Lock has to go.
 		player.DevEnableMouseLock = false
