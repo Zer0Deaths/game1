@@ -71,6 +71,8 @@ for _, key in { "HUM", "HumSoundId", "DRONE", "WHISPERS" } do
 	workspace:GetAttributeChangedSignal(key):Connect(refresh)
 end
 refresh()
+SoundIds.verify() -- skips uploads Roblox hasn't approved yet (background)
+SoundIds.Changed:Connect(refresh)
 SoundIds.autoAssign() -- works out which of Jason's first uploads is which
 refresh()
 

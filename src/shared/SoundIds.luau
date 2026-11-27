@@ -47,6 +47,22 @@ local function normalise(id: any): string?
 	return nil
 end
 
+-- New uploads can sit in Roblox's audio moderation for a while ("Asset is
+-- not approved for the requester"). verify() checks every uploaded ID once
+-- on the client; one that won't load is marked bad and skipped, so the
+-- sound falls back to the older upload or stand-in instead of failing on
+-- every footstep. Until the check finishes, an older ID is preferred.
+local bad: { [string]: boolean } = {}
+local verified = false
+local changed = Instance.new("BindableEvent")
+
+local function usable(id: string?): string?
+	if id and not bad[id] then
+		return id
+	end
+	return nil
+end
+
 -- Returns a playable SoundId, or nil if that sound isn't uploaded yet.
 -- A Workspace attribute wins over the table. "HumSoundId" still works for the hum.
 local function get(key: string): string?
@@ -54,7 +70,60 @@ local function get(key: string): string?
 	if key == "HUM" and fromWorkspace == nil then
 		fromWorkspace = workspace:GetAttribute("HumSoundId")
 	end
-	return normalise(fromWorkspace) or normalise((SoundIds :: any)[key]) or normalise((AssetIds.sounds :: any)[key]) or resolved[key]
+	local first = usable(normalise(fromWorkspace)) or usable(normalise((SoundIds :: any)[key]))
+	if first then
+		return first
+	end
+	local uploaded = usable(normalise((AssetIds.sounds :: any)[key]))
+	local older = usable(resolved[key])
+	if not verified and older then
+		return older
+	end
+	return uploaded or older
+end
+
+local function isBad(id: string): boolean
+	return bad[id] == true
+end
+
+-- Client only. Checks every uploaded sound loads; marks the ones that
+-- don't. Runs in the background; fires Changed when done.
+local verifying = false
+local function verify()
+	if verifying then
+		return
+	end
+	verifying = true
+	task.spawn(function()
+		local ContentProvider = game:GetService("ContentProvider")
+		local list, keyOf = {}, {}
+		for key, raw in AssetIds.sounds :: any do
+			local id = normalise(raw)
+			if id then
+				if not keyOf[id] then
+					table.insert(list, id)
+				end
+				keyOf[id] = key
+			end
+		end
+		local failed = {}
+		pcall(function()
+			ContentProvider:PreloadAsync(list, function(contentId: string, status: Enum.AssetFetchStatus)
+				if status == Enum.AssetFetchStatus.Failure then
+					bad[contentId] = true
+					table.insert(failed, `{keyOf[contentId] or "?"} ({string.match(contentId, "%d+") or contentId})`)
+				end
+			end)
+		end)
+		verified = true
+		if #failed > 0 then
+			table.sort(failed)
+			warn(`[SoundIds] {#failed} uploaded sound(s) can't load yet (Roblox may still be reviewing them); using fallbacks: {table.concat(failed, ", ")}`)
+		else
+			print(`[SoundIds] all {#list} uploaded sounds load`)
+		end
+		changed:Fire()
+	end)
 end
 
 -- Client only. Loads the uploaded sounds, sorts them by length and maps
@@ -102,5 +171,8 @@ end
 return {
 	ids = SoundIds,
 	get = get,
+	isBad = isBad,
+	verify = verify,
+	Changed = changed.Event,
 	autoAssign = autoAssign,
 }
