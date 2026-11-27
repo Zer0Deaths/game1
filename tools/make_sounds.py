@@ -240,6 +240,66 @@ def QUIET_INHALE():
     write("QUIET_INHALE", out[: int(SR * (seconds + 0.5))], 0.75)
 
 
+def FOREMAN_KEYS():
+    # The Foreman's keyring: a heavy ring of keys swinging on a belt. A
+    # cluster of clinks on each slow step (every 0.6 s), a few loose ones
+    # between. Each clink is a handful of short, inharmonic metal partials.
+    # 2.4 s loop (four steps).
+    seconds = 2.4
+    t = t_axis(seconds)
+    n = len(t)
+    out = np.zeros(n)
+
+    def clink(at, level):
+        k = int(at * SR) % n
+        length = int(0.09 * SR)
+        tt = np.arange(length) / SR
+        c = np.zeros(length)
+        for _ in range(4):
+            f = rng.uniform(2300, 7400)
+            c += np.sin(2 * np.pi * f * tt + rng.uniform(0, 6.28)) * np.exp(-tt * rng.uniform(35, 90)) * rng.uniform(0.4, 1.0)
+        c += noise(length) * np.exp(-tt * 400) * 0.25  # the tick of contact
+        end = min(n, k + length)
+        out[k:end] += c[: end - k] * level
+
+    for step in range(4):
+        base = step * 0.6
+        for j in range(int(rng.integers(5, 9))):
+            clink(base + 0.02 + rng.uniform(0, 0.16) + j * 0.012, rng.uniform(0.5, 1.0))
+        for _ in range(2):
+            clink(base + rng.uniform(0.25, 0.55), rng.uniform(0.15, 0.35))
+    out = bandpass(out, 1500, 9000)
+    out = reverb(out, 0.5, 0.2, 6000)[:n]
+    write("FOREMAN_KEYS", loopable(out, 0.05), 0.7)
+
+
+def FOREMAN_WHISTLE():
+    # The Foreman's whistle: two flat, idle notes that carry the length of a
+    # corridor. The second is a little lower and a little off, held a beat
+    # too long. Breathy, not musical: a sine through the teeth plus air.
+    t = t_axis(2.6)
+    n = len(t)
+    freq = np.zeros(n)
+    amp = np.zeros(n)
+    for start, length, f0, f1 in ((0.05, 0.5, 1190, 1172), (0.66, 1.15, 985, 962)):
+        a, b = int(start * SR), int((start + length) * SR)
+        seg = np.linspace(0, 1, b - a)
+        freq[a:b] = f0 + (f1 - f0) * seg + 14 * np.sin(2 * np.pi * 5.2 * seg * length) * seg  # a lazy wobble at the end
+        freq[a:a + int(0.04 * SR)] *= np.linspace(0.92, 1.0, int(0.04 * SR))  # slides up into each note
+        e = np.ones(b - a)
+        r = int(0.05 * SR)
+        e[:r] = np.linspace(0, 1, r)
+        e[-int(0.12 * SR):] *= np.linspace(1, 0, int(0.12 * SR))
+        amp[a:b] = e
+    freq[freq == 0] = 1000
+    phase = 2 * np.pi * np.cumsum(freq) / SR
+    tone = np.sin(phase) + 0.08 * np.sin(2 * phase)
+    air = bandpass(noise(n), 900, 1400) * 0.35 + bandpass(noise(n), 2500, 5000) * 0.08
+    x = (tone + air) * amp
+    out = reverb(x, 2.2, 0.42, 3200)
+    write("FOREMAN_WHISTLE", out[: int(SR * 2.9)], 0.7)
+
+
 def stinger(seconds, base, cluster, bite=1.0):
     t = t_axis(seconds)
     n = len(t)
@@ -427,7 +487,7 @@ def ERROR():
 
 
 KEYS = {f.__name__: f for f in [
-    DRONE, HEARTBEAT, WHISPERS, TENANT_CUE, LAMPJAW_CUE, QUIET_INHALE, STING_REVEAL, STING_DEATH, STING_WIPE,
+    DRONE, HEARTBEAT, WHISPERS, TENANT_CUE, LAMPJAW_CUE, QUIET_INHALE, FOREMAN_KEYS, FOREMAN_WHISTLE, STING_REVEAL, STING_DEATH, STING_WIPE,
     STING_GLIMPSE, SHIFT_WARN, BLACKOUT, LIGHTS_ON, LIFT_DING, LIFT_MOTOR, DEPOSIT, QUOTA_MET,
     COUNTDOWN, PICKUP, DROP, FLASHLIGHT, UI_CLICK, UI_OPEN, UI_CLOSE, PURCHASE, ERROR,
 ]}

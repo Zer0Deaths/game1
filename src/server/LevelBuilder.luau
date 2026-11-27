@@ -587,6 +587,12 @@ end
 -- lights on in the middle of its blackout. Tags: LightFitting (every
 -- panel), CeilingLight (working, blacked out by the Shift), FlickerLight
 -- (stutters, and where Lampjaw hides).
+-- The light fitting over a cell (key = x * 1000 + z), if it has one.
+function LevelBuilder.lightPanel(model: Instance, key: number): BasePart?
+	local panels = panelsByModel[model]
+	return panels and panels[key]
+end
+
 function LevelBuilder.applyLights(layout: LevelGen.Layout, model: Instance)
 	local panels = panelsByModel[model]
 	if not panels then

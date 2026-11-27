@@ -182,6 +182,7 @@ end
 --   LevelSeed (number): drop the first player's crew straight into that layout.
 --   ForceShift (bool): trigger a Shift in every crew's level now.
 --   ForceQuiet (bool): the Quiet strikes in every crew's level now (any sublevel).
+--   ForceForeman (bool): every crew's timer jumps to 90 s and the Foreman clocks on (any sublevel).
 workspace:GetAttributeChangedSignal("LevelSeed"):Connect(function()
 	local seed = workspace:GetAttribute("LevelSeed")
 	local first = Players:GetPlayers()[1]
@@ -199,5 +200,11 @@ workspace:GetAttributeChangedSignal("ForceQuiet"):Connect(function()
 	if workspace:GetAttribute("ForceQuiet") == true then
 		workspace:SetAttribute("ForceQuiet", false)
 		Sublevels.forceQuiet()
+	end
+end)
+workspace:GetAttributeChangedSignal("ForceForeman"):Connect(function()
+	if workspace:GetAttribute("ForceForeman") == true then
+		workspace:SetAttribute("ForceForeman", false)
+		Sublevels.forceForeman()
 	end
 end)

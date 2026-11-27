@@ -1,6 +1,6 @@
 # SHIFT entity roster (brainstorm)
 
-**Status:** design only, except the Tenant, Lampjaw and the Quiet (built 27 Nov, `src/server/Quiet.luau`, tuning in `Config.QUIET`).
+**Status:** design only, except the Tenant, Lampjaw, the Quiet and the Foreman (built 27 Nov: `src/server/Quiet.luau` and `src/server/Foreman.luau`, tuning in `Config.QUIET` and `Config.FOREMAN`).
 
 All of these are original to SHIFT. None of them is taken from the Backrooms wiki canon (Smilers, Hounds, Facelings and so on) or from another game's roster.
 
@@ -29,6 +29,7 @@ All of these are original to SHIFT. None of them is taken from the Backrooms wik
 | **The Tenant** | Hunts by sound, and arrives after the first Shift. | 4 |
 | **Lampjaw** | Drops out of a light fitting; you only see it in its red strobe. | 4 |
 | **The Quiet** | The hum dies in a ring around you; make a sound before it comes back and you're taken. From sublevel 3. | 4 |
+| **The Foreman** | In the last 90 seconds it switches the level off from the far end toward the lift; be anywhere it has switched off and you're taken. From sublevel 4. | 5 |
 
 ## New entities
 
@@ -81,7 +82,9 @@ All of these are original to SHIFT. None of them is taken from the Backrooms wik
 - **Danger:** 3. It strands you and costs your loot.
 - **Scare type:** terrifying, because the sound comes before the sight.
 
-### 5. The Foreman
+### 5. The Foreman (built)
+- **As built:** with 90 seconds left the lift dings and it starts switching cells off, furthest from the lift first (by walking route), so only the lift's own cell is still lit 12 seconds before the end. Being in a switched-off cell for half a second is fatal. The dark edge moves exactly fast enough that anyone who'd make the lift by then never sees it, and there's a 5-second head start before the first light goes, so the furthest player can still drop their loot and sprint. Its body walks the edge on the route of whoever it's about to catch. Breakers clunk (the uploaded relay thunk), heavy boots, keys and a two-note whistle (keys and whistle wait on audio uploads). The crew map blacks out every switched-off cell. A Shift in the last 90 seconds pauses it, then it works the routes out again and never leaves anyone in the dark because a wall moved. The Quiet never strikes while it's working. Model: `blender/scripts/foreman.py`, with a built body as the fallback until it's uploaded.
+- **Design note (changed from the brainstorm):** the brainstorm had it walking *out* from the lift, which would cut everyone off from the exit. As built, the dark closes *in* on the lift from the far end, which is the same pressure without the contradiction.
 - **What it is:** a broad silhouette in a hard hat with a ring of keys, and no face under the brim.
 - **Behaviour rule:** when the sublevel timer hits 90 seconds, it walks out from the lift one cell at a time and switches each cell's lights off for good. Anyone in a cell when it goes dark is taken.
 - **Sound cue:** a jangling keyring and a flat two-note whistle that carries a long way. Each cell clunks off behind it like a breaker.

@@ -9,6 +9,8 @@
 --                on a hunched spine.
 --   Lampjaw:     a thin black thing that drops out of a light fitting:
 --                a long neck ending in a hinged jaw full of pale teeth.
+--   The Foreman: broad and square in a work jacket, an old hard hat over a
+--                head-shaped hole of pure black, keys on its belt.
 --
 -- THE BLENDER TENANT (blender/scripts/tenant.py): once its model is
 -- uploaded (AssetIds.models.tenant) and loaded, the Tenant is built from
@@ -16,7 +18,8 @@
 -- into the manifest, so the skeleton animated here is the one modelled
 -- there. Head hung low, shoulders hunched over it, arms past the knees,
 -- elbows that bend the wrong way, up on its toes. The built rig below
--- stays as the fallback until then.
+-- stays as the fallback until then. The Foreman works the same way
+-- (blender/scripts/foreman.py, AssetIds.models.foreman).
 --
 -- SWAPPING IN A REAL MODEL (Cube or Tripo mesh, see docs/ENTITY_GUIDE.md):
 -- put a rigged model in ServerStorage > SHIFT_Models named "Tenant" or
@@ -194,6 +197,100 @@ local function lampjaw(): Model
 	return m
 end
 
+-- A plain part for the Foreman's built body (it isn't near-black skin).
+local function plain(m: Model, name: string, size: Vector3, cf: CFrame, colour: Color3, material: Enum.Material): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.CFrame = cf
+	p.Color = colour
+	p.Material = material
+	p.Anchored = false
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Massless = true
+	p.CastShadow = true
+	p.Parent = m
+	return p
+end
+
+local function weldTo(to: BasePart, p: BasePart)
+	local w = Instance.new("WeldConstraint")
+	w.Part0 = to
+	w.Part1 = p
+	w.Parent = p
+end
+
+-- The Foreman's built body, until its Blender model is uploaded: a broad,
+-- square figure in a work jacket, an old hard hat over a head-shaped hole
+-- of pure black, keys on its belt. Same joints as foreman.py.
+local function foreman(height: number): Model
+	local m = Instance.new("Model")
+	m.Name = "Foreman"
+	local k = height / 8.6
+	local function v(x: number, y: number, z: number): Vector3
+		return Vector3.new(x, y, z) * k
+	end
+	local JACKET = Color3.fromRGB(56, 51, 44)
+	local TROUSERS = Color3.fromRGB(44, 42, 39)
+	local FAB = Enum.Material.Fabric
+
+	local root = plain(m, "HumanoidRootPart", v(1.2, 1.2, 0.6), CFrame.new(v(0, 4.0, 0)), TROUSERS, Enum.Material.SmoothPlastic)
+	root.Anchored = true
+	root.Transparency = 1
+	root.PivotOffset = CFrame.new(0, -4.0 * k, 0) -- the model's pivot is at its feet
+	m.PrimaryPart = root
+
+	local lower = plain(m, "LowerTorso", v(2.1, 1.2, 1.25), CFrame.new(v(0, 4.1, 0)), TROUSERS, FAB)
+	local upper = plain(m, "UpperTorso", v(3.1, 2.8, 1.45), CFrame.new(v(0, 6.0, 0)), JACKET, FAB)
+	for s = -1, 1, 2 do
+		local sh = plain(m, "Shoulder", v(1.4, 1.0, 1.25), CFrame.new(v(s * 1.62, 6.95, -0.08)), JACKET, FAB)
+		weldTo(upper, sh)
+	end
+	local band = plain(m, "ChestBand", v(3.15, 0.28, 1.5), CFrame.new(v(0, 5.76, 0)), Color3.fromRGB(176, 176, 166), Enum.Material.Foil)
+	weldTo(upper, band)
+	local collar = plain(m, "Collar", v(1.35, 0.45, 1.25), CFrame.new(v(0, 7.45, 0.02)), JACKET, FAB)
+	weldTo(upper, collar)
+	local keys = plain(m, "Keys", v(0.12, 0.7, 0.45), CFrame.new(v(1.2, 3.8, -0.12)), Color3.fromRGB(150, 140, 112), Enum.Material.Metal)
+	weldTo(lower, keys)
+
+	-- The hat, and nothing under it.
+	local head = plain(m, "Head", v(1.35, 0.95, 1.5), CFrame.new(v(0, 8.2, 0.02)), Color3.fromRGB(178, 162, 112), Enum.Material.SmoothPlastic)
+	local dome = Instance.new("SpecialMesh")
+	dome.MeshType = Enum.MeshType.Sphere
+	dome.Parent = head
+	local brim = plain(m, "Brim", v(0.1, 1.75, 2.05), CFrame.new(v(0, 8.1, -0.12)) * CFrame.Angles(0, 0, math.pi / 2), head.Color, Enum.Material.SmoothPlastic)
+	brim.Shape = Enum.PartType.Cylinder
+	weldTo(head, brim)
+	local void = plain(m, "FaceVoid", v(1.0, 1.0, 1.0), CFrame.new(v(0, 7.8, -0.04)), Color3.new(0, 0, 0), Enum.Material.Neon)
+	void.Shape = Enum.PartType.Ball
+	weldTo(head, void)
+
+	motor("Root", root, lower, CFrame.new(v(0, 4.0, 0)))
+	motor("Waist", lower, upper, CFrame.new(v(0, 4.6, 0)))
+	motor("Neck", upper, head, CFrame.new(v(0, 7.4, 0)))
+	for _, side in { "Left", "Right" } do
+		local s = if side == "Left" then -1 else 1
+		local shoulder, elbow, wrist = v(s * 1.86, 6.85, -0.06), v(s * 2.06, 4.75, 0.02), v(s * 2.1, 2.85, -0.1)
+		local ua = plain(m, `{side}UpperArm`, v(1.0, 2.3, 1.0), CFrame.new((shoulder + elbow) / 2), JACKET, FAB)
+		local la = plain(m, `{side}LowerArm`, v(0.82, 2.0, 0.82), CFrame.new((elbow + wrist) / 2), JACKET, FAB)
+		local hand = plain(m, `{side}Hand`, v(0.5, 1.15, 0.9), CFrame.new(wrist - v(0, 0.55, 0)), Color3.fromRGB(82, 70, 52), FAB)
+		motor(`{side}Shoulder`, upper, ua, CFrame.new(shoulder))
+		motor(`{side}Elbow`, ua, la, CFrame.new(elbow))
+		motor(`{side}Wrist`, la, hand, CFrame.new(wrist))
+		local hip, knee, ankle = v(s * 0.56, 3.85, 0), v(s * 0.6, 2.25, -0.05), v(s * 0.6, 0.72, 0.05)
+		local ul = plain(m, `{side}UpperLeg`, v(1.1, 1.75, 1.1), CFrame.new((hip + knee) / 2), TROUSERS, FAB)
+		local ll = plain(m, `{side}LowerLeg`, v(0.88, 1.55, 0.88), CFrame.new((knee + ankle) / 2), TROUSERS, FAB)
+		local foot = plain(m, `{side}Foot`, v(0.9, 0.95, 1.7), CFrame.new(ankle + v(0, -0.25, -0.3)), Color3.fromRGB(30, 28, 26), Enum.Material.Rubber)
+		motor(`{side}Hip`, lower, ul, CFrame.new(hip))
+		motor(`{side}Knee`, ul, ll, CFrame.new(knee))
+		motor(`{side}Ankle`, ll, foot, CFrame.new(ankle))
+	end
+	animator(m)
+	return m
+end
+
 -- R15 joints: name -> (Part0, Part1). Positions come from the manifest.
 local R15 = {
 	Root = { "HumanoidRootPart", "LowerTorso" },
@@ -209,20 +306,31 @@ for _, side in { "Left", "Right" } do
 	R15[`{side}Ankle`] = { `{side}LowerLeg`, `{side}Foot` }
 end
 
--- The Blender Tenant, or nil while its model isn't uploaded or loaded.
--- Modelled at 9.5 studs (Config.TENANT.height), scaled for other heights.
-local function tenantFromMesh(height: number): Model?
-	local spec = Manifest.tenant
-	if not (spec and spec.joints and Meshes.ready("tenant")) then
+-- Entities modelled in Blender as R15 parts (blender/scripts/<mesh>.py):
+-- the mesh name and the height each was modelled at.
+local MESH_RIGS: { [string]: { mesh: string, height: number } } = {
+	Tenant = { mesh = "tenant", height = 9.5 },
+	Foreman = { mesh = "foreman", height = 8.6 },
+}
+
+-- A Blender entity, or nil while its model isn't uploaded or loaded.
+-- Scaled from the height it was modelled at. Its R15 parts are joined at
+-- the joints the script wrote into the manifest; any extra pieces (a hat
+-- void, keys, reflective bands) are welded to the part they say they ride
+-- on (their "attach").
+local function rigFromMesh(name: string, height: number): Model?
+	local info = MESH_RIGS[name]
+	local spec = info and Manifest[info.mesh]
+	if not (info and spec and spec.joints and Meshes.ready(info.mesh)) then
 		return nil
 	end
-	local k = height / 9.5
-	local meshes = Meshes.build("tenant", CFrame.identity, { scale = k })
+	local k = height / info.height
+	local meshes = Meshes.build(info.mesh, CFrame.identity, { scale = k })
 	if not meshes then
 		return nil
 	end
 	local m = Instance.new("Model")
-	m.Name = "Tenant"
+	m.Name = name
 	local parts: { [string]: BasePart } = {}
 	for _, mp in meshes:GetChildren() do
 		if mp:IsA("BasePart") then
@@ -251,15 +359,25 @@ local function tenantFromMesh(height: number): Model?
 	root.Parent = m
 	m.PrimaryPart = root
 	parts.HumanoidRootPart = root
-	for name, pair in R15 do
+	for joint, pair in R15 do
 		local p0, p1 = parts[pair[1]], parts[pair[2]]
-		local at = spec.joints[name]
+		local at = spec.joints[joint]
 		if not (p0 and p1 and at) then
-			warn(`[EntityRig] Blender Tenant is missing {name}: using the built rig`)
+			warn(`[EntityRig] Blender {name} is missing {joint}: using the built rig`)
 			m:Destroy()
 			return nil
 		end
-		motor(name, p0, p1, CFrame.new(at * k))
+		motor(joint, p0, p1, CFrame.new(at * k))
+	end
+	for _, piece in spec.parts do
+		local p, to = parts[piece.name], parts[piece.attach or ""]
+		if p and to and p ~= to then
+			local w = Instance.new("Weld")
+			w.Part0 = to
+			w.Part1 = p
+			w.C0 = to.CFrame:Inverse() * p.CFrame
+			w.Parent = p
+		end
 	end
 	animator(m)
 	return m
@@ -267,6 +385,7 @@ end
 
 local BUILDERS: { [string]: (number) -> Model } = {
 	Tenant = tenant,
+	Foreman = foreman,
 	Lampjaw = function()
 		return lampjaw()
 	end,
@@ -296,10 +415,10 @@ function EntityRig.build(name: string, height: number?): Model
 		end
 		print(`[EntityRig] using your {name} model from ServerStorage.SHIFT_Models`)
 	else
-		local fromMesh = if name == "Tenant" then tenantFromMesh(height or 9.5) else nil
+		local fromMesh = rigFromMesh(name, height or 9.5)
 		if fromMesh then
 			m = fromMesh
-			print("[EntityRig] Tenant: the Blender model")
+			print(`[EntityRig] {name}: the Blender model`)
 		else
 			m = BUILDERS[name](height or 9.5)
 		end
@@ -315,7 +434,8 @@ end
 
 -- Studio helper: a posable copy in Workspace for the Animation Editor.
 function EntityRig.spawnForEditing(name: string): Model
-	local m = (if name == "Tenant" then tenantFromMesh(9.5) else nil) or BUILDERS[name](9.5)
+	local h = if MESH_RIGS[name] then MESH_RIGS[name].height else 9.5
+	local m = rigFromMesh(name, h) or BUILDERS[name](h)
 	m.Name = `{name}Rig`
 	m:PivotTo(CFrame.new(0, 20, 0))
 	m.Parent = workspace

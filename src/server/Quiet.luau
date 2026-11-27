@@ -11,8 +11,9 @@
 -- The safehouse note warns about it: "if the hum stops / STOP".
 --
 -- Its rule never fights another entity's:
---   * never during a Shift (warning or blackout); twice as likely in the
---     minute after one, but not in the first seconds of light,
+--   * never during a Shift (warning or blackout) or while the Foreman is
+--     switching the level off; twice as likely in the minute after a
+--     Shift, but not in the first seconds of light,
 --   * holds off while a Tenant is noticing or chasing anyone (and lets go
 --     if one starts), and never picks a player a Tenant is close to,
 --   * never rings a light Lampjaw is in (Lampjaw also stays out of the ring),
@@ -206,7 +207,8 @@ function Quiet.create(ctx: any): Quiet
 			lastLight = now
 		end
 		wasShifting = shifting
-		local shift = shifting or state:GetAttribute("ShiftWarning") == true
+		-- The Foreman says move; the Quiet would say freeze. Never both.
+		local shift = shifting or state:GetAttribute("ShiftWarning") == true or state:GetAttribute("ForemanActive") == true
 
 		if phase ~= "idle" then
 			-- Let go if anything else takes over: the Shift, a hunt, the end.

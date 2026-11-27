@@ -135,6 +135,23 @@ return {
 		tenantClearance = 50, -- studs: never rings a player a Tenant is this close to
 	},
 
+	-- THE FOREMAN: closing time. With startAt seconds left on the sublevel
+	-- timer it switches the level off from the far end in toward the lift,
+	-- reaching the lift liftAt seconds before the end. Anyone in a cell it
+	-- has switched off is taken. Counter: be heading back early. (Foreman.luau)
+	FOREMAN = {
+		enabled = true,
+		fromDepth = 4, -- every sublevel from here down (ForceForeman in Studio works on any)
+		startAt = 90, -- seconds left on the timer when it starts
+		liftAt = 12, -- seconds left when everything but the lift's own cell is off
+		headStart = 5, -- seconds after it clocks on before the first lights go (time to drop loot and run)
+		grace = 0.5, -- seconds in a switched-off cell before you're taken (lag, a stumble)
+		margin = 1.5, -- cells: after a Shift the dark edge restarts at least this far behind the furthest player
+		height = 8.6, -- studs (the Blender model is built at 8.6)
+		walkSpeed = 9, -- studs/s along the dark edge (faster if the edge is moving faster)
+		teleportStuds = 30, -- further than this from where it should be: it's just there (in the dark)
+	},
+
 	-- Shared map (M key): fills in wherever anyone on the server has looked.
 	MAP_SIGHT_CELLS = 2, -- how far down an open corridor you "see" for the map
 	MAP_UPDATE_SECONDS = 0.5,
@@ -202,5 +219,6 @@ return {
 	ANIMATIONS = {
 		Tenant = { idle = "", walk = "", run = "", attack = "" },
 		Lampjaw = { idle = "", attack = "" },
+		Foreman = { idle = "", walk = "", attack = "" },
 	},
 }
