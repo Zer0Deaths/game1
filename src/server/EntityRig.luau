@@ -218,7 +218,9 @@ function EntityRig.build(name: string, height: number?): Model
 		m = BUILDERS[name](height or 9.5)
 	end
 	m.Name = name
-	m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	pcall(function()
+		m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
 	m:SetAttribute("Entity", name)
 	CollectionService:AddTag(m, "SHIFT_Entity")
 	return m
