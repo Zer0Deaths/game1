@@ -11,6 +11,9 @@ return {
 	QUOTA_GROWTH = 1.35, -- each sublevel deeper multiplies the quota by this
 	LOOT_VALUE_PER_DEPTH = 0.2, -- loot is worth +20% per sublevel deeper (x1.0, x1.2, x1.4 ...)
 	ARTEFACTS_PER_100_CELLS = 8, -- how much loot a level holds (a 30x30 level: 72)
+	SHELF_LOOT_SHARE = 0.3, -- this fraction of a level's loot is left on storage-rack shelves (where there are gaps)
+	DOOR_WIDTH = 9, -- room doorways, studs (was 6: too tight hauling loot)
+	DOOR_HEIGHT = 8.5,
 	LEVEL_SIZE_BY_CREW = { 30, 30, 32, 32 }, -- level width/depth in cells for crews of 1-4 (Jason: at least 30x30)
 	LEVEL_SPACING = 4000, -- studs between crews' levels (keeps them out of each other's streaming range)
 	DESCENT_COUNTDOWN = 5, -- seconds after a crew is all Ready (or chooses Deeper) before the lift drops

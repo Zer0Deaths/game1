@@ -21,6 +21,7 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LevelGen"))
 local Surfaces = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Surfaces"))
 local Grime = require(script.Parent:WaitForChild("Grime"))
@@ -230,6 +231,11 @@ local function box(parent: Instance, cf: CFrame, size: Vector3)
 	detail({ Name = "Tape", Size = Vector3.new(size.X + 0.02, 0.02, 0.35), CFrame = cf * CFrame.new(0, size.Y + 0.01, 0), Color = Color3.fromRGB(190, 170, 120), Material = Enum.Material.Plastic }, parent)
 end
 
+-- Gaps left on shelves while building, where loot can sit (world CFrame
+-- on the shelf's top surface, and how wide the gap is). Collected per
+-- build; see LevelBuilder.shelfSlots.
+local SLOTS: { { cf: CFrame, width: number } } = {}
+
 local function shelving(parent: Instance, at: CFrame, h: (number) -> number)
 	local W, Dp, Ht = 8, 2.4, 7.4
 	for _, sx in { -1, 1 } do
@@ -249,6 +255,9 @@ local function shelving(parent: Instance, at: CFrame, h: (number) -> number)
 			if level > 0 and h(level * 10 + i + 50) < 0.7 and x + bw < W / 2 then -- none on the bottom shelf, right by the floor
 				local bh = math.min(1.9, 0.8 + h(level * 10 + i + 90) * 1.2)
 				box(parent, at * CFrame.new(x + bw / 2, y + 0.08, (h(i + 7) - 0.5) * 0.3) * CFrame.Angles(0, (h(i + 3) - 0.5) * 0.3, 0), Vector3.new(bw, bh, Dp - 0.5))
+			elseif level < 3 and x + bw < W / 2 then
+				-- An empty gap at reachable height: loot can be left here.
+				table.insert(SLOTS, { cf = (at * CFrame.new(x + bw / 2, y + 0.075, 0)) + ORIGIN, width = bw })
 			end
 			x += bw + 0.15
 		end
@@ -559,6 +568,12 @@ end
 -- STRUCTURE (rebuilt by the Shift) --------------------------------------------
 
 local panelsByModel: { [Instance]: { [number]: BasePart } } = {}
+local slotsByModel: { [Instance]: { { cf: CFrame, width: number } } } = {}
+
+-- Shelf gaps in a level as last built (they change with every Shift).
+function LevelBuilder.shelfSlots(model: Instance): { { cf: CFrame, width: number } }
+	return slotsByModel[model] or {}
+end
 
 -- Switches each fitting to match its cell's light state ("on", "flicker",
 -- "dead"). The server only sets the LightState attribute and the tags;
@@ -615,6 +630,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		old:Destroy()
 	end
 	ORIGIN = (model:GetAttribute("Origin") or Vector3.zero) :: Vector3
+	SLOTS = {}
 	local theme = themes[model]
 	if theme then
 		for k, v in theme.colors do
@@ -848,8 +864,8 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 
 	-- Doorways: offices and storage rooms get a proper door-sized opening
 	-- (wall stubs and a header) where they meet a corridor, so they read as
-	-- rooms rather than gaps. 6 studs wide, 8 tall.
-	local DOOR_W, DOOR_H = 6, 8
+	-- rooms rather than gaps. Size in Config (wide enough to haul loot through).
+	local DOOR_W, DOOR_H = Config.DOOR_WIDTH, Config.DOOR_HEIGHT
 	local function doorway(mid: Vector3, alongX: boolean)
 		local stub = (S - DOOR_W) / 2
 		for _, side in { -1, 1 } do
@@ -947,6 +963,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		end
 	end
 
+	slotsByModel[model] = SLOTS
 	structure.Parent = model
 	LevelBuilder.applyLights(layout, model)
 end
@@ -968,6 +985,7 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 	model.Destroying:Connect(function()
 		themes[model] = nil
 		panelsByModel[model] = nil
+		slotsByModel[model] = nil
 	end)
 
 	-- Floor and ceiling: one big slab each.
