@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 local AssetIds = require(script.Parent:WaitForChild("AssetIds"))
 
 local Surfaces = {}
+Surfaces.lastError = ""
 
 export type Spec = {
 	set: string, -- texture set in AssetIds.textures / assets/textures
@@ -107,31 +108,36 @@ function Surfaces.image(id: string?): string
 	local decal = string.match(id, "^decal:(%d+)$")
 	if decal then
 		out = `rbxassetid://{decal}`
-		if RunService:IsServer() or not RunService:IsRunning() then
+		local function fromDecal(inst: Instance): string?
+			local d = if inst:IsA("Decal") then inst else inst:FindFirstChildWhichIsA("Decal", true)
+			return if d and (d :: Decal).Texture ~= "" then (d :: Decal).Texture else nil
+		end
+		local found: string? = nil
+		if not RunService:IsRunning() then
+			-- Studio command bar: GetObjects reads the decal straight away.
+			local ok, objects = pcall(function()
+				return (game :: any):GetObjects(`rbxassetid://{decal}`)
+			end)
+			if ok and objects then
+				for _, o in objects do
+					found = found or fromDecal(o)
+					o:Destroy()
+				end
+			end
+		end
+		if not found and RunService:IsServer() then
 			local ok, model = pcall(function()
 				return game:GetService("InsertService"):LoadAsset(tonumber(decal) :: number)
 			end)
 			if ok and model then
-				local d = model:FindFirstChildWhichIsA("Decal", true)
-				if d and d.Texture ~= "" then
-					out = d.Texture
-				end
+				found = fromDecal(model)
 				model:Destroy()
-			elseif not RunService:IsRunning() then
-				-- Studio command bar: GetObjects reads the decal directly.
-				local ok2, objects = pcall(function()
-					return (game :: any):GetObjects(`rbxassetid://{decal}`)
-				end)
-				if ok2 and objects then
-					for _, o in objects do
-						local d = if o:IsA("Decal") then o else o:FindFirstChildWhichIsA("Decal", true)
-						if d and d.Texture ~= "" then
-							out = d.Texture
-						end
-						o:Destroy()
-					end
-				end
 			end
+		end
+		if found then
+			out = found
+		else
+			Surfaces.lastError = `couldn't look up the image behind decal {decal}`
 		end
 	elseif string.match(id, "^%d+$") then
 		out = `rbxassetid://{id}`
@@ -143,13 +149,26 @@ end
 local available: { [string]: boolean } = {}
 
 local function setMaps(target: Instance, ids: { [string]: string }): boolean
-	return pcall(function()
+	local ok, err = pcall(function()
 		local t = target :: any
 		t.ColorMap = Surfaces.image(ids.colour)
 		t.NormalMap = Surfaces.image(ids.normal)
 		t.RoughnessMap = Surfaces.image(ids.roughness)
 		t.MetalnessMap = Surfaces.image(ids.metalness)
 	end)
+	if not ok then
+		Surfaces.lastError = tostring(err)
+	end
+	return ok
+end
+
+-- Does a MaterialVariant already carry its textures? (A running game may
+-- not be allowed to read ColorMap; then being there at all counts.)
+local function hasMaps(v: Instance): boolean
+	local ok, colour = pcall(function()
+		return (v :: any).ColorMap
+	end)
+	return not ok or (typeof(colour) == "string" and colour ~= "") or (ok and typeof(colour) ~= "string" and colour ~= nil)
 end
 
 -- Best lighting the place allows: shadows from every light (Future). A
@@ -184,7 +203,7 @@ end
 -- Safe to call again; runs on the server at start, or from Studio's
 -- command bar (which is allowed to set texture maps and saves them into
 -- the place).
-function Surfaces.install(): (number, number)
+local function install(): (number, number)
 	local MaterialService = game:GetService("MaterialService")
 	if not RunService:IsRunning() then
 		print(`[Surfaces] lighting: {Surfaces.lighting()}`)
@@ -196,25 +215,30 @@ function Surfaces.install(): (number, number)
 		templates.Parent = ReplicatedStorage
 	end
 	local made, blocked = 0, 0
-	-- Look decal IDs up in parallel: each lookup can take a moment.
-	local pending = 0
-	for _, spec in Surfaces.SPECS do
-		local ids = texturesFor(spec.set)
-		if ids then
-			for _, id in ids do
-				if string.sub(id, 1, 6) == "decal:" and not resolved[id] then
-					pending += 1
-					task.spawn(function()
-						Surfaces.image(id)
-						pending -= 1
-					end)
+	local editing = not RunService:IsRunning()
+	if editing then
+		print("[Surfaces] installing SHIFT's PBR textures (a few seconds)...")
+	else
+		-- Look decal IDs up in parallel: each lookup can take a moment.
+		local pending = 0
+		for _, spec in Surfaces.SPECS do
+			local ids = texturesFor(spec.set)
+			if ids then
+				for _, id in ids do
+					if string.sub(id, 1, 6) == "decal:" and not resolved[id] then
+						pending += 1
+						task.spawn(function()
+							pcall(Surfaces.image, id)
+							pending -= 1
+						end)
+					end
 				end
 			end
 		end
-	end
-	local deadline = os.clock() + 20
-	while pending > 0 and os.clock() < deadline do
-		task.wait(0.1)
+		local deadline = os.clock() + 20
+		while pending > 0 and os.clock() < deadline do
+			task.wait(0.1)
+		end
 	end
 
 	for name, spec in Surfaces.SPECS do
@@ -223,7 +247,7 @@ function Surfaces.install(): (number, number)
 			continue
 		end
 		local v = MaterialService:FindFirstChild(name)
-		local existing = v ~= nil and v:IsA("MaterialVariant") and (v :: MaterialVariant).ColorMap ~= ""
+		local existing = v ~= nil and v:IsA("MaterialVariant") and hasMaps(v)
 		if not (v and v:IsA("MaterialVariant")) then
 			v = Instance.new("MaterialVariant")
 			v.Name = name
@@ -258,8 +282,32 @@ function Surfaces.install(): (number, number)
 		end
 	end
 	Surfaces.refresh()
-	if not RunService:IsRunning() then
-		print(`[Surfaces] installed {made} PBR sets ({blocked} could not be). Now File > Save, then Play.`)
+	if editing then
+		local inService = 0
+		for name in Surfaces.SPECS do
+			local v = MaterialService:FindFirstChild(name)
+			if v and v:IsA("MaterialVariant") then
+				inService += 1
+			end
+		end
+		if made > 0 then
+			print(`[Surfaces] DONE: {made} PBR sets installed ({inService} SHIFT materials now in MaterialService). Now File > Save, then Play.`)
+		else
+			warn(`[Surfaces] FAILED: nothing installed. Reason: {Surfaces.lastError}. Send this line to Claude.`)
+		end
+	end
+	return made, blocked
+end
+
+function Surfaces.install(): (number, number)
+	if RunService:IsRunning() and RunService:IsClient() then
+		warn("[Surfaces] stop the game first: this line only works in Studio while the game is NOT running.")
+		return 0, 0
+	end
+	local ok, made, blocked = pcall(install)
+	if not ok then
+		warn(`[Surfaces] FAILED: {made}. Send this line to Claude.`)
+		return 0, 0
 	end
 	return made, blocked
 end
@@ -269,8 +317,114 @@ function Surfaces.refresh()
 	local MaterialService = game:GetService("MaterialService")
 	for name in Surfaces.SPECS do
 		local v = MaterialService:FindFirstChild(name)
-		available[name] = v ~= nil and v:IsA("MaterialVariant") and v.ColorMap ~= ""
+		available[name] = v ~= nil and v:IsA("MaterialVariant") and hasMaps(v)
 	end
+end
+
+-- FALLBACK WITHOUT THE COMMAND BAR ----------------------------------------------
+-- Until the variants are installed, the big surfaces (walls, floors,
+-- ceilings) still get the real texture: its colour map tiled over each
+-- large face with Texture objects, which a running game IS allowed to
+-- make. No normal or roughness maps, but real wallpaper, carpet and tile.
+-- Server only (Textures replicate). Small props keep their material.
+
+local colourUrl: { [string]: string } = {}
+local waitingParts: { [BasePart]: string } = setmetatable({}, { __mode = "k" }) :: any
+local preparing = false
+
+local function bigFaces(part: BasePart): { Enum.NormalId }
+	local x, y, z = part.Size.X, part.Size.Y, part.Size.Z
+	local faces = {}
+	local MIN = 4
+	if x >= MIN and z >= MIN then
+		table.insert(faces, Enum.NormalId.Top)
+		table.insert(faces, Enum.NormalId.Bottom)
+	end
+	if x >= MIN and y >= MIN then
+		table.insert(faces, Enum.NormalId.Front)
+		table.insert(faces, Enum.NormalId.Back)
+	end
+	if z >= MIN and y >= MIN then
+		table.insert(faces, Enum.NormalId.Left)
+		table.insert(faces, Enum.NormalId.Right)
+	end
+	return faces
+end
+
+local function addTextures(part: BasePart, name: string, url: string)
+	if part:FindFirstChild("SHIFT_Tex") then
+		return
+	end
+	local spec = Surfaces.SPECS[name]
+	for _, face in bigFaces(part) do
+		local t = Instance.new("Texture")
+		t.Name = "SHIFT_Tex"
+		t.Face = face
+		t.Texture = url
+		t.StudsPerTileU = spec.studs
+		t.StudsPerTileV = spec.studs
+		t.Color3 = if spec.tint then part.Color else Color3.new(1, 1, 1)
+		t.Parent = part
+	end
+end
+
+-- Give a big part its surface's colour map now, or as soon as it's looked up.
+function Surfaces.texture(part: BasePart, name: string)
+	if available[name] or not RunService:IsServer() or not RunService:IsRunning() then
+		return
+	end
+	local spec = Surfaces.SPECS[name]
+	if not spec or not texturesFor(spec.set) or #bigFaces(part) == 0 then
+		return
+	end
+	local url = colourUrl[name]
+	if url then
+		addTextures(part, name, url)
+	else
+		waitingParts[part] = name
+	end
+end
+
+-- Look up every colour map in the background, then texture what's waiting.
+function Surfaces.prepareTextures()
+	if preparing then
+		return
+	end
+	preparing = true
+	task.spawn(function()
+		local pending = 0
+		for name, spec in Surfaces.SPECS do
+			local ids = texturesFor(spec.set)
+			if ids and not available[name] then
+				pending += 1
+				task.spawn(function()
+					local ok, url = pcall(Surfaces.image, ids.colour)
+					-- Only a real image: an unresolved decal ID would show nothing.
+					local decal = string.match(ids.colour, "^decal:(%d+)$")
+					if ok and url ~= "" and not (decal and url == `rbxassetid://{decal}`) then
+						colourUrl[name] = url
+					end
+					pending -= 1
+				end)
+			end
+		end
+		local deadline = os.clock() + 30
+		while pending > 0 and os.clock() < deadline do
+			task.wait(0.2)
+		end
+		local count, done = 0, 0
+		for _ in colourUrl do
+			count += 1
+		end
+		for part, name in waitingParts do
+			if part.Parent and colourUrl[name] then
+				addTextures(part, name, colourUrl[name])
+				done += 1
+			end
+		end
+		table.clear(waitingParts)
+		print(`[Surfaces] texture fallback: {count} colour maps ready, {done} surfaces textured (full PBR needs the one-time command-bar step)`)
+	end)
 end
 
 function Surfaces.has(name: string): boolean
@@ -293,6 +447,7 @@ function Surfaces.apply(part: BasePart, name: string)
 	else
 		part.Material = material(spec.fallback)
 		part.MaterialVariant = ""
+		Surfaces.texture(part, name)
 	end
 end
 
@@ -326,7 +481,7 @@ end
 function Surfaces.applyMesh(part: MeshPart, name: string)
 	local templates = ReplicatedStorage:FindFirstChild("SHIFT_Surfaces")
 	local sa = templates and templates:FindFirstChild(name)
-	if sa and sa:IsA("SurfaceAppearance") and sa.ColorMap ~= "" then
+	if sa and sa:IsA("SurfaceAppearance") and hasMaps(sa) then
 		local old = part:FindFirstChildOfClass("SurfaceAppearance")
 		if old then
 			old:Destroy()
@@ -362,12 +517,13 @@ function Surfaces.init()
 		print(`[Surfaces] {ready} of {count} PBR sets active`)
 		return
 	end
+	Surfaces.prepareTextures() -- colour maps on the big surfaces meanwhile
 	task.spawn(function()
 		local ok, made, blocked = pcall(Surfaces.install)
 		if not ok then
 			warn(`[Surfaces] install failed ({made}); using built-in materials`)
 		elseif (blocked :: number) > 0 and ready == 0 then
-			warn(`[Surfaces] {total} PBR sets are uploaded but a running game can't install them. ONE TIME: stop the game, paste this in View > Command Bar, press Enter, then save the place (File > Save):  {COMMAND}`)
+			warn(`[Surfaces] {total} PBR sets are uploaded but not installed in this place yet (using flat texture fallback). ONE TIME for full PBR: stop the game, paste this in View > Command Bar, press Enter, wait for "[Surfaces] DONE", then File > Save:  {COMMAND}`)
 		else
 			print(`[Surfaces] {made} of {count} PBR sets active`)
 		end
