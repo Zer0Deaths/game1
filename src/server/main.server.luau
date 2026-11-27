@@ -35,9 +35,11 @@ local Safehouse = require(script.Parent:WaitForChild("Safehouse"))
 local ShopService = require(script.Parent:WaitForChild("ShopService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local MonetisationService = require(script.Parent:WaitForChild("MonetisationService"))
+local Materials = require(script.Parent:WaitForChild("Materials"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
+Materials.init() -- SHIFT's textures, once uploaded
 
 -- Nobody spawns until the safehouse exists.
 Players.CharacterAutoLoads = false
@@ -86,7 +88,7 @@ local function buildLevel(seed: number, levelType: LevelTypes.LevelType)
 	local started = os.clock()
 	currentLayout = LevelGen.generate(seed, levelType.gen)
 	local layout = currentLayout :: LevelGen.Layout
-	LevelBuilder.setTheme(levelType.colours, levelType.materials)
+	LevelBuilder.setTheme(levelType.colours, levelType.materials, levelType.variants)
 	Atmosphere.applyTheme(levelType.haze, levelType.tint)
 	workspace:SetAttribute("LevelType", levelType.id)
 	workspace:SetAttribute("LevelName", levelType.name)

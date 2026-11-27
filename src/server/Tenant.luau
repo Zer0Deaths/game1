@@ -78,25 +78,68 @@ local function shape(m: Model, name: string, size: Vector3, offset: CFrame, colo
 	return p
 end
 
+-- A cylinder from point a to point b (Roblox cylinders run along X).
+local function limb(m: Model, name: string, a: Vector3, b: Vector3, thick: number, colour: Color3, material: Enum.Material)
+	local p = shape(m, name, Vector3.new((b - a).Magnitude, thick, thick), CFrame.lookAt((a + b) / 2, b) * CFrame.Angles(0, math.rad(90), 0), colour, material)
+	p.Shape = Enum.PartType.Cylinder
+	return p
+end
+
+local function joint(m: Model, name: string, at: Vector3, size: number, colour: Color3, material: Enum.Material)
+	local p = shape(m, name, Vector3.new(size, size, size), CFrame.new(at), colour, material)
+	p.Shape = Enum.PartType.Ball
+	return p
+end
+
+-- Built from rounded primitives: jointed legs, a hunched spine under a
+-- long coat, arms that hang past the knees with long fingers, and a smooth
+-- featureless head pushed forward. A real modelled mesh would still be
+-- better (see TODO.md); this is as far as code-built shapes go.
 local function buildBody(): Model
 	local m = Instance.new("Model")
 	m.Name = "Tenant"
 	local h = T.height / 9.5 -- everything scales with height
+	local function v(x: number, y: number, z: number): Vector3
+		return Vector3.new(x, y, z) * h
+	end
 	local base = shape(m, "Root", Vector3.new(2, 0.2, 2), CFrame.new(), COAT, Enum.Material.SmoothPlastic)
 	base.Transparency = 1
 	m.PrimaryPart = base
-	local hunch = CFrame.Angles(math.rad(-14), 0, 0)
+	local TROUSERS = Color3.fromRGB(30, 28, 25)
+	local fabric, skin = Enum.Material.Fabric, Enum.Material.SmoothPlastic
+
 	for _, side in { -1, 1 } do
-		shape(m, "Leg", Vector3.new(0.5, 4.3, 0.5) * h, CFrame.new(side * 0.45 * h, 2.15 * h, 0), COAT, Enum.Material.Fabric)
-		-- Arms hang far too low, past the knees.
-		shape(m, "Arm", Vector3.new(0.42, 5.4, 0.42) * h, CFrame.new(side * 1.1 * h, 4.6 * h, -0.45 * h) * CFrame.Angles(math.rad(-6), 0, math.rad(side * 4)), COAT, Enum.Material.Fabric)
-		shape(m, "Hand", Vector3.new(0.38, 1.1, 0.26) * h, CFrame.new(side * 1.2 * h, 1.6 * h, -0.75 * h), SKIN, Enum.Material.SmoothPlastic, true)
+		-- Legs: thigh, knee, shin, foot.
+		local hip, knee, ankle, toe = v(side * 0.42, 4.4, 0), v(side * 0.5, 2.3, -0.22), v(side * 0.44, 0.3, 0.05), v(side * 0.46, 0.12, -0.75)
+		limb(m, "Thigh", hip, knee, 0.55 * h, TROUSERS, fabric)
+		joint(m, "Knee", knee, 0.5 * h, TROUSERS, fabric)
+		limb(m, "Shin", knee, ankle, 0.42 * h, TROUSERS, fabric)
+		limb(m, "Foot", ankle, toe, 0.36 * h, TROUSERS, Enum.Material.Leather)
+		-- Arms: coat sleeve to the elbow, then long bare forearms.
+		local shoulder, elbow, wrist = v(side * 1.05, 7.15, -0.7), v(side * 1.28, 4.95, -0.95), v(side * 1.18, 2.55, -1.15)
+		joint(m, "Shoulder", shoulder, 0.72 * h, COAT, fabric)
+		limb(m, "UpperArm", shoulder, elbow, 0.44 * h, COAT, fabric)
+		joint(m, "Elbow", elbow, 0.36 * h, SKIN, skin)
+		limb(m, "Forearm", elbow, wrist, 0.3 * h, SKIN, skin)
+		joint(m, "Hand", wrist, 0.36 * h, SKIN, skin)
+		for f = -1, 1 do
+			local tip = wrist + v(side * (0.08 + f * 0.1), -1.05 + math.abs(f) * 0.15, -0.12 + f * 0.08)
+			limb(m, "Finger", wrist, tip, 0.08 * h, SKIN, skin)
+		end
 	end
-	shape(m, "Coat", Vector3.new(2.0, 4.6, 1.1) * h, CFrame.new(0, 4.7 * h, 0) * hunch, COAT, Enum.Material.Fabric)
-	shape(m, "Shoulders", Vector3.new(2.5, 0.8, 1.2) * h, CFrame.new(0, 7.1 * h, -0.5 * h) * hunch, COAT, Enum.Material.Fabric, true)
-	-- A smooth, featureless head, pushed forward on a long neck.
-	shape(m, "Neck", Vector3.new(0.45, 1.0, 0.45) * h, CFrame.new(0, 7.8 * h, -0.85 * h) * CFrame.Angles(math.rad(-30), 0, 0), SKIN, Enum.Material.SmoothPlastic)
-	shape(m, "Head", Vector3.new(1.0, 1.55, 1.15) * h, CFrame.new(0, 8.55 * h, -1.25 * h) * CFrame.Angles(math.rad(-20), 0, 0), SKIN, Enum.Material.SmoothPlastic, true)
+	-- Hunched spine under the coat: two coat sections bent forward.
+	local hunch = CFrame.Angles(math.rad(-16), 0, 0)
+	shape(m, "CoatLower", v(1.75, 2.4, 1.0), CFrame.new(v(0, 4.2, 0.05)) * CFrame.Angles(math.rad(-5), 0, 0), COAT, fabric)
+	shape(m, "CoatUpper", v(1.95, 2.6, 1.05), CFrame.new(v(0, 6.2, -0.35)) * hunch, COAT, fabric)
+	-- Coat tails hanging behind the legs, flaring slightly.
+	for _, side in { -1, 1 } do
+		shape(m, "CoatTail", v(0.9, 2.6, 0.12), CFrame.new(v(side * 0.5, 2.0, 0.5)) * CFrame.Angles(math.rad(8), 0, math.rad(side * 6)), COAT, fabric)
+	end
+	shape(m, "Collar", v(1.5, 0.5, 0.9), CFrame.new(v(0, 7.45, -0.75)) * hunch, COAT, fabric)
+	-- A smooth, featureless head pushed forward on a long neck.
+	local neckBase, neckTop = v(0, 7.35, -0.8), v(0, 8.2, -1.35)
+	limb(m, "Neck", neckBase, neckTop, 0.36 * h, SKIN, skin)
+	shape(m, "Head", v(0.95, 1.6, 1.1), CFrame.new(v(0, 8.75, -1.6)) * CFrame.Angles(math.rad(-25), 0, 0), SKIN, skin, true)
 	return m
 end
 

@@ -168,3 +168,27 @@ end
 check(seenTypes.carpet and seenTypes.ward and seenTypes.plant, "run 5 should offer every type")
 print(`level types checked: {#LevelTypes.list} x 100 seeds, failures: {typeFailures}`)
 print(if failures == 0 then "ALL PASSED (incl. level types)" else `{failures} FAILURES`)
+
+-- SET PIECES: a level has halls and an atrium, and the Shift tops them up.
+local pieceFailures = 0
+for seed = 1, 60 do
+	local layout = LevelGen.generate(seed)
+	local kinds = {}
+	for _, room in layout.rooms do
+		kinds[room.kind] = (kinds[room.kind] or 0) + 1
+	end
+	if not (kinds.hall and kinds.hall >= 2 and kinds.atrium == 1 and kinds.office) then
+		pieceFailures += 1
+		check(false, `pieces seed {seed}: halls {kinds.hall or 0}, atrium {kinds.atrium or 0}, offices {kinds.office or 0}`)
+	end
+	LevelGen.shift(layout, { [1001] = true, [5005] = true }, seed + 9)
+	local halls = 0
+	for _, room in layout.rooms do
+		if room.kind == "hall" then
+			halls += 1
+		end
+	end
+	check(halls >= 2, `pieces seed {seed}: only {halls} halls after a Shift`)
+end
+print(`set pieces checked: 60 seeds, failures: {pieceFailures}`)
+print(if failures == 0 then "ALL PASSED (incl. set pieces)" else `{failures} FAILURES`)

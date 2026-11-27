@@ -112,10 +112,30 @@ local function updateLampjaw(now: number, strobe: boolean)
 	end
 end
 
--- Lights built during a blackout must start dark too.
+-- Every fitting follows its LightState: dead ones stay dark, working ones
+-- come on (unless the Shift has everything blacked out). The server never
+-- touches the look after the first build, so this device owns it.
+local function syncFitting(inst: Instance)
+	if not inst:IsA("BasePart") then
+		return
+	end
+	local dead = inst:GetAttribute("LightState") == "dead"
+	setLevel(inst, if dead or mode == "blackout" then 0 else 1)
+end
+local function watchFitting(inst: Instance)
+	syncFitting(inst)
+	inst:GetAttributeChangedSignal("LightState"):Connect(function()
+		syncFitting(inst)
+	end)
+end
+CollectionService:GetInstanceAddedSignal("LightFitting"):Connect(watchFitting)
+for _, inst in CollectionService:GetTagged("LightFitting") do
+	watchFitting(inst)
+end
+-- Lights that start working during a blackout must start dark too.
 CollectionService:GetInstanceAddedSignal("CeilingLight"):Connect(function(inst)
-	if mode == "blackout" and inst:IsA("BasePart") then
-		setLevel(inst, 0)
+	if inst:IsA("BasePart") then
+		setLevel(inst, if mode == "blackout" then 0 else 1)
 	end
 end)
 

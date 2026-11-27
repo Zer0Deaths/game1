@@ -16,9 +16,14 @@ Tick them off as you go. Nothing here is urgent unless marked.
 - [ ] After the timer: results, then back to the safehouse.
 
 ## Uploads (Creator Hub or Studio Asset Manager)
+- [ ] **Surface textures (biggest visual upgrade, ~10 minutes).** SHIFT has its own wallpaper, carpet, ceiling tile and concrete textures in `assets/textures/` (12 images, made for SHIFT, free to use). Roblox can only show uploaded images:
+  1. In Studio: **Window > Asset Manager**, then **Bulk Import**, and pick all 12 files in `Documents\game1\assets\textures`.
+  2. Right-click each one > **Copy Asset ID**, and paste them to Claude (say which file each ID is), or fill them in yourself in `src/shared/Config.luau` under `TEXTURES` (colour, normal and roughness for each of wallpaper, carpet, ceiling, concrete).
+  3. Play. The Output shows `[Materials] 4 of 4 SHIFT textures active`.
+- [ ] Optional, later: proper 3D models make the biggest difference after textures: the Tenant, office furniture, shelving and light fittings are all built from code shapes. A modeller (or Creator Store models you have the rights to) would replace them.
 - [ ] Real recorded footstep sounds (CC0) to replace the generated ones. Upload, then paste the IDs into `src/shared/SoundIds.luau`.
 - [ ] Optional: a modelled first-person arms rig and crew suit (Creator Store asset or a modeller). The current suit is basic shapes; first-person arms are hidden (`Config.SHOW_FIRST_PERSON_ARMS`).
-- [ ] Optional: modelled entities. The Tenant is built from basic shapes.
+- [ ] Optional: modelled entities. The Tenant and Lampjaw are built from code shapes.
 
 ## Money and publishing (Claude will never do these)
 - [ ] Publish the place when you're happy with it.

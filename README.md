@@ -54,10 +54,10 @@ Save the place in Studio (File > Save to Roblox) to keep non-code stuff like map
 **The Shift:** every 80-120 s the hum rises and the lights stutter, then 3 s of black while the maze rewires around you and the lift may move. Testing: tick a Boolean Workspace attribute `ForceShift`.
 
 **Entities**
-- **The Tenant** (tall, faceless, long coat) hunts by sound. It turns up after the first Shift, near whoever has been loudest. It walks to noises, chases what it sees, and is faster than walking but slower than sprinting. You hear its drone and heavy steps first. The exit lift is safe.
+- **The Tenant** (tall, faceless, long coat) hunts by sound. It turns up after the first Shift, near whoever has been loudest. It walks to noises. When it sees you it stops and shrieks, then chases, slower than you walk: keep moving and you get away. You hear its drone and heavy steps first. The exit lift is safe.
 - **Lampjaw** hides in flickering lights. When one strobes **red and buzzes**, don't stop under it: linger about a second and it takes you. More active when a Shift is coming.
 
-**Levels:** The Carpet (run 1), The Ward (from run 2), The Plant Room (from run 3).
+**Levels:** The Carpet (run 1), The Ward (from run 2), The Plant Room (from run 3). Each is about 30x30 cells (600 studs across), with long walled halls, a pillared atrium, offices, storage rooms and open rooms between the maze corridors. The Shift rewires everything out of sight but keeps the level stocked with these set pieces.
 
 **Studio testing:** set the Workspace attribute `LevelSeed` to a number while in the safehouse to descend straight into that layout.
 
@@ -81,11 +81,11 @@ Shared (`src/shared`, pure logic, mostly tested offline):
 
 Server (`src/server`):
 - `main.server` the game loop: safehouse, descent, run, results.
-- `LevelBuilder`, `Atmosphere`, `ExitLift`, `Safehouse` build the world.
+- `LevelBuilder`, `Atmosphere`, `ExitLift`, `Safehouse` build the world. `Materials` the SHIFT textures (`assets/textures`, regenerate with `python tools/make_textures.py`).
 - `RunManager` quotas and timer per crew. `CrewService` crews and Cash. `ArtefactService` loot.
 - `ShiftService` the Shift. `Tenant`, `Lampjaw` the entities. `NoiseService` what they can hear.
 - `MapService` crew map. `ShopService` shop and flashlight. `DataService` saving. `MonetisationService` paid extras (off until IDs are set). `Uniform` the crew suit.
 
-Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Footsteps`, `Ambience`, `TenantSounds`, `Controls`, `StartupLight`, `Arms` (off for now).
+Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Footsteps`, `Ambience`, `TenantSounds`, `Controls`, `StartupLight`, `Dust`, `Arms` (off for now).
 
 Offline tests (need the [Luau CLI](https://github.com/luau-lang/luau/releases)): `luau tests/levelgen.test.luau`, `tests/map.test.luau`, `tests/crews.test.luau`, `tests/playerdata.test.luau`.
