@@ -24,6 +24,7 @@ local SoundService = game:GetService("SoundService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
+local CameraFx = require(script.Parent:WaitForChild("CameraFx"))
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -107,6 +108,8 @@ local function watchTenant(model: Model)
 		-- It has seen YOU: the reveal stinger.
 		if model:GetAttribute("TargetId") == player.UserId and myCrew(model) then
 			Audio.sting("STING_REVEAL", 1, 3)
+			CameraFx.shake(0.2, 0.6)
+			CameraFx.kick(8)
 		end
 	end)
 end
@@ -250,6 +253,7 @@ RunService.Heartbeat:Connect(function(dt)
 		if checkSight and not w.revealed and myCrew(model) and visible(model, camera.CFrame.Position) then
 			w.revealed = true
 			Audio.sting("STING_REVEAL", 0.65, 5)
+			CameraFx.kick(4)
 		end
 	end
 	if lampjawCue then

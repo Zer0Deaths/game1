@@ -88,6 +88,6 @@ Server (`src/server`):
 - `ShiftService` the Shift. `Tenant`, `Lampjaw` the entities. `NoiseService` what they can hear.
 - `MapService` crew map. `ShopService` shop and flashlight. `DataService` saving. `MonetisationService` paid extras (off until IDs are set). `Uniform` the crew suit.
 
-Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Audio` (sound module: groups, 3D one-shots, loops), `Ambience` (hum, drone, whispers, blackout silence), `Cues` (entity cues, heartbeat, stingers, loop sounds), `Footsteps`, `Controls`, `StartupLight`, `Dust`, `CrewMirror` (your crew's state onto Workspace), `Arms` (off for now).
+Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Audio` (sound module: groups, 3D one-shots, loops), `Ambience` (hum, drone, whispers, blackout silence), `Cues` (entity cues, heartbeat, stingers, loop sounds), `Footsteps`, `Sanity` (meter, vignette, desaturation, hallucinated glimpses), `CameraFx` (head bob, sprint FOV, shake, sanity lean; self-cancelling, never moves your aim), `Flashlight` (camera-mounted beam that stutters near entities), `FeelFx` (particles, Highlight flash on deaths, red hurt flash), `Controls`, `StartupLight`, `Dust`, `CrewMirror` (your crew's state onto Workspace), `Arms` (off for now).
 
 Offline tests (need the [Luau CLI](https://github.com/luau-lang/luau/releases)): `luau tests/levelgen.test.luau`, `tests/map.test.luau`, `tests/crews.test.luau`, `tests/playerdata.test.luau`.
