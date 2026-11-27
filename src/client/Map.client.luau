@@ -14,6 +14,7 @@ local MapSync = Remotes:WaitForChild("MapSync") :: RemoteEvent
 local MapRequest = Remotes:WaitForChild("MapRequest") :: RemoteEvent
 
 local player = Players.LocalPlayer
+local Audio = require(script.Parent:WaitForChild("Audio"))
 local CELL = 20 -- studs per cell (LevelBuilder.CELL)
 local MAP_PX = 480
 
@@ -180,6 +181,7 @@ end)
 ContextActionService:BindAction("ToggleMap", function(_, state: Enum.UserInputState)
 	if state == Enum.UserInputState.Begin then
 		gui.Enabled = not gui.Enabled
+		Audio.ui(if gui.Enabled then "UI_OPEN" else "UI_CLOSE")
 	end
 	return Enum.ContextActionResult.Sink
 end, true, Enum.KeyCode.M, Enum.KeyCode.ButtonY)

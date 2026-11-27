@@ -58,22 +58,12 @@ end
 local mode = "normal"
 local nextStorm = 0
 
--- Lampjaw's light: a red strobe and an electrical buzz.
+-- Lampjaw's light: a red strobe (its sound is in Cues.client).
 local RED_ON = Color3.fromRGB(255, 120, 90)
 local RED_DIM = Color3.fromRGB(140, 50, 40)
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SoundIds = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SoundIds"))
 local lampjawPanel: BasePart? = nil
 local lampjawKey = 0
 local nextStrobe = 0
-local buzz = Instance.new("Sound")
-buzz.Name = "LampjawBuzz"
-buzz.Looped = true
-buzz.Volume = 0.9
-buzz.PlaybackSpeed = 2.4
-buzz.RollOffMode = Enum.RollOffMode.InverseTapered
-buzz.RollOffMinDistance = 6
-buzz.RollOffMaxDistance = 60
 
 local function findLampjawPanel(key: number): BasePart?
 	if key == 0 then
@@ -95,15 +85,6 @@ local function updateLampjaw(now: number, strobe: boolean)
 		end
 		lampjawKey = key
 		lampjawPanel = findLampjawPanel(key)
-		buzz:Stop()
-		buzz.Parent = lampjawPanel
-		if lampjawPanel then
-			local id = SoundIds.get("HUM")
-			if id then
-				buzz.SoundId = id
-				buzz:Play()
-			end
-		end
 	end
 	local panel = lampjawPanel
 	if panel and strobe and now >= nextStrobe then
@@ -169,7 +150,7 @@ RunService.Heartbeat:Connect(function()
 	end
 
 	if mode ~= "normal" then
-		updateLampjaw(now, false) -- keep its buzz in step, but the Shift owns the lights
+		updateLampjaw(now, false) -- keep track of it, but the Shift owns the lights
 	end
 	if mode == "blackout" then
 		return

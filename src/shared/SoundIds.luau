@@ -1,9 +1,9 @@
--- Sound asset IDs. Roblox only plays sounds that are uploaded to Roblox,
--- so these start empty. Each sound stays off (or falls back to Roblox's
--- default) until its ID is filled in.
+-- Sound asset IDs. Roblox only plays sounds that are uploaded to Roblox.
+-- Each sound stays off (or falls back to another) until its ID exists.
 --
--- The files are in the repo's assets/ folder, made by Claude, so there
--- are no copyright issues:
+-- Most IDs now come from AssetIds.luau, which tools/upload_assets.py
+-- writes after uploading everything in assets/sounds (see TODO.md).
+-- The four originals, in the repo's assets/ folder:
 --   HUM             assets/fluorescent-hum.ogg
 --   STEP_CARPET     assets/footstep-carpet.ogg
 --   STEP_HARD       assets/footstep-hard.ogg
@@ -15,8 +15,10 @@
 -- (for example STEP_CARPET), paste the ID, and save the place.
 -- Or send the IDs to Claude to put in the table below.
 
+local AssetIds = require(script.Parent:WaitForChild("AssetIds"))
+
 local SoundIds = {
-	HUM = "",
+	HUM = "131198792468287", -- Jason's fluorescent hum (keep it: everything is layered on top)
 	STEP_CARPET = "",
 	STEP_HARD = "",
 	STEP_METAL = "",
@@ -52,7 +54,7 @@ local function get(key: string): string?
 	if key == "HUM" and fromWorkspace == nil then
 		fromWorkspace = workspace:GetAttribute("HumSoundId")
 	end
-	return normalise(fromWorkspace) or normalise((SoundIds :: any)[key]) or resolved[key]
+	return normalise(fromWorkspace) or normalise((SoundIds :: any)[key]) or normalise((AssetIds.sounds :: any)[key]) or resolved[key]
 end
 
 -- Client only. Loads the uploaded sounds, sorts them by length and maps

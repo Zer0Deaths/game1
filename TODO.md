@@ -17,15 +17,19 @@ Tick them off as you go. Nothing here is urgent unless marked.
 - [ ] The Tenant shows up after the first Shift (tick `ForceShift`), follows your noise, and the lift is safe.
 - [ ] Map (M) fills in and fades after a Shift.
 
-## Uploads (Creator Hub or Studio Asset Manager)
-- [ ] **Surface textures (biggest visual upgrade, ~10 minutes).** SHIFT has its own wallpaper, carpet, ceiling tile and concrete textures in `assets/textures/` (12 images, made for SHIFT, free to use). Roblox can only show uploaded images:
-  1. In Studio: **Window > Asset Manager**, then **Bulk Import**, and pick all 12 files in `Documents\game1\assets\textures`.
-  2. Right-click each one > **Copy Asset ID**, and paste them to Claude (say which file each ID is), or fill them in yourself in `src/shared/Config.luau` under `TEXTURES` (colour, normal and roughness for each of wallpaper, carpet, ceiling, concrete).
-  3. Play. The Output shows `[Materials] 4 of 4 SHIFT textures active`.
-- [ ] Optional, later: proper 3D models make the biggest difference after textures: the Tenant, office furniture, shelving and light fittings are all built from code shapes. A modeller (or Creator Store models you have the rights to) would replace them.
-- [ ] Real recorded footstep sounds (CC0) to replace the generated ones. Upload, then paste the IDs into `src/shared/SoundIds.luau`.
-- [ ] Optional: a modelled first-person arms rig and crew suit (Creator Store asset or a modeller). The current suit is basic shapes; first-person arms are hidden (`Config.SHOW_FIRST_PERSON_ARMS`).
-- [ ] Optional: modelled entities. The Tenant and Lampjaw are built from code shapes.
+## Uploads: everything in one go (about 5 minutes of your time)
+SHIFT now has 19 PBR texture sets, the crew suit's clothing and 25 sounds in `assets/`. Roblox only plays uploaded files, so until this is done the game uses built-in materials and stand-in sounds. One script uploads the lot and fills in the IDs for you.
+- [ ] **Make an Open Cloud API key** (the only part only you can do):
+  1. Go to https://create.roblox.com/dashboard/credentials and click **Create API Key**.
+  2. Name it `SHIFT uploads`. Under **Access Permissions** pick **Assets API**, then tick **Read** and **Write**.
+  3. Under **Security**, add the IP address `0.0.0.0/0` (or your own IP).
+  4. Click **Save & Generate Key**, then **Copy Key**. Keep it private: don't paste it in the chat or commit it.
+  5. Find your user ID: open your Roblox profile; it's the number in the address bar.
+- [ ] **Run the upload** (the Claude session on your PC can do this for you, you just paste the key into its prompt when asked):
+  1. Optional but better: `python tools/fetch_cc0.py` swaps in real CC0 footsteps and impacts from Kenney and scanned textures from ambientCG (your PC can reach those sites; the cloud can't).
+  2. `python tools/upload_assets.py`, paste the key and your user ID when it asks.
+  3. It writes `src/shared/AssetIds.luau`. Commit and push that file so it's saved.
+- [ ] In Studio, after the next pull: Play. Output shows `[Surfaces] ...` and the sounds play.
 
 ## Money and publishing (Claude will never do these)
 - [ ] Publish the place when you're happy with it.
