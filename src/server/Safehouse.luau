@@ -21,6 +21,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Surfaces = require(Shared:WaitForChild("Surfaces"))
 local Grime = require(script.Parent:WaitForChild("Grime"))
+local Meshes = require(script.Parent:WaitForChild("Meshes"))
 
 local Safehouse = {}
 
@@ -132,10 +133,10 @@ end
 local function fixture(parent: Instance, at: Vector3, flicker: boolean)
 	local f = Instance.new("Model")
 	f.Name = "Fixture"
-	bit({ Name = "LightHousing", Size = Vector3.new(8, 0.3, 2.4), Position = at + Vector3.new(0, -0.15, 0), Color = Color3.fromRGB(176, 172, 160), Material = Enum.Material.Metal }, f)
+	local shell = { bit({ Name = "LightHousing", Size = Vector3.new(8, 0.3, 2.4), Position = at + Vector3.new(0, -0.15, 0), Color = Color3.fromRGB(176, 172, 160), Material = Enum.Material.Metal }, f) }
 	for _, side in { -1, 1 } do
 		-- End caps the tubes plug into.
-		bit({ Name = "TubeCap", Size = Vector3.new(0.3, 0.35, 2.0), Position = at + Vector3.new(side * 3.85, -0.45, 0), Color = Color3.fromRGB(150, 146, 136), Material = Enum.Material.Metal }, f)
+		table.insert(shell, bit({ Name = "TubeCap", Size = Vector3.new(0.3, 0.35, 2.0), Position = at + Vector3.new(side * 3.85, -0.45, 0), Color = Color3.fromRGB(150, 146, 136), Material = Enum.Material.Metal }, f))
 	end
 	for _, dz in { -0.55, 0.55 } do
 		bit({ Name = "Tube", Shape = Enum.PartType.Cylinder, Size = Vector3.new(7.4, 0.26, 0.26), Position = at + Vector3.new(0, -0.48, dz), Color = WARM, Material = Enum.Material.Neon }, f)
@@ -152,12 +153,15 @@ local function fixture(parent: Instance, at: Vector3, flicker: boolean)
 	f:SetAttribute("Flicker", flicker)
 	f.Parent = parent
 	CollectionService:AddTag(glow, "HubFixture")
+	-- The Blender fitting (housing and end caps). The tubes stay these
+	-- Neon parts, since they're what flickers (Realism.client).
+	Meshes.dress("fixture", CFrame.new(at), f, shell, { skip = { "Tubes" } })
 end
 
 -- The clock on the north wall: stopped at 3:17 (its second hand twitches
 -- on your screen, Realism.client).
 local function clock(parent: Instance, cf: CFrame)
-	bit({ Name = "ClockRim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.25, 2.1, 2.1), CFrame = cf * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(40, 38, 34), Material = Enum.Material.Plastic }, parent)
+	local rim = bit({ Name = "ClockRim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.25, 2.1, 2.1), CFrame = cf * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(40, 38, 34), Material = Enum.Material.Plastic }, parent)
 	local face = bit({ Name = "ClockFace", Size = Vector3.new(1.8, 1.8, 0.05), CFrame = cf * CFrame.new(0, 0, -0.14), Transparency = 1 }, parent)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Front
@@ -209,6 +213,20 @@ local function clock(parent: Instance, cf: CFrame)
 	hand("Minute", 0.36, 0.025, 17 * 6, INK)
 	hand("Second", 0.4, 0.01, 42 * 6, Color3.fromRGB(150, 40, 30))
 	CollectionService:AddTag(face, "HubClock")
+	-- The Blender clock has the dial, marks and the hour and minute hands
+	-- (3:17); the drawn dial keeps only the second hand that twitches,
+	-- just in front of the glass.
+	Meshes.dress("wall_clock", cf, parent, { rim }, {
+		onBuilt = function()
+			face.CFrame = cf * CFrame.new(0, 0, -0.15)
+			dial.BackgroundTransparency = 1
+			for _, child in dial:GetChildren() do
+				if child.Name ~= "Second" and not child:IsA("UICorner") then
+					child:Destroy()
+				end
+			end
+		end,
+	})
 end
 
 -- Everything that makes the room look used. Built once.
@@ -311,14 +329,23 @@ local function dress(model: Model, o: Vector3)
 
 	-- Storage lockers by the supply locker, a filing cabinet by the counter.
 	-- No crates or boxes on the floor: anything box-sized reads as loot.
+	-- A crate on top of each (Jason: crates live up there, never on floors).
 	for i, z in { 16.2, 18.8 } do
 		local cf = CFrame.new(o + Vector3.new(-W / 2 + 1.7, 3.25, z))
-		part({ Name = "Locker", Size = Vector3.new(2, 6.5, 2.4), CFrame = cf, Color = if i == 1 then Color3.fromRGB(86, 92, 88) else Color3.fromRGB(96, 98, 90), Material = Enum.Material.Metal }, decor)
-		bit({ Name = "LockerSeam", Size = Vector3.new(0.05, 6.1, 0.05), CFrame = cf * CFrame.new(1.01, 0, 0), Color = Color3.fromRGB(30, 30, 28), Material = Enum.Material.Metal }, decor)
+		local body = part({ Name = "Locker", Size = Vector3.new(2, 6.5, 2.4), CFrame = cf, Color = if i == 1 then Color3.fromRGB(86, 92, 88) else Color3.fromRGB(96, 98, 90), Material = Enum.Material.Metal }, decor)
+		local bits = { body, bit({ Name = "LockerSeam", Size = Vector3.new(0.05, 6.1, 0.05), CFrame = cf * CFrame.new(1.01, 0, 0), Color = Color3.fromRGB(30, 30, 28), Material = Enum.Material.Metal }, decor) }
 		for _, y in { 2.6, 2.3, 2.0 } do
-			bit({ Name = "LockerVent", Size = Vector3.new(0.05, 0.08, 1.4), CFrame = cf * CFrame.new(1.01, y, 0), Color = Color3.fromRGB(30, 30, 28), Material = Enum.Material.Metal }, decor)
+			table.insert(bits, bit({ Name = "LockerVent", Size = Vector3.new(0.05, 0.08, 1.4), CFrame = cf * CFrame.new(1.01, y, 0), Color = Color3.fromRGB(30, 30, 28), Material = Enum.Material.Metal }, decor))
 		end
-		bit({ Name = "LockerHandle", Size = Vector3.new(0.1, 0.5, 0.12), CFrame = cf * CFrame.new(1.05, 0.2, 0.8), Color = Color3.fromRGB(170, 168, 160), Material = Enum.Material.Metal }, decor)
+		table.insert(bits, bit({ Name = "LockerHandle", Size = Vector3.new(0.1, 0.5, 0.12), CFrame = cf * CFrame.new(1.05, 0.2, 0.8), Color = Color3.fromRGB(170, 168, 160), Material = Enum.Material.Metal }, decor))
+		-- The Blender locker faces -Z; turned so its door faces the room (+X).
+		Meshes.dress("locker", CFrame.new(o + Vector3.new(-W / 2 + 1.7, 0, z)) * CFrame.Angles(0, math.rad(-90), 0), decor, bits, { copy = { Body = body, Door = body } })
+
+		local scale, yaw = if i == 1 then 0.8 else 0.68, if i == 1 then -0.08 else 0.25
+		local top = CFrame.new(o + Vector3.new(-W / 2 + 1.7, 6.5, z)) * CFrame.Angles(0, yaw, 0)
+		local crateSize = (Meshes.size("crate_small") or Vector3.new(2.2, 1.9, 2.2)) * scale
+		local crate = bit({ Name = "Crate", Size = crateSize, CFrame = top * CFrame.new(0, crateSize.Y / 2, 0), Color = Color3.fromRGB(122, 98, 66), Material = Enum.Material.WoodPlanks }, decor)
+		Meshes.dress("crate_small", top, decor, { crate }, { scale = scale })
 	end
 	part({ Name = "FilingCabinet", Size = Vector3.new(2.2, 4.4, 1.8), CFrame = CFrame.new(o + Vector3.new(W / 2 - 1.7, 2.2, -10)), Color = Color3.fromRGB(140, 138, 126), Material = Enum.Material.Metal }, decor)
 	for i = 0, 3 do
@@ -328,19 +355,26 @@ local function dress(model: Model, o: Vector3)
 
 	-- A clipboard dropped on the floor, papers scattered round it.
 	local board = CFrame.new(o + Vector3.new(9, 0.04, -5)) * CFrame.Angles(0, 0.4, 0)
-	bit({ Name = "Clipboard", Size = Vector3.new(1.3, 0.06, 1.8), CFrame = board, Color = Color3.fromRGB(120, 90, 56), Material = Enum.Material.Wood }, decor)
-	bit({ Name = "Paper", Size = Vector3.new(1.1, 0.02, 1.45), CFrame = board * CFrame.new(0, 0.04, 0.1), Color = PAPER, Material = Enum.Material.Plastic }, decor)
-	bit({ Name = "Clip", Size = Vector3.new(0.55, 0.1, 0.22), CFrame = board * CFrame.new(0, 0.07, -0.78), Color = Color3.fromRGB(170, 168, 160), Material = Enum.Material.Metal }, decor)
+	Meshes.dress("clipboard", board * CFrame.new(0, -0.03, 0), decor, {
+		bit({ Name = "Clipboard", Size = Vector3.new(1.3, 0.06, 1.8), CFrame = board, Color = Color3.fromRGB(120, 90, 56), Material = Enum.Material.Wood }, decor),
+		bit({ Name = "Paper", Size = Vector3.new(1.1, 0.02, 1.45), CFrame = board * CFrame.new(0, 0.04, 0.1), Color = PAPER, Material = Enum.Material.Plastic }, decor),
+		bit({ Name = "Clip", Size = Vector3.new(0.55, 0.1, 0.22), CFrame = board * CFrame.new(0, 0.07, -0.78), Color = Color3.fromRGB(170, 168, 160), Material = Enum.Material.Metal }, decor),
+	})
 	local rng = Random.new(1717)
+	local sheets = {}
 	for _ = 1, 7 do
-		bit({
+		table.insert(sheets, bit({
 			Name = "Paper",
 			Size = Vector3.new(0.85, 0.02, 1.1),
 			CFrame = CFrame.new(o + Vector3.new(6 + rng:NextNumber() * 7, 0.02 + rng:NextNumber() * 0.02, -9 + rng:NextNumber() * 7)) * CFrame.Angles(0, rng:NextNumber() * 6.28, 0),
 			Color = PAPER:Lerp(Color3.fromRGB(190, 176, 140), rng:NextNumber()),
 			Material = Enum.Material.Plastic,
-		}, decor)
+		}, decor))
 	end
+	-- The Blender scatter was modelled face down (its curled corners point
+	-- into the floor), so it goes in turned over: bottom on the carpet,
+	-- corners curling up.
+	Meshes.dress("papers", CFrame.new(o + Vector3.new(10.4, 0.05, -7)) * CFrame.Angles(math.pi, 0.9, 0), decor, sheets)
 
 	-- Cables along the south wall to the lift, then up into the ceiling.
 	for i, y in { 0.95, 1.15 } do
@@ -355,8 +389,10 @@ local function dress(model: Model, o: Vector3)
 
 	-- An EXIT-style sign hanging over the lift (it stutters, Realism.client).
 	local exitBox = bit({ Name = "ExitSign", Size = Vector3.new(3.4, 1, 0.4), Position = o + Vector3.new(0, H - 1.1, D / 2 - 12.2), Color = Color3.fromRGB(34, 36, 32), Material = Enum.Material.Plastic }, decor)
-	bit({ Name = "ExitHanger", Size = Vector3.new(0.08, 0.6, 0.08), Position = o + Vector3.new(-1.2, H - 0.3, D / 2 - 12.2), Color = Color3.fromRGB(60, 58, 52), Material = Enum.Material.Metal }, decor)
-	bit({ Name = "ExitHanger", Size = Vector3.new(0.08, 0.6, 0.08), Position = o + Vector3.new(1.2, H - 0.3, D / 2 - 12.2), Color = Color3.fromRGB(60, 58, 52), Material = Enum.Material.Metal }, decor)
+	local hangers = {
+		bit({ Name = "ExitHanger", Size = Vector3.new(0.08, 0.6, 0.08), Position = o + Vector3.new(-1.2, H - 0.3, D / 2 - 12.2), Color = Color3.fromRGB(60, 58, 52), Material = Enum.Material.Metal }, decor),
+		bit({ Name = "ExitHanger", Size = Vector3.new(0.08, 0.6, 0.08), Position = o + Vector3.new(1.2, H - 0.3, D / 2 - 12.2), Color = Color3.fromRGB(60, 58, 52), Material = Enum.Material.Metal }, decor),
+	}
 	local exitText = textOn(exitBox, Enum.NormalId.Front, "EXIT  ▼", Color3.fromRGB(120, 230, 140))
 	exitText.Name = "ExitText"
 	local exitGlow = Instance.new("PointLight")
@@ -365,6 +401,11 @@ local function dress(model: Model, o: Vector3)
 	exitGlow.Brightness = 0.6
 	exitGlow.Parent = exitBox
 	CollectionService:AddTag(exitBox, "HubExitSign")
+	-- The Blender sign box and rods. Its face stays dark so the stuttering
+	-- green lettering (on the invisible box, Realism.client) is the light.
+	Meshes.dress("exit_sign", CFrame.new(exitBox.Position), decor, { exitBox, hangers[1], hangers[2] }, {
+		restyle = { Face = { colour = Color3.fromRGB(30, 32, 28), material = Enum.Material.Plastic } },
+	})
 
 	-- A wall clock above the crew board that stopped at 3:17.
 	clock(decor, CFrame.new(o + Vector3.new(0, 9.7, -D / 2 + 0.65)) * CFrame.Angles(0, math.rad(180), 0))

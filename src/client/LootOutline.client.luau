@@ -16,11 +16,13 @@ highlight.Parent = workspace.CurrentCamera
 
 local current: ProximityPrompt? = nil
 
-local function isLoot(prompt: ProximityPrompt): BasePart?
+-- The whole tool is outlined: its Blender model (welded under the Handle)
+-- once that has loaded, the plain Handle part until then.
+local function isLoot(prompt: ProximityPrompt): Tool?
 	local handle = prompt.Parent
 	local tool = handle and handle.Parent
 	if handle and handle:IsA("BasePart") and tool and tool:IsA("Tool") and tool:GetAttribute("Artefact") then
-		return handle
+		return tool
 	end
 	return nil
 end
@@ -32,12 +34,14 @@ local function clear()
 end
 
 ProximityPromptService.PromptShown:Connect(function(prompt)
-	local handle = isLoot(prompt)
-	if not handle then
+	local tool = isLoot(prompt)
+	if not tool then
 		return
 	end
 	current = prompt
-	highlight.Adornee = handle
+	-- The Handle is invisible once the model is on it, so outline the model.
+	local handle = prompt.Parent :: Instance
+	highlight.Adornee = handle:FindFirstChild("Visual") or tool
 	highlight.Enabled = true
 end)
 

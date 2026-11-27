@@ -40,6 +40,9 @@ if not surfacesOk then
 end
 -- Grime decals: look the uploaded images up in the background.
 pcall(require(script.Parent:WaitForChild("Grime")).preload)
+-- Blender models (AssetIds.models): load in the background. Each piece is
+-- swapped in as its model arrives; until then the plain parts stay.
+pcall(require(script.Parent:WaitForChild("Meshes")).preload)
 
 -- Nobody spawns until the safehouse exists.
 Players.CharacterAutoLoads = false

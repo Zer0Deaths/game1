@@ -17,6 +17,7 @@ local Surfaces = require(Shared:WaitForChild("Surfaces"))
 local Remotes = require(script.Parent:WaitForChild("Remotes"))
 local NoiseService = require(script.Parent:WaitForChild("NoiseService"))
 local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
+local Meshes = require(script.Parent:WaitForChild("Meshes"))
 
 local ArtefactService = {}
 
@@ -91,7 +92,9 @@ function ArtefactService.updateBackLoad(player: Player)
 		local copy = handleOf(tool):Clone()
 		copy.Name = tool.Name
 		for _, child in copy:GetChildren() do
-			child:Destroy() -- drop the pickup prompt
+			if child.Name ~= "Visual" then
+				child:Destroy() -- drop the pickup prompt
+			end
 		end
 		copy.Anchored = false
 		copy.CanCollide = false
@@ -122,6 +125,15 @@ local function placeAt(tool: Tool, cf: CFrame, folder: Instance)
 	local prompt = promptOf(tool)
 	if prompt then
 		prompt.Enabled = true
+	end
+	-- Its Blender model, welded to the Handle (which stays as the hitbox).
+	-- Items are modelled with their bottom at 0, so the model's frame is
+	-- the bottom of the Handle. Until the model loads it's the plain part.
+	if not handle:FindFirstChild("Visual") and not tool:GetAttribute("Dressed") then
+		local id = tool:GetAttribute("Artefact")
+		if typeof(id) == "string" and Meshes.attach(`item_{id}`, handle, CFrame.new(0, -handle.Size.Y / 2, 0)) then
+			tool:SetAttribute("Dressed", true)
+		end
 	end
 end
 
@@ -276,12 +288,14 @@ function ArtefactService.resettle(folder: Instance, layout: LevelGen.Layout, ori
 	-- Props are CanQuery = false (so the Tenant sees past them), which
 	-- hides them from spatial queries too, so this checks the parts
 	-- directly, bucketed by grid cell. Anything visible that rises above
-	-- floor clutter height counts.
+	-- floor clutter height counts, and so do the invisible colliders left
+	-- where a Blender mesh replaced the parts (the mesh itself is skipped,
+	-- it has the same footprint).
 	local S = LevelBuilder.CELL
 	local buckets: { [number]: { BasePart } } = {}
 	for _, root in blockers do
 		for _, d in root:GetDescendants() do
-			if not d:IsA("BasePart") or d.Transparency >= 0.95 then
+			if not d:IsA("BasePart") or d:GetAttribute("Visual") or (d.Transparency >= 0.95 and not d.CanCollide) then
 				continue
 			end
 			local cf, size = d.CFrame, d.Size

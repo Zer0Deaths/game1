@@ -25,6 +25,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LevelGen"))
 local Surfaces = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Surfaces"))
 local Grime = require(script.Parent:WaitForChild("Grime"))
+local Meshes = require(script.Parent:WaitForChild("Meshes"))
 
 local LevelBuilder = {}
 
@@ -189,18 +190,23 @@ local FABRIC_BLUE = Color3.fromRGB(70, 82, 96)
 -- centre on the floor, rotated by `yaw`.
 local function chair(parent: Instance, at: CFrame, tipped: boolean)
 	local base = if tipped then at * CFrame.new(0, 0.8, 0) * CFrame.Angles(0, 0, math.rad(90)) else at
-	prop({ Name = "ChairSeat", Size = Vector3.new(1.7, 0.3, 1.7), CFrame = base * CFrame.new(0, 1.6, 0), Color = FABRIC_BLUE, Material = Enum.Material.Fabric }, parent)
-	prop({ Name = "ChairBack", Size = Vector3.new(1.7, 1.9, 0.25), CFrame = base * CFrame.new(0, 2.7, 0.8) * CFrame.Angles(math.rad(-8), 0, 0), Color = FABRIC_BLUE, Material = Enum.Material.Fabric }, parent)
-	detail({ Name = "ChairPost", Size = Vector3.new(0.22, 1.4, 0.22), CFrame = base * CFrame.new(0, 0.8, 0), Color = DARK, Material = Enum.Material.Metal }, parent)
-	detail({ Name = "ChairFoot", Size = Vector3.new(1.5, 0.15, 1.5), CFrame = base * CFrame.new(0, 0.1, 0) * CFrame.Angles(0, math.rad(45), 0), Color = DARK, Material = Enum.Material.Metal }, parent)
+	local seat = prop({ Name = "ChairSeat", Size = Vector3.new(1.7, 0.3, 1.7), CFrame = base * CFrame.new(0, 1.6, 0), Color = FABRIC_BLUE, Material = Enum.Material.Fabric }, parent)
+	Meshes.dress("chair", base + ORIGIN, parent, {
+		seat,
+		prop({ Name = "ChairBack", Size = Vector3.new(1.7, 1.9, 0.25), CFrame = base * CFrame.new(0, 2.7, 0.8) * CFrame.Angles(math.rad(-8), 0, 0), Color = FABRIC_BLUE, Material = Enum.Material.Fabric }, parent),
+		detail({ Name = "ChairPost", Size = Vector3.new(0.22, 1.4, 0.22), CFrame = base * CFrame.new(0, 0.8, 0), Color = DARK, Material = Enum.Material.Metal }, parent),
+		detail({ Name = "ChairFoot", Size = Vector3.new(1.5, 0.15, 1.5), CFrame = base * CFrame.new(0, 0.1, 0) * CFrame.Angles(0, math.rad(45), 0), Color = DARK, Material = Enum.Material.Metal }, parent),
+	}, { copy = { Upholstery = seat } })
 end
 
 local function desk(parent: Instance, at: CFrame, h: (number) -> number)
-	prop({ Name = "DeskTop", Size = Vector3.new(5.2, 0.25, 2.6), CFrame = at * CFrame.new(0, 2.6, 0), Color = WOOD, Material = Enum.Material.WoodPlanks }, parent)
+	local top = prop({ Name = "DeskTop", Size = Vector3.new(5.2, 0.25, 2.6), CFrame = at * CFrame.new(0, 2.6, 0), Color = WOOD, Material = Enum.Material.WoodPlanks }, parent)
+	local parts = { top }
 	for _, side in { -1, 1 } do
-		prop({ Name = "DeskSide", Size = Vector3.new(0.2, 2.5, 2.5), CFrame = at * CFrame.new(side * 2.45, 1.25, 0), Color = GREY_METAL, Material = Enum.Material.Metal }, parent)
+		table.insert(parts, prop({ Name = "DeskSide", Size = Vector3.new(0.2, 2.5, 2.5), CFrame = at * CFrame.new(side * 2.45, 1.25, 0), Color = GREY_METAL, Material = Enum.Material.Metal }, parent))
 	end
-	detail({ Name = "DeskPanel", Size = Vector3.new(4.7, 1.4, 0.12), CFrame = at * CFrame.new(0, 1.7, -1.15), Color = GREY_METAL, Material = Enum.Material.Metal }, parent)
+	table.insert(parts, detail({ Name = "DeskPanel", Size = Vector3.new(4.7, 1.4, 0.12), CFrame = at * CFrame.new(0, 1.7, -1.15), Color = GREY_METAL, Material = Enum.Material.Metal }, parent))
+	Meshes.dress("desk", at + ORIGIN, parent, parts, { copy = { DeskTop = top, DeskFrame = parts[2] } })
 	if h(1) < 0.75 then
 		-- An old CRT-ish monitor, left on its stand or knocked over.
 		local fallen = h(2) < 0.2
@@ -597,6 +603,11 @@ function LevelBuilder.applyLights(layout: LevelGen.Layout, model: Instance)
 					-- whose device hasn't run its light script yet.
 					panel.Color = if dead then COLORS.lightDead else COLORS.lightOn
 					panel.Material = if dead then Enum.Material.Glass else Enum.Material.Neon
+					local tubes = panel:FindFirstChild("Tubes")
+					if tubes and tubes:IsA("BasePart") then
+						tubes.Color = panel.Color
+						tubes.Material = panel.Material
+					end
 					local light = panel:FindFirstChildOfClass("SurfaceLight")
 					if light then
 						light.Enabled = not dead
@@ -747,8 +758,10 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		end
 		if h(3) < 0.035 then
 			local vy = H - 1.3
-			detail({ Name = "VentFrame", Size = Vector3.new(2.6, 1.3, 0.1), CFrame = frame * CFrame.new(-along * 0.5, vy, -0.05), Color = Color3.fromRGB(176, 172, 160), Material = Enum.Material.Metal }, details)
-			detail({ Name = "VentGrille", Size = Vector3.new(2.2, 0.95, 0.06), CFrame = frame * CFrame.new(-along * 0.5, vy, -0.1), Color = Color3.fromRGB(40, 38, 34), Material = Enum.Material.DiamondPlate }, details)
+			Meshes.dress("vent_grate", frame * CFrame.new(-along * 0.5, vy, 0) + ORIGIN, details, {
+				detail({ Name = "VentFrame", Size = Vector3.new(2.6, 1.3, 0.1), CFrame = frame * CFrame.new(-along * 0.5, vy, -0.05), Color = Color3.fromRGB(176, 172, 160), Material = Enum.Material.Metal }, details),
+				detail({ Name = "VentGrille", Size = Vector3.new(2.2, 0.95, 0.06), CFrame = frame * CFrame.new(-along * 0.5, vy, -0.1), Color = Color3.fromRGB(40, 38, 34), Material = Enum.Material.DiamondPlate }, details),
+			})
 		end
 		local FRONT = Enum.NormalId.Front
 		if h(4) < 0.09 then
@@ -800,12 +813,17 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 			-- A pipe run along the top of the wall, on brackets; sometimes a
 			-- drop to a valve and a gauge. Rust runs down from the joints.
 			local py = H - 1.6 - h(20) * 1.4
-			detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(S, 0.7, 0.7), CFrame = frame * CFrame.new(0, py, -0.6), Color = PIPE, Material = Enum.Material.Metal }, details)
+			-- The Blender pipe run has its middle flange at x = 1.5; the rust runs from there.
+			local fx = if Meshes.has("pipe_run") and S == 20 then 1.5 else (h(21) - 0.5) * (S - 6)
+			local run = { detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(S, 0.7, 0.7), CFrame = frame * CFrame.new(0, py, -0.6), Color = PIPE, Material = Enum.Material.Metal }, details) }
 			for _, bx in { -S / 2 + 2, 0, S / 2 - 2 } do
-				detail({ Name = "PipeBracket", Size = Vector3.new(0.25, 1.0, 0.75), CFrame = frame * CFrame.new(bx, py, -0.38), Color = Color3.fromRGB(50, 48, 44), Material = Enum.Material.Metal }, details)
+				table.insert(run, detail({ Name = "PipeBracket", Size = Vector3.new(0.25, 1.0, 0.75), CFrame = frame * CFrame.new(bx, py, -0.38), Color = Color3.fromRGB(50, 48, 44), Material = Enum.Material.Metal }, details))
 			end
-			detail({ Name = "PipeFlange", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 0.95, 0.95), CFrame = frame * CFrame.new((h(21) - 0.5) * (S - 6), py, -0.6), Color = Color3.fromRGB(80, 74, 66), Material = Enum.Material.CorrodedMetal }, details)
-			grime(details, "rust_streak", frame * CFrame.new((h(21) - 0.5) * (S - 6), py - 2.6, -0.05), Vector3.new(2.2, 4.4, 0.05), FRONT, 0)
+			table.insert(run, detail({ Name = "PipeFlange", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 0.95, 0.95), CFrame = frame * CFrame.new(fx, py, -0.6), Color = Color3.fromRGB(80, 74, 66), Material = Enum.Material.CorrodedMetal }, details))
+			if S == 20 then
+				Meshes.dress("pipe_run", frame * CFrame.new(0, py, 0) + ORIGIN, details, run)
+			end
+			grime(details, "rust_streak", frame * CFrame.new(fx, py - 2.6, -0.05), Vector3.new(2.2, 4.4, 0.05), FRONT, 0)
 			if h(22) < 0.5 then
 				local vx = (h(23) - 0.5) * (S - 6)
 				local drop = py - 3.2
@@ -868,6 +886,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 	local DOOR_W, DOOR_H = Config.DOOR_WIDTH, Config.DOOR_HEIGHT
 	local function doorway(mid: Vector3, alongX: boolean)
 		local stub = (S - DOOR_W) / 2
+		local trim = {}
 		for _, side in { -1, 1 } do
 			local offset = side * (DOOR_W / 2 + stub / 2)
 			local w = makePart({
@@ -878,7 +897,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 				Material = MATERIALS.wall,
 			}, walls)
 			surface(w, "wall")
-			detail({
+			trim[#trim + 1] = detail({
 				Name = "DoorJamb",
 				Size = if alongX then Vector3.new(0.35, DOOR_H, T + 0.4) else Vector3.new(T + 0.4, DOOR_H, 0.35),
 				Position = mid + (if alongX then Vector3.new(side * DOOR_W / 2, DOOR_H / 2, 0) else Vector3.new(0, DOOR_H / 2, side * DOOR_W / 2)),
@@ -894,13 +913,19 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 			Material = MATERIALS.wall,
 		}, walls)
 		surface(header, "wall")
-		detail({
+		table.insert(trim, detail({
 			Name = "DoorLintel",
 			Size = if alongX then Vector3.new(DOOR_W + 0.7, 0.35, T + 0.4) else Vector3.new(T + 0.4, 0.35, DOOR_W + 0.7),
 			Position = mid + Vector3.new(0, DOOR_H + 0.17, 0),
 			Color = COLORS.skirting,
 			Material = Enum.Material.Wood,
-		}, details)
+		}, details))
+		-- The Blender door frame (modelled for a 9 x 8.5 opening, X across
+		-- it). Frame only: the leaves would stand in the way of hauling loot.
+		if DOOR_W == 9 and DOOR_H == 8.5 then
+			local at = CFrame.new(mid + ORIGIN) * (if alongX then CFrame.identity else CFrame.Angles(0, math.rad(90), 0))
+			Meshes.dress("door", at, details, trim, { only = { "Door_Frame" }, copy = { Door_Frame = trim[1] } })
+		end
 	end
 	local function needsDoor(a: LevelGen.Room?, b: LevelGen.Room?): boolean
 		if a == b then
@@ -948,7 +973,10 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 					Material = MATERIALS.wall,
 				}, walls)
 				surface(pillar, "wall")
-				detail({ Name = "PillarBase", Size = Vector3.new(2.8, 0.7, 2.8), Position = Vector3.new(x * S, 0.35, z * S), Color = COLORS.skirting, Material = MATERIALS.trim }, walls)
+				local base = detail({ Name = "PillarBase", Size = Vector3.new(2.8, 0.7, 2.8), Position = Vector3.new(x * S, 0.35, z * S), Color = COLORS.skirting, Material = MATERIALS.trim }, walls)
+				if H == 11 then
+					Meshes.dress("pillar", CFrame.new(Vector3.new(x * S, 0, z * S) + ORIGIN), walls, { pillar, base }, { copy = { Pillar = pillar, Trim = base } })
+				end
 			end
 		end
 	end
@@ -1079,9 +1107,9 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 	for x = 1, W do
 		for z = 1, D do
 			local c = LevelBuilder.cellCenter(x, z)
-			detail({ Name = "LightHousing", Size = Vector3.new(5, 0.3, 2.8), Position = Vector3.new(c.X, H - 0.15, c.Z), Color = COLORS.housing, Material = Enum.Material.Metal }, lights)
+			local housing = detail({ Name = "LightHousing", Size = Vector3.new(5, 0.3, 2.8), Position = Vector3.new(c.X, H - 0.15, c.Z), Color = COLORS.housing, Material = Enum.Material.Metal }, lights)
 			local panel = detail({ Name = "LightPanel", Size = Vector3.new(4.4, 0.1, 2.2), Position = Vector3.new(c.X, H - 0.33, c.Z), Color = COLORS.lightOn, Material = Enum.Material.Neon }, lights)
-			detail({ Name = "LightBar", Size = Vector3.new(4.4, 0.08, 0.18), Position = Vector3.new(c.X, H - 0.4, c.Z), Color = COLORS.housing, Material = Enum.Material.Metal }, lights)
+			local bar = detail({ Name = "LightBar", Size = Vector3.new(4.4, 0.08, 0.18), Position = Vector3.new(c.X, H - 0.4, c.Z), Color = COLORS.housing, Material = Enum.Material.Metal }, lights)
 			local light = Instance.new("SurfaceLight")
 			light.Face = Enum.NormalId.Bottom
 			light.Angle = 120
@@ -1093,6 +1121,21 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 			panel:SetAttribute("Cell", x * 1000 + z) -- lets entities find "the light over this cell"
 			panel:SetAttribute("Crew", crew or 0) -- whose level this light is in
 			panels[x * 1000 + z] = panel
+			-- The Blender fitting with two visible tubes. The panel stays (it
+			-- carries the light, tags and state) but goes invisible, and the
+			-- tubes go under it, so everything that switches the panel
+			-- (Shift blackouts, flicker, Lampjaw's strobe) switches the tubes.
+			Meshes.dress("fixture", CFrame.new(Vector3.new(c.X, H, c.Z) + ORIGIN), lights, { housing, bar, panel }, {
+				copy = { Housing = housing },
+				onBuilt = function(m)
+					local tubes = m:FindFirstChild("Tubes") :: BasePart?
+					if tubes then
+						tubes.Color = panel.Color
+						tubes.Material = panel.Material
+						tubes.Parent = panel
+					end
+				end,
+			})
 		end
 	end
 	panelsByModel[model] = panels
