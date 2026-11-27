@@ -311,7 +311,7 @@ local function start(crew: number, depth: number, seed: number?)
 	-- Loot that spawned inside a desk, rack or the lift is moved somewhere
 	-- you can see and reach it.
 	task.spawn(function()
-		task.wait() -- let the new level register for spatial queries
+		task.wait() -- after the lift is placed
 		if not ctx.alive then
 			return
 		end

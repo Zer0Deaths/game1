@@ -125,7 +125,7 @@ function ShiftService.create(ctx: any, exitMoved: (LevelGen.Layout) -> ()): Shif
 		-- Loot survives the Shift: anything the new walls, props or lift
 		-- landed on is moved to the nearest clear spot. Carried loot is in
 		-- players' hands and backpacks, which the rebuild never touches.
-		task.wait() -- let the new parts register for spatial queries
+		task.wait() -- after the lift has been rebuilt
 		local folder: Instance? = ctx.artefacts
 		if alive and folder and folder.Parent then
 			local blockers = {}
