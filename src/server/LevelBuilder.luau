@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LevelGen = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LevelGen"))
 local Surfaces = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Surfaces"))
+local Grime = require(script.Parent:WaitForChild("Grime"))
 
 local LevelBuilder = {}
 
@@ -55,16 +56,21 @@ local MATERIALS = {
 -- MaterialVariant names per surface for the current level type ("" = none).
 local VARIANTS = { wall = "", carpet = "", ceiling = "" }
 
+-- Which level type is being built ("carpet", "ward", "plant"): picks the
+-- props (office clutter, medical kit, pipes and valves) and the grime.
+local KIND = "carpet"
+
 -- Each level keeps the theme it was built with, so a Shift in one crew's
 -- level rebuilds with its own look even if another crew built since.
-local themes: { [Instance]: { colors: { [string]: Color3 }, materials: { [string]: Enum.Material }, variants: { [string]: string } } } = setmetatable({}, { __mode = "k" }) :: any
+local themes: { [Instance]: { colors: { [string]: Color3 }, materials: { [string]: Enum.Material }, variants: { [string]: string }, kind: string } } = setmetatable({}, { __mode = "k" }) :: any
 
 local DEFAULT_COLORS = table.clone(COLORS)
 local DEFAULT_MATERIALS = table.clone(MATERIALS)
 
 -- Level types (LevelTypes.luau) swap colours, materials and texture
 -- variants before a build.
-function LevelBuilder.setTheme(colours: { [string]: Color3 }, materials: { [string]: string }, variants: { [string]: string }?)
+function LevelBuilder.setTheme(colours: { [string]: Color3 }, materials: { [string]: string }, variants: { [string]: string }?, kind: string?)
+	KIND = kind or "carpet"
 	for k, v in DEFAULT_COLORS do
 		COLORS[k] = colours[k] or v
 	end
@@ -129,6 +135,14 @@ local function prop(props: { [string]: any }, parent: Instance): Part
 	props.CanTouch = false
 	props.CastShadow = false
 	return makePart(props, parent)
+end
+
+-- A grime decal (Grime.luau) on an invisible holder, in level space.
+-- Returns false if that decal isn't uploaded (callers fall back).
+local function grime(parent: Instance, key: string, cf: CFrame, size: Vector3, face: Enum.NormalId, transparency: number?): boolean
+	return Grime.patch(function(props)
+		return detail(props, parent)
+	end, key, cf, size, face, transparency) ~= nil
 end
 
 -- Deterministic 0..1 from a position and the seed.
@@ -252,6 +266,219 @@ local function puddle(parent: Instance, at: CFrame, size: number)
 	p.Shape = Enum.PartType.Cylinder
 end
 
+
+-- Office clutter (The Carpet).
+local function waterCooler(parent: Instance, at: CFrame)
+	prop({ Name = "CoolerBody", Size = Vector3.new(1.4, 3.2, 1.4), CFrame = at * CFrame.new(0, 1.6, 0), Color = Color3.fromRGB(206, 200, 184), Material = Enum.Material.Plastic }, parent)
+	local bottle = detail({ Name = "CoolerBottle", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 1.15, 1.15), CFrame = at * CFrame.new(0, 4.0, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(150, 176, 186), Material = Enum.Material.Glass, Transparency = 0.45 }, parent)
+	bottle.Reflectance = 0.1
+	detail({ Name = "CoolerTap", Size = Vector3.new(0.2, 0.25, 0.3), CFrame = at * CFrame.new(0.3, 2.4, -0.78), Color = Color3.fromRGB(60, 90, 170), Material = Enum.Material.Plastic }, parent)
+end
+
+local function wastebin(parent: Instance, at: CFrame, h: (number) -> number)
+	local tipped = h(70) < 0.25
+	local cf = if tipped then at * CFrame.new(0, 0.45, 0) * CFrame.Angles(math.rad(90), 0, 0) else at * CFrame.new(0, 0.6, 0)
+	detail({ Name = "Bin", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 0.9, 0.9), CFrame = cf * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 72, 70), Material = Enum.Material.Metal }, parent)
+	for i = 1, 3 do
+		detail({ Name = "Paper", Size = Vector3.new(0.4, 0.35, 0.4), CFrame = (if tipped then at * CFrame.new((i - 2) * 0.5, 0.18, -0.9 - h(70 + i)) else at * CFrame.new(0, 1.15, 0)) * CFrame.Angles(h(73 + i) * 3, h(76 + i) * 3, 0), Color = PAPER, Material = Enum.Material.Plastic }, parent)
+	end
+end
+
+local function binders(parent: Instance, at: CFrame, h: (number) -> number)
+	local colours = { Color3.fromRGB(120, 40, 36), Color3.fromRGB(40, 60, 100), Color3.fromRGB(60, 80, 50), Color3.fromRGB(60, 58, 54) }
+	for i = 0, math.floor(h(80) * 4) + 1 do
+		detail({ Name = "Binder", Size = Vector3.new(0.35, 1.3, 1.0), CFrame = at * CFrame.new(i * 0.38, 0.65, 0) * CFrame.Angles(0, 0, if i == 0 and h(81) < 0.5 then math.rad(20) else 0), Color = colours[(i % #colours) + 1], Material = Enum.Material.Plastic }, parent)
+	end
+end
+
+local function fallenTile(parent: Instance, at: CFrame, h: (number) -> number)
+	detail({ Name = "FallenTile", Size = Vector3.new(4.6, 0.25, 4.6), CFrame = at * CFrame.new(0, 0.35, 0) * CFrame.Angles(math.rad(8 * (h(85) - 0.5)), h(86) * 6, math.rad(10)), Color = Color3.fromRGB(198, 190, 166), Material = Enum.Material.Plaster }, parent)
+	for i = 1, 4 do
+		detail({ Name = "TileChunk", Size = Vector3.new(0.5 + h(86 + i) * 0.8, 0.2, 0.4 + h(90 + i) * 0.6), CFrame = at * CFrame.new((h(94 + i) - 0.5) * 6, 0.1, (h(98 + i) - 0.5) * 6) * CFrame.Angles(0, h(102 + i) * 6, 0), Color = Color3.fromRGB(198, 190, 166), Material = Enum.Material.Plaster }, parent)
+	end
+end
+
+-- Medical kit (The Ward).
+local CHROME = Color3.fromRGB(170, 172, 170)
+local SHEET = Color3.fromRGB(196, 204, 198)
+
+local function gurney(parent: Instance, at: CFrame, h: (number) -> number)
+	prop({ Name = "GurneyFrame", Size = Vector3.new(2.6, 0.25, 6.4), CFrame = at * CFrame.new(0, 2.3, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	detail({ Name = "Mattress", Size = Vector3.new(2.4, 0.4, 6.1), CFrame = at * CFrame.new(0, 2.6, 0), Color = Color3.fromRGB(110, 140, 130), Material = Enum.Material.Rubber }, parent)
+	-- A rumpled sheet half pulled off.
+	detail({ Name = "Sheet", Size = Vector3.new(2.6, 0.06, 4.2), CFrame = at * CFrame.new(0.2, 2.84, 0.8) * CFrame.Angles(0, 0, math.rad(4 + h(110) * 8)), Color = SHEET, Material = Enum.Material.Fabric }, parent)
+	detail({ Name = "Sheet", Size = Vector3.new(0.06, 1.6, 3.6), CFrame = at * CFrame.new(1.4, 2.0, 0.9) * CFrame.Angles(0, 0, math.rad(-6)), Color = SHEET, Material = Enum.Material.Fabric }, parent)
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			detail({ Name = "GurneyLeg", Size = Vector3.new(0.15, 2.1, 0.15), CFrame = at * CFrame.new(sx * 1.1, 1.15, sz * 2.9), Color = CHROME, Material = Enum.Material.Metal }, parent)
+			detail({ Name = "Caster", Shape = Enum.PartType.Ball, Size = Vector3.new(0.35, 0.35, 0.35), CFrame = at * CFrame.new(sx * 1.1, 0.18, sz * 2.9), Color = DARK, Material = Enum.Material.Rubber }, parent)
+		end
+		detail({ Name = "Rail", Size = Vector3.new(0.1, 0.1, 3.6), CFrame = at * CFrame.new(sx * 1.3, 3.0, -1.0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	end
+end
+
+local function ivStand(parent: Instance, at: CFrame, h: (number) -> number)
+	local tilt = if h(112) < 0.2 then math.rad(70) else 0
+	local base = at * CFrame.Angles(0, 0, tilt) * CFrame.new(0, if tilt ~= 0 then 0.3 else 0, 0)
+	detail({ Name = "IVPole", Size = Vector3.new(0.12, 6.2, 0.12), CFrame = base * CFrame.new(0, 3.1, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	detail({ Name = "IVFoot", Size = Vector3.new(1.6, 0.12, 0.2), CFrame = base * CFrame.new(0, 0.15, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	detail({ Name = "IVFoot", Size = Vector3.new(0.2, 0.12, 1.6), CFrame = base * CFrame.new(0, 0.15, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	detail({ Name = "IVHook", Size = Vector3.new(1.0, 0.08, 0.08), CFrame = base * CFrame.new(0, 6.1, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	local bag = detail({ Name = "IVBag", Size = Vector3.new(0.6, 0.9, 0.2), CFrame = base * CFrame.new(0.45, 5.5, 0), Color = Color3.fromRGB(210, 214, 200), Material = Enum.Material.Glass, Transparency = 0.35 }, parent)
+	bag.Reflectance = 0.05
+end
+
+local function wheelchair(parent: Instance, at: CFrame, h: (number) -> number)
+	prop({ Name = "ChairSeat", Size = Vector3.new(1.9, 0.25, 1.8), CFrame = at * CFrame.new(0, 2.0, 0), Color = Color3.fromRGB(40, 42, 44), Material = Enum.Material.Fabric }, parent)
+	detail({ Name = "ChairBack", Size = Vector3.new(1.9, 1.8, 0.15), CFrame = at * CFrame.new(0, 3.0, 0.9) * CFrame.Angles(math.rad(-10), 0, 0), Color = Color3.fromRGB(40, 42, 44), Material = Enum.Material.Fabric }, parent)
+	for _, sx in { -1, 1 } do
+		detail({ Name = "Wheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.18, 2.6, 2.6), CFrame = at * CFrame.new(sx * 1.15, 1.3, 0.3), Color = DARK, Material = Enum.Material.Rubber }, parent)
+		detail({ Name = "Handle", Size = Vector3.new(0.12, 0.12, 0.6), CFrame = at * CFrame.new(sx * 0.85, 3.9, 1.2), Color = CHROME, Material = Enum.Material.Metal }, parent)
+		detail({ Name = "Caster", Shape = Enum.PartType.Ball, Size = Vector3.new(0.4, 0.4, 0.4), CFrame = at * CFrame.new(sx * 0.8, 0.2, -1.0), Color = DARK, Material = Enum.Material.Rubber }, parent)
+	end
+end
+
+local function curtainRail(parent: Instance, at: CFrame, h: (number) -> number, height: number)
+	detail({ Name = "CurtainRail", Size = Vector3.new(8, 0.1, 0.1), CFrame = at * CFrame.new(0, height - 0.6, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	local x = -3.8
+	local i = 0
+	while x < 3.8 do
+		i += 1
+		local w = 0.9 + h(120 + i) * 0.5
+		if h(130 + i) < 0.78 then
+			-- Pleated panels, some pushed aside, a few hanging torn short.
+			local len = if h(140 + i) < 0.15 then 3 + h(150 + i) * 2 else height - 1.6
+			detail({ Name = "Curtain", Size = Vector3.new(w, len, 0.06), CFrame = at * CFrame.new(x + w / 2, height - 0.65 - len / 2, (i % 2) * 0.12) * CFrame.Angles(0, (h(160 + i) - 0.5) * 0.5, 0), Color = Color3.fromRGB(150, 176, 168), Material = Enum.Material.Fabric }, parent)
+		end
+		x += w
+	end
+end
+
+local function medCabinet(parent: Instance, at: CFrame)
+	prop({ Name = "MedCabinet", Size = Vector3.new(3, 5.4, 1.4), CFrame = at * CFrame.new(0, 2.7, 0), Color = Color3.fromRGB(210, 212, 204), Material = Enum.Material.Metal }, parent)
+	detail({ Name = "CabinetGlass", Size = Vector3.new(2.6, 2.4, 0.05), CFrame = at * CFrame.new(0, 3.8, -0.72), Color = Color3.fromRGB(150, 170, 170), Material = Enum.Material.Glass, Transparency = 0.5 }, parent)
+	detail({ Name = "SharpsBin", Size = Vector3.new(0.8, 0.9, 0.6), CFrame = at * CFrame.new(1.0, 5.85, 0), Color = Color3.fromRGB(200, 170, 40), Material = Enum.Material.Plastic }, parent)
+end
+
+-- Plant machinery (The Plant Room).
+local PIPE = Color3.fromRGB(96, 92, 84)
+local VALVE_RED = Color3.fromRGB(128, 44, 34)
+
+local function drum(parent: Instance, at: CFrame, h: (number) -> number)
+	local tipped = h(170) < 0.2
+	local cf = if tipped then at * CFrame.new(0, 1.1, 0) * CFrame.Angles(0, h(171) * 6, 0) else at * CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0, math.rad(90))
+	local colours = { Color3.fromRGB(70, 84, 70), Color3.fromRGB(110, 60, 40), Color3.fromRGB(60, 64, 80) }
+	prop({ Name = "Drum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(if tipped then 3.4 else 3.4, 2.2, 2.2), CFrame = cf, Color = colours[math.floor(h(172) * 3) + 1], Material = Enum.Material.CorrodedMetal }, parent)
+end
+
+local function boiler(parent: Instance, at: CFrame, h: (number) -> number, height: number)
+	prop({ Name = "Tank", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height - 2.5, 5, 5), CFrame = at * CFrame.new(0, (height - 2.5) / 2 + 0.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(104, 100, 90), Material = Enum.Material.Metal }, parent)
+	prop({ Name = "TankPlinth", Size = Vector3.new(5.6, 0.5, 5.6), CFrame = at * CFrame.new(0, 0.25, 0), Color = Color3.fromRGB(120, 116, 108), Material = Enum.Material.Concrete }, parent)
+	detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.2, 0.6, 0.6), CFrame = at * CFrame.new(0, height - 1.0, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, parent)
+	-- Gauge on the side.
+	detail({ Name = "Gauge", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 0.9, 0.9), CFrame = at * CFrame.new(0, 4, -2.55) * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(220, 214, 196), Material = Enum.Material.Plastic }, parent)
+end
+
+local function pump(parent: Instance, at: CFrame)
+	prop({ Name = "PumpBase", Size = Vector3.new(4.4, 0.6, 2.4), CFrame = at * CFrame.new(0, 0.3, 0), Color = Color3.fromRGB(70, 70, 66), Material = Enum.Material.Metal }, parent)
+	prop({ Name = "Motor", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 1.7, 1.7), CFrame = at * CFrame.new(-0.8, 1.45, 0), Color = Color3.fromRGB(60, 90, 80), Material = Enum.Material.Metal }, parent)
+	prop({ Name = "PumpHead", Size = Vector3.new(1.4, 1.6, 1.6), CFrame = at * CFrame.new(1.3, 1.4, 0), Color = Color3.fromRGB(90, 70, 50), Material = Enum.Material.CorrodedMetal }, parent)
+	detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(5, 0.5, 0.5), CFrame = at * CFrame.new(1.3, 3.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, parent)
+end
+
+-- A valve wheel facing out of a wall (frame: -Z out of the wall).
+local function valve(parent: Instance, cf: CFrame)
+	detail({ Name = "ValveWheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.12, 1.3, 1.3), CFrame = cf * CFrame.Angles(0, math.rad(90), 0), Color = VALVE_RED, Material = Enum.Material.Metal }, parent)
+	detail({ Name = "ValveStem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 0.25, 0.25), CFrame = cf * CFrame.new(0, 0, 0.25) * CFrame.Angles(0, math.rad(90), 0), Color = PIPE, Material = Enum.Material.Metal }, parent)
+end
+
+-- The Ward's set pieces: exam bays, parked gurneys, abandoned wheelchairs.
+local function dressWard(parent: Instance, kind: string, room: LevelGen.Room, c: Vector3, at: CFrame, h: (number) -> number)
+	local H = LevelBuilder.HEIGHT
+	if kind == "office" then
+		-- An exam bay: a gurney behind a half-drawn curtain, a cabinet.
+		gurney(parent, at * CFrame.new((h(41) - 0.5) * 3, 0, 1), h)
+		curtainRail(parent, at * CFrame.new(0, 0, -3.5), h, H)
+		if h(43) < 0.6 then
+			medCabinet(parent, at * CFrame.new(7.5, 0, (h(44) - 0.5) * 8) * CFrame.Angles(0, math.rad(90), 0))
+		end
+		if h(45) < 0.5 then
+			ivStand(parent, at * CFrame.new(-2.2, 0, 2.5), h)
+		end
+	elseif kind == "storage" then
+		local alongX = room.w >= room.d
+		shelving(parent, CFrame.new(c) * CFrame.Angles(0, if alongX then 0 else math.rad(90), 0) * CFrame.new(0, 0, -4), h)
+	elseif kind == "atrium" or kind == "room" then
+		local roll = h(52)
+		local spot = at * CFrame.new((h(53) - 0.5) * 10, 0, (h(54) - 0.5) * 10)
+		if roll < 0.1 then
+			gurney(parent, spot, h)
+		elseif roll < 0.2 then
+			wheelchair(parent, spot, h)
+		elseif roll < 0.3 then
+			ivStand(parent, spot, h)
+		elseif roll < 0.36 then
+			puddle(parent, CFrame.new(c + Vector3.new((h(59) - 0.5) * 10, 0, (h(60) - 0.5) * 10)), 3 + h(61) * 4)
+		end
+	elseif kind == "hall" then
+		if h(62) < 0.1 then
+			gurney(parent, at * CFrame.new(6.5, 0, (h(63) - 0.5) * 10), h) -- parked against the wall
+		end
+	else
+		local roll = h(65)
+		if roll < 0.03 then
+			ivStand(parent, at * CFrame.new(6.5, 0, (h(66) - 0.5) * 10), h)
+		elseif roll < 0.045 then
+			wheelchair(parent, at * CFrame.new(5.5, 0, (h(67) - 0.5) * 10) * CFrame.Angles(0, h(68) * 6, 0), h)
+		end
+	end
+end
+
+-- The Plant Room's set pieces: boilers, pumps, drums, racking.
+local function dressPlant(parent: Instance, kind: string, room: LevelGen.Room, c: Vector3, at: CFrame, h: (number) -> number)
+	local H = LevelBuilder.HEIGHT
+	if kind == "office" then
+		-- The control room: a desk and a cabinet of logbooks.
+		desk(parent, at * CFrame.new((h(41) - 0.5) * 4, 0, (h(42) - 0.5) * 4), h)
+		filingCabinet(parent, at * CFrame.new(7, 0, (h(44) - 0.5) * 10) * CFrame.Angles(0, math.rad(90), 0))
+	elseif kind == "storage" then
+		local alongX = room.w >= room.d
+		shelving(parent, CFrame.new(c) * CFrame.Angles(0, if alongX then 0 else math.rad(90), 0) * CFrame.new(0, 0, -4), h)
+		if h(45) < 0.45 then
+			drum(parent, at * CFrame.new((h(47) - 0.5) * 8, 0, 4.8), h)
+		end
+	elseif kind == "atrium" then
+		if h(48) < 0.45 then
+			boiler(parent, at * CFrame.new((h(49) - 0.5) * 6, 0, (h(50) - 0.5) * 6), h, H)
+		elseif h(48) < 0.7 then
+			pump(parent, at * CFrame.new((h(49) - 0.5) * 6, 0, (h(50) - 0.5) * 6))
+		end
+		grime(parent, "oil_stain", CFrame.new(c + Vector3.new((h(51) - 0.5) * 10, 0.02, (h(55) - 0.5) * 10)) * CFrame.Angles(0, h(56) * 6, 0), Vector3.new(4 + h(57) * 4, 0.04, 3 + h(58) * 3), Enum.NormalId.Top, 0.1)
+	elseif kind == "room" then
+		local roll = h(52)
+		local spot = at * CFrame.new((h(53) - 0.5) * 10, 0, (h(54) - 0.5) * 10)
+		if roll < 0.18 then
+			drum(parent, spot, h)
+			if h(55) < 0.6 then
+				drum(parent, spot * CFrame.new(2.4, 0, 0.3), function(n)
+					return h(n + 7)
+				end)
+			end
+			grime(parent, "oil_stain", spot * CFrame.new(1, 0.02, -2), Vector3.new(4, 0.04, 3), Enum.NormalId.Top, 0.15)
+		elseif roll < 0.3 then
+			pump(parent, spot)
+		end
+	elseif kind == "hall" then
+		if h(62) < 0.06 then
+			drum(parent, at * CFrame.new(6.5, 0, (h(63) - 0.5) * 10), h)
+		end
+	else
+		if h(65) < 0.03 then
+			drum(parent, at * CFrame.new(6.5, 0, (h(66) - 0.5) * 10), h)
+		end
+	end
+end
+
 -- Dresses one cell of a set piece.
 local function dressCell(parent: Instance, kind: string, room: LevelGen.Room, x: number, z: number, seed: number)
 	local function h(n: number): number
@@ -260,10 +487,27 @@ local function dressCell(parent: Instance, kind: string, room: LevelGen.Room, x:
 	local c = LevelBuilder.cellCenter(x, z)
 	local yaw = math.floor(h(0) * 4) * math.rad(90) + (h(99) - 0.5) * 0.12
 	local at = CFrame.new(c) * CFrame.Angles(0, yaw, 0)
+	if KIND == "ward" then
+		dressWard(parent, kind, room, c, at, h)
+		return
+	elseif KIND == "plant" then
+		dressPlant(parent, kind, room, c, at, h)
+		return
+	end
+	-- The Carpet: an abandoned office floor.
 	if kind == "office" then
 		desk(parent, at * CFrame.new((h(41) - 0.5) * 4, 0, (h(42) - 0.5) * 4), h)
 		if h(43) < 0.35 then
 			filingCabinet(parent, at * CFrame.new(7, 0, (h(44) - 0.5) * 10) * CFrame.Angles(0, math.rad(90), 0))
+		end
+		if h(68) < 0.45 then
+			wastebin(parent, at * CFrame.new((h(69) - 0.5) * 4 + 3.2, 0, -1.6), h)
+		end
+		if h(82) < 0.35 then
+			binders(parent, at * CFrame.new((h(41) - 0.5) * 4 - 2.2, 2.73, (h(42) - 0.5) * 4 - 0.6), h)
+		end
+		if h(83) < 0.08 then
+			waterCooler(parent, at * CFrame.new(-7.5, 0, (h(84) - 0.5) * 10))
 		end
 	elseif kind == "storage" then
 		-- Racks in rows along the room's long side.
@@ -289,6 +533,10 @@ local function dressCell(parent: Instance, kind: string, room: LevelGen.Room, x:
 			chair(parent, at * CFrame.new((h(56) - 0.5) * 10, 0, (h(57) - 0.5) * 10), h(58) < 0.3)
 		elseif roll < 0.38 then
 			puddle(parent, CFrame.new(c + Vector3.new((h(59) - 0.5) * 10, 0, (h(60) - 0.5) * 10)), 3 + h(61) * 4)
+		elseif roll < 0.44 then
+			waterCooler(parent, at * CFrame.new(7.5, 0, (h(84) - 0.5) * 10))
+		elseif roll < 0.48 then
+			fallenTile(parent, at * CFrame.new((h(87) - 0.5) * 8, 0, (h(88) - 0.5) * 8), h)
 		end
 	elseif kind == "hall" then
 		if h(62) < 0.07 then
@@ -300,6 +548,8 @@ local function dressCell(parent: Instance, kind: string, room: LevelGen.Room, x:
 			box(parent, at * CFrame.new(6, 0, (h(66) - 0.5) * 10), Vector3.new(2, 1.6, 2))
 		elseif roll < 0.045 then
 			chair(parent, at * CFrame.new(5, 0, (h(67) - 0.5) * 10), true)
+		elseif roll < 0.06 then
+			fallenTile(parent, at * CFrame.new(0, 0, (h(67) - 0.5) * 8), h)
 		end
 	end
 end
@@ -374,6 +624,7 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		for k, v in theme.variants do
 			VARIANTS[k] = v
 		end
+		KIND = theme.kind
 	end
 	local structure = Instance.new("Folder")
 	structure.Name = "Structure"
@@ -481,25 +732,73 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 			detail({ Name = "VentFrame", Size = Vector3.new(2.6, 1.3, 0.1), CFrame = frame * CFrame.new(-along * 0.5, vy, -0.05), Color = Color3.fromRGB(176, 172, 160), Material = Enum.Material.Metal }, details)
 			detail({ Name = "VentGrille", Size = Vector3.new(2.2, 0.95, 0.06), CFrame = frame * CFrame.new(-along * 0.5, vy, -0.1), Color = Color3.fromRGB(40, 38, 34), Material = Enum.Material.DiamondPlate }, details)
 		end
+		local FRONT = Enum.NormalId.Front
 		if h(4) < 0.09 then
 			local sw, sh = 1.5 + h(5) * 4, 2 + h(6) * 5
-			detail({
-				Name = "WaterStain",
-				Size = Vector3.new(sw, sh, 0.04),
-				CFrame = frame * CFrame.new((h(7) - 0.5) * (S - sw - 2), H - sh / 2, -0.03),
-				Color = COLORS.stain,
-				Material = Enum.Material.Plastic,
-				Transparency = 0.55 + h(8) * 0.25,
-			}, details)
-			-- A darker tide line where the water stopped.
-			detail({
-				Name = "StainEdge",
-				Size = Vector3.new(sw * 0.8, 0.25, 0.04),
-				CFrame = frame * CFrame.new((h(7) - 0.5) * (S - sw - 2), H - sh + 0.15, -0.035),
-				Color = COLORS.stain:Lerp(Color3.new(0, 0, 0), 0.3),
-				Material = Enum.Material.Plastic,
-				Transparency = 0.5,
-			}, details)
+			local sx = (h(7) - 0.5) * (S - sw - 2)
+			local key = if KIND == "plant" then "rust_streak" else "drip_stain"
+			if not grime(details, key, frame * CFrame.new(sx, H - sh / 2, -0.05), Vector3.new(sw, sh, 0.05), FRONT, 0) then
+				detail({
+					Name = "WaterStain",
+					Size = Vector3.new(sw, sh, 0.04),
+					CFrame = frame * CFrame.new(sx, H - sh / 2, -0.03),
+					Color = COLORS.stain,
+					Material = Enum.Material.Plastic,
+					Transparency = 0.55 + h(8) * 0.25,
+				}, details)
+				-- A darker tide line where the water stopped.
+				detail({
+					Name = "StainEdge",
+					Size = Vector3.new(sw * 0.8, 0.25, 0.04),
+					CFrame = frame * CFrame.new(sx, H - sh + 0.15, -0.035),
+					Color = COLORS.stain:Lerp(Color3.new(0, 0, 0), 0.3),
+					Material = Enum.Material.Plastic,
+					Transparency = 0.5,
+				}, details)
+			end
+		end
+		-- Lived-in grime (decals, once uploaded): dirt banked along the
+		-- skirting, scuffs, smudges at hand height, paper peeling at the top.
+		if h(9) < 0.14 then
+			grime(details, "corner_grime", frame * CFrame.new((h(10) - 0.5) * (S - 8), 1.9, -0.05), Vector3.new(6 + h(11) * 6, 2.4, 0.05), FRONT, 0.1)
+		end
+		if KIND ~= "plant" and h(12) < 0.09 then
+			grime(details, "scuff", frame * CFrame.new((h(13) - 0.5) * (S - 9), 1.45, -0.06), Vector3.new(8, 1.4, 0.05), FRONT, 0.05)
+		end
+		if h(14) < 0.05 then
+			grime(details, "wall_grime", frame * CFrame.new((h(15) - 0.5) * (S - 6), 4, -0.07), Vector3.new(5, 4, 0.05), FRONT, 0.15)
+		end
+		if KIND == "carpet" and h(16) < 0.07 then
+			grime(details, "peel", frame * CFrame.new((h(17) - 0.5) * (S - 7), H - 1.1, -0.08), Vector3.new(6, 2.2, 0.05), FRONT, 0)
+		end
+		if KIND == "ward" and h(18) < 0.16 then
+			-- A hospital handrail along the corridor wall.
+			detail({ Name = "Handrail", Size = Vector3.new(S - 3, 0.25, 0.25), CFrame = frame * CFrame.new(0, 3.1, -0.45), Color = Color3.fromRGB(150, 128, 96), Material = Enum.Material.Wood }, details)
+			for _, bx in { -(S - 5) / 2, 0, (S - 5) / 2 } do
+				detail({ Name = "RailBracket", Size = Vector3.new(0.15, 0.15, 0.45), CFrame = frame * CFrame.new(bx, 3.0, -0.22), Color = Color3.fromRGB(170, 172, 170), Material = Enum.Material.Metal }, details)
+			end
+		end
+		if KIND == "plant" and h(19) < 0.18 then
+			-- A pipe run along the top of the wall, on brackets; sometimes a
+			-- drop to a valve and a gauge. Rust runs down from the joints.
+			local py = H - 1.6 - h(20) * 1.4
+			detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(S, 0.7, 0.7), CFrame = frame * CFrame.new(0, py, -0.6), Color = PIPE, Material = Enum.Material.Metal }, details)
+			for _, bx in { -S / 2 + 2, 0, S / 2 - 2 } do
+				detail({ Name = "PipeBracket", Size = Vector3.new(0.25, 1.0, 0.75), CFrame = frame * CFrame.new(bx, py, -0.38), Color = Color3.fromRGB(50, 48, 44), Material = Enum.Material.Metal }, details)
+			end
+			detail({ Name = "PipeFlange", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 0.95, 0.95), CFrame = frame * CFrame.new((h(21) - 0.5) * (S - 6), py, -0.6), Color = Color3.fromRGB(80, 74, 66), Material = Enum.Material.CorrodedMetal }, details)
+			grime(details, "rust_streak", frame * CFrame.new((h(21) - 0.5) * (S - 6), py - 2.6, -0.05), Vector3.new(2.2, 4.4, 0.05), FRONT, 0)
+			if h(22) < 0.5 then
+				local vx = (h(23) - 0.5) * (S - 6)
+				local drop = py - 3.2
+				detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(drop, 0.45, 0.45), CFrame = frame * CFrame.new(vx, 3.2 + drop / 2, -0.6) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, details)
+				valve(details, frame * CFrame.new(vx, 3.6, -1.05))
+				detail({ Name = "Gauge", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.15, 0.75, 0.75), CFrame = frame * CFrame.new(vx + 0.75, 4.8, -0.75) * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(214, 208, 190), Material = Enum.Material.Plastic }, details)
+			end
+		end
+		if KIND == "plant" and h(24) < 0.05 then
+			detail({ Name = "JunctionBox", Size = Vector3.new(1.6, 2.0, 0.5), CFrame = frame * CFrame.new((h(25) - 0.5) * (S - 4), 5, -0.25), Color = Color3.fromRGB(90, 96, 90), Material = Enum.Material.Metal }, details)
+			detail({ Name = "Conduit", Size = Vector3.new(0.2, H - 6, 0.2), CFrame = frame * CFrame.new((h(25) - 0.5) * (S - 4), 6 + (H - 6) / 2, -0.2), Color = Color3.fromRGB(110, 110, 104), Material = Enum.Material.Metal }, details)
 		end
 	end
 	local half = T / 2
@@ -663,7 +962,7 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 	model:SetAttribute("Seed", layout.seed)
 	model:SetAttribute("Origin", ORIGIN)
 	model:SetAttribute("Crew", crew or 0)
-	themes[model] = { colors = table.clone(COLORS), materials = table.clone(MATERIALS), variants = table.clone(VARIANTS) }
+	themes[model] = { colors = table.clone(COLORS), materials = table.clone(MATERIALS), variants = table.clone(VARIANTS), kind = KIND }
 
 	-- Floor and ceiling: one big slab each.
 	local floor = makePart({
@@ -716,10 +1015,23 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 					-- Missing tile: a black hole into the ceiling void.
 					detail({ Name = "MissingTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = Color3.fromRGB(8, 8, 8), Material = Enum.Material.Plastic }, damage)
 				elseif roll < 0.2 then
-					detail({ Name = "StainedTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = COLORS.ceiling:Lerp(COLORS.stain, 0.35 + h(4) * 0.3), Material = MATERIALS.ceiling }, damage)
+					-- A water-stained tile: the tide-mark decal once uploaded.
+					if not grime(damage, "water_stain", CFrame.new(tile - Vector3.new(0, 0.01, 0)) * CFrame.Angles(0, h(4) * 6, 0), Vector3.new(step - 0.4, 0.04, step - 0.4), Enum.NormalId.Bottom, 0) then
+						detail({ Name = "StainedTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = COLORS.ceiling:Lerp(COLORS.stain, 0.35 + h(4) * 0.3), Material = MATERIALS.ceiling }, damage)
+					elseif h(11) < 0.6 then
+						-- And the mess it left on the floor below.
+						grime(damage, if KIND == "plant" then "oil_stain" else "floor_stain", CFrame.new(Vector3.new(tile.X, 0.025, tile.Z)) * CFrame.Angles(0, h(12) * 6, 0), Vector3.new(3 + h(13) * 2, 0.04, 2.4 + h(14) * 2), Enum.NormalId.Top, 0.1)
+					end
 				end
 			end
-			if h(5) < 0.1 then
+			-- Carpet worn into paths down the corridors.
+			if KIND == "carpet" and not layout.cells[x][z].room and h(15) < 0.3 then
+				local ns = layout.cells[x][z].wallEast and (x == 1 or layout.cells[x - 1][z].wallEast)
+				grime(damage, "wear_path", CFrame.new(c + Vector3.new(0, 0.02, 0)) * CFrame.Angles(0, if ns then 0 else math.rad(90), 0), Vector3.new(6, 0.04, S + 2), Enum.NormalId.Top, 0.1 + h(16) * 0.3)
+			end
+			if h(5) < 0.1 and Grime.has(if KIND == "plant" then "oil_stain" else "floor_stain") then
+				grime(damage, if KIND == "plant" then "oil_stain" else "floor_stain", CFrame.new(c + Vector3.new((h(8) - 0.5) * 12, 0.022, (h(9) - 0.5) * 12)) * CFrame.Angles(0, h(10) * 6.28, 0), Vector3.new(3 + h(6) * 5, 0.04, 2.5 + h(7) * 4), Enum.NormalId.Top, 0.05)
+			elseif h(5) < 0.1 then
 				local p = detail({
 					Name = "DampPatch",
 					Size = Vector3.new(0.02, 4 + h(6) * 7, 3 + h(7) * 5),

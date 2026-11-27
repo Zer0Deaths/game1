@@ -38,6 +38,8 @@ local surfacesOk, surfacesErr = pcall(Surfaces.init)
 if not surfacesOk then
 	warn(`[Surfaces] skipped: {surfacesErr}`)
 end
+-- Grime decals: look the uploaded images up in the background.
+pcall(require(script.Parent:WaitForChild("Grime")).preload)
 
 -- Nobody spawns until the safehouse exists.
 Players.CharacterAutoLoads = false
