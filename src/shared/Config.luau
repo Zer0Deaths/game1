@@ -1,10 +1,10 @@
 -- Game tuning numbers in one place. All first guesses: change them
 -- after playtests. Shared so the HUD can read them too.
 return {
-	RUN_SECONDS = 360, -- length of one run (MVP: 6 min; design target 15-20)
-	BASE_QUOTA = 300, -- money needed in the first run
+	RUN_SECONDS = 600, -- length of one run (10 min; levels are 30x30 cells now)
+	BASE_QUOTA = 400, -- money needed in the first run
 	QUOTA_GROWTH = 1.4, -- each met quota multiplies the next one by this
-	ARTEFACT_COUNT = 26, -- artefacts scattered per level
+	ARTEFACT_COUNT = 70, -- artefacts scattered per level
 	MAX_CARRY = 4, -- artefacts one player can hold at once (the shop's bigger pack adds to this)
 	WALK_SPEED = 16, -- Roblox default
 	MIN_WALK_SPEED = 6, -- slowest you can get from carrying heavy loot
@@ -136,4 +136,14 @@ return {
 	SHIFT_BLACKOUT_SECONDS = 3, -- total darkness while the maze rewires
 	SHIFT_SAFE_RADIUS = 0, -- 0 = only the cell you stand in keeps its walls; 1 = 3x3 (too safe: changes happened out of sight)
 	SHIFT_NOT_BEFORE_END = 25, -- no Shift this close to the end of a run
+
+	-- SHIFT's surface textures (assets/textures). Paste the uploaded image
+	-- IDs here (just the number is fine) and the level switches from
+	-- built-in materials to these. See TODO.md.
+	TEXTURES = {
+		wallpaper = { colour = "", normal = "", roughness = "" },
+		carpet = { colour = "", normal = "", roughness = "" },
+		ceiling = { colour = "", normal = "", roughness = "" },
+		concrete = { colour = "", normal = "", roughness = "" },
+	},
 }

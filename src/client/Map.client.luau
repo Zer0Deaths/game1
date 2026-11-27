@@ -15,7 +15,7 @@ local MapRequest = Remotes:WaitForChild("MapRequest") :: RemoteEvent
 
 local player = Players.LocalPlayer
 local CELL = 20 -- studs per cell (LevelBuilder.CELL)
-local MAP_PX = 340
+local MAP_PX = 480
 
 local AMBER = Color3.fromRGB(255, 196, 110)
 local PALE = Color3.fromRGB(235, 228, 200)

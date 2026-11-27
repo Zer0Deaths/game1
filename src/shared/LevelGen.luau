@@ -19,12 +19,18 @@ export type Cell = {
 	light: "on" | "flicker" | "dead",
 }
 
+-- kind: "room" (plain open area), "atrium" (big pillared hall),
+-- "office" (desks and cabinets), "storage" (shelving), "hall" (a long,
+-- straight, walled corridor). The builder dresses each kind differently.
+export type Room = { x: number, z: number, w: number, d: number, kind: string }
+
 export type Layout = {
 	seed: number,
 	width: number,
 	depth: number,
 	cells: { { Cell } }, -- cells[x][z]
-	rooms: { { x: number, z: number, w: number, d: number } },
+	rooms: { Room },
+	pieces: { [string]: number }?, -- how many of each set piece this level wants (the Shift keeps topping it up)
 	spawn: { x: number, z: number },
 	exit: { x: number, z: number }, -- exit lift, the reachable cell furthest from spawn
 }
@@ -34,6 +40,10 @@ export type Options = {
 	depth: number?,
 	loopChance: number?, -- extra walls knocked out after the maze, 0..1
 	roomCount: number?,
+	atriumCount: number?,
+	officeCount: number?,
+	storageCount: number?,
+	hallCount: number?,
 	flickerChance: number?,
 	deadChance: number?,
 }
@@ -94,12 +104,195 @@ LevelGen.setWall = setWall
 
 local DIRS = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
 
+-- Joins every cell into one connected maze by opening the fewest extra
+-- walls (random ones, skipping any wall in `avoid` unless there is no
+-- other way). Used after set pieces close walls.
+local function connectAll(layout: Layout, rng: any, avoid: { [string]: boolean }, isProtected: (number, number) -> boolean)
+	local W, D = layout.width, layout.depth
+	local parent: { [number]: number } = {}
+	local function find(k: number): number
+		while parent[k] ~= k do
+			parent[k] = parent[parent[k]]
+			k = parent[k]
+		end
+		return k
+	end
+	for x = 1, W do
+		for z = 1, D do
+			parent[x * 1000 + z] = x * 1000 + z
+		end
+	end
+	local closed, closedAvoid = {}, {}
+	for x = 1, W do
+		for z = 1, D do
+			for _, d in { { 1, 0 }, { 0, 1 } } do
+				local nx, nz = x + d[1], z + d[2]
+				if nx <= W and nz <= D then
+					local locked = isProtected(x, z) or isProtected(nx, nz)
+					if LevelGen.hasWall(layout, x, z, d[1], d[2]) then
+						if locked then
+							continue -- walls by a player never change
+						end
+						local list = if avoid[`{x},{z},{d[1]},{d[2]}`] then closedAvoid else closed
+						table.insert(list, { x, z, d[1], d[2] })
+					else
+						local a, b = find(x * 1000 + z), find(nx * 1000 + nz)
+						if a ~= b then
+							parent[a] = b
+						end
+					end
+				end
+			end
+		end
+	end
+	for _, list in { closed, closedAvoid } do
+		for i = #list, 2, -1 do
+			local j = rng.int(1, i)
+			list[i], list[j] = list[j], list[i]
+		end
+		for _, w in list do
+			local a, b = find(w[1] * 1000 + w[2]), find((w[1] + w[3]) * 1000 + (w[2] + w[4]))
+			if a ~= b then
+				parent[a] = b
+				setWall(layout, w[1], w[2], w[3], w[4], false)
+			end
+		end
+	end
+end
+
+-- Halls are always lit: a long bright corridor is its own kind of wrong.
+local function lightHalls(layout: Layout, rng: any, isProtected: (number, number) -> boolean)
+	for _, room in layout.rooms do
+		if room.kind == "hall" then
+			for x = room.x, room.x + room.w - 1 do
+				for z = room.z, room.z + room.d - 1 do
+					if not isProtected(x, z) then
+						layout.cells[x][z].light = if rng.float() < 0.15 then "flicker" else "on"
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Carves set pieces into the maze, biggest first so they find space, up
+-- to `counts` of each kind (counting ones already there). Each is a
+-- rectangle of cells with every inner wall removed; they never overlap
+-- each other, the spawn cell, or any protected cell (or, for halls,
+-- anything next to one, since a hall closes its side walls).
+-- Afterwards the maze is reconnected without touching protected walls.
+local function addSetPieces(layout: Layout, rng: any, counts: { [string]: number }, isProtected: (number, number) -> boolean)
+	local cells = layout.cells
+	local width, depth = layout.width, layout.depth
+	local have: { [string]: number } = {}
+	for _, room in layout.rooms do
+		have[room.kind] = (have[room.kind] or 0) + 1
+	end
+	local function free(rx: number, rz: number, w: number, d: number, margin: number): boolean
+		for x = rx - margin, rx + w - 1 + margin do
+			for z = rz - margin, rz + d - 1 + margin do
+				if inBounds(layout, x, z) then
+					local inside = x >= rx and x < rx + w and z >= rz and z < rz + d
+					if isProtected(x, z) then
+						return false
+					end
+					if inside and (cells[x][z].room or (x == layout.spawn.x and z == layout.spawn.z)) then
+						return false
+					end
+				end
+			end
+		end
+		return true
+	end
+	local function place(kind: string, wMin: number, wMax: number, dMin: number, dMax: number, margin: number): Room?
+		for _attempt = 1, 30 do
+			local w, d = rng.int(wMin, wMax), rng.int(dMin, dMax)
+			if w <= width and d <= depth then
+				local rx, rz = rng.int(1, width - w + 1), rng.int(1, depth - d + 1)
+				if free(rx, rz, w, d, margin) then
+					local room: Room = { x = rx, z = rz, w = w, d = d, kind = kind }
+					table.insert(layout.rooms, room)
+					local id = #layout.rooms
+					for x = rx, rx + w - 1 do
+						for z = rz, rz + d - 1 do
+							cells[x][z].room = id
+							if x < rx + w - 1 then
+								cells[x][z].wallEast = false
+							end
+							if z < rz + d - 1 then
+								cells[x][z].wallSouth = false
+							end
+						end
+					end
+					return room
+				end
+			end
+		end
+		return nil
+	end
+	local function want(kind: string): number
+		return math.max(0, (counts[kind] or 0) - (have[kind] or 0))
+	end
+	for _ = 1, want("atrium") do
+		place("atrium", 5, 7, 5, 7, 0)
+	end
+	-- Long halls: a straight corridor 7-13 cells long with solid sides,
+	-- open at both ends and in one or two places along the way.
+	local hallSides: { [string]: boolean } = {}
+	for _ = 1, want("hall") do
+		local along = rng.int(7, 13)
+		local eastWest = rng.float() < 0.5
+		local room = if eastWest then place("hall", along, along, 1, 1, 1) else place("hall", 1, 1, along, along, 1)
+		if room then
+			local openings = {}
+			for _ = 1, rng.int(1, 2) do
+				openings[rng.int(2, along - 1)] = if rng.float() < 0.5 then 1 else -1
+			end
+			for i = 1, along do
+				local x = if eastWest then room.x + i - 1 else room.x
+				local z = if eastWest then room.z else room.z + i - 1
+				-- Sides: the two walls across the hall's direction.
+				local sides = if eastWest then { { 0, 1 }, { 0, -1 } } else { { 1, 0 }, { -1, 0 } }
+				for side, d in sides do
+					local open = openings[i] == (if side == 1 then 1 else -1)
+					setWall(layout, x, z, d[1], d[2], not open)
+					hallSides[`{math.min(x, x + d[1])},{math.min(z, z + d[2])},{math.abs(d[1])},{math.abs(d[2])}`] = not open
+				end
+			end
+			-- Both ends open into the maze.
+			if eastWest then
+				setWall(layout, room.x, room.z, -1, 0, false)
+				setWall(layout, room.x + along - 1, room.z, 1, 0, false)
+			else
+				setWall(layout, room.x, room.z, 0, -1, false)
+				setWall(layout, room.x, room.z + along - 1, 0, 1, false)
+			end
+		end
+	end
+	for _ = 1, want("storage") do
+		place("storage", 3, 5, 2, 3, 0)
+	end
+	for _ = 1, want("office") do
+		place("office", 3, 4, 3, 4, 0)
+	end
+	for _ = 1, want("room") do
+		place("room", 2, 4, 2, 4, 0)
+	end
+	-- Closing hall sides can cut corners of the maze off: reconnect,
+	-- preferring not to punch holes in the halls.
+	connectAll(layout, rng, hallSides, isProtected)
+end
+
 function LevelGen.generate(seed: number, options: Options?): Layout
 	local opts: Options = options or {} :: Options
-	local width = opts.width or 14
-	local depth = opts.depth or 14
+	local width = opts.width or 30
+	local depth = opts.depth or 30
 	local loopChance = opts.loopChance or 0.18
-	local roomCount = opts.roomCount or 4
+	local roomCount = opts.roomCount or 8
+	local atriumCount = opts.atriumCount or 1
+	local officeCount = opts.officeCount or 3
+	local storageCount = opts.storageCount or 2
+	local hallCount = opts.hallCount or 4
 	local flickerChance = opts.flickerChance or 0.12
 	local deadChance = opts.deadChance or 0.2
 	local rng = makeRng(seed)
@@ -162,25 +355,21 @@ function LevelGen.generate(seed: number, options: Options?): Layout
 		end
 	end
 
-	-- 4. Open rooms: rectangles with every inner wall removed.
-	for id = 1, roomCount do
-		local w, d = rng.int(2, 4), rng.int(2, 4)
-		local rx, rz = rng.int(1, width - w + 1), rng.int(1, depth - d + 1)
-		table.insert(layout.rooms, { x = rx, z = rz, w = w, d = d })
-		for x = rx, rx + w - 1 do
-			for z = rz, rz + d - 1 do
-				cells[x][z].room = id
-				if x < rx + w - 1 then
-					cells[x][z].wallEast = false
-				end
-				if z < rz + d - 1 then
-					cells[x][z].wallSouth = false
-				end
-			end
-		end
-	end
+	-- 4. Set pieces (atrium, halls, storage, offices, rooms).
+	local pieces = {
+		atrium = atriumCount,
+		hall = hallCount,
+		storage = storageCount,
+		office = officeCount,
+		room = roomCount,
+	}
+	layout.pieces = pieces
+	addSetPieces(layout, rng, pieces, function()
+		return false
+	end)
 
 	-- 5. Lights: most work, some flicker, some are dead (dark patches).
+	-- Halls are always lit: a long bright corridor is its own kind of wrong.
 	for x = 1, width do
 		for z = 1, depth do
 			local roll = rng.float()
@@ -191,17 +380,32 @@ function LevelGen.generate(seed: number, options: Options?): Layout
 			end
 		end
 	end
+	lightHalls(layout, rng, function()
+		return false
+	end)
 	-- Spawn cell is always lit so players don't start blind.
 	cells[1][1].light = "on"
 
-	-- 6. Exit lift goes in the cell that takes longest to walk to.
-	-- Ties go to the lowest key so the same seed always picks the same cell.
-	local best, bestDist, bestKey = layout.exit, -1, math.huge
-	for k, dist in LevelGen.distancesFrom(layout, 1, 1) do
-		if dist > bestDist or (dist == bestDist and k < bestKey) then
-			bestDist, bestKey = dist, k
-			best = { x = k // 1000, z = k % 1000 }
+	-- 6. Exit lift: a cell roughly half as far as the furthest one, so in a
+	-- big level the walk is a trek, not a marathon. Lowest key wins ties so
+	-- the same seed always picks the same cell.
+	local dists = LevelGen.distancesFrom(layout, 1, 1)
+	local maxDist = 0
+	for _, dist in dists do
+		maxDist = math.max(maxDist, dist)
+	end
+	local lo, hi = math.max(8, math.floor(maxDist * 0.45)), math.max(8, math.floor(maxDist * 0.6))
+	local choices = {}
+	for k, dist in dists do
+		if dist >= lo and dist <= hi then
+			table.insert(choices, k)
 		end
+	end
+	table.sort(choices)
+	local best = layout.exit
+	if #choices > 0 then
+		local k = choices[rng.int(1, #choices)]
+		best = { x = k // 1000, z = k % 1000 }
 	end
 	layout.exit = best
 	cells[best.x][best.z].light = "on"
@@ -431,36 +635,10 @@ function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: 
 		end
 	end
 	layout.rooms = keptRooms
-	for _ = 1, newRooms do
-		for _attempt = 1, 12 do
-			local w, d = rng.int(2, 4), rng.int(2, 4)
-			local rx, rz = rng.int(1, W - w + 1), rng.int(1, D - d + 1)
-			local clear = true
-			for x = rx, rx + w - 1 do
-				for z = rz, rz + d - 1 do
-					if isProtected(x, z) or cells[x][z].room then
-						clear = false
-					end
-				end
-			end
-			if clear then
-				local id = #layout.rooms + 1
-				table.insert(layout.rooms, { x = rx, z = rz, w = w, d = d })
-				for x = rx, rx + w - 1 do
-					for z = rz, rz + d - 1 do
-						cells[x][z].room = id
-						if x < rx + w - 1 then
-							cells[x][z].wallEast = false
-						end
-						if z < rz + d - 1 then
-							cells[x][z].wallSouth = false
-						end
-					end
-				end
-				break
-			end
-		end
-	end
+	-- Fresh set pieces in the rewired space, so the level keeps its halls,
+	-- atriums and offices instead of melting into plain maze.
+	local counts = layout.pieces or { room = newRooms }
+	addSetPieces(layout, rng, counts, isProtected)
 
 	-- New light pattern everywhere that changed.
 	for x = 1, W do
@@ -474,6 +652,8 @@ function LevelGen.shift(layout: Layout, protected: { [number]: boolean }, seed: 
 			end
 		end
 	end
+
+	lightHalls(layout, rng, isProtected)
 
 	-- Move the lift, unless someone is near it.
 	if not isProtected(layout.exit.x, layout.exit.z) then
