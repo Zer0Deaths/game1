@@ -33,7 +33,11 @@ local Surfaces = require(game:GetService("ReplicatedStorage"):WaitForChild("Shar
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
 Atmosphere.apply()
-Surfaces.init() -- SHIFT's PBR textures, once uploaded (before anything is built)
+-- SHIFT's PBR textures. Guarded: a texture problem must never stop the level being built.
+local surfacesOk, surfacesErr = pcall(Surfaces.init)
+if not surfacesOk then
+	warn(`[Surfaces] skipped: {surfacesErr}`)
+end
 
 -- Nobody spawns until the safehouse exists.
 Players.CharacterAutoLoads = false

@@ -17,19 +17,16 @@ Tick them off as you go. Nothing here is urgent unless marked.
 - [ ] The Tenant shows up after the first Shift (tick `ForceShift`), follows your noise, and the lift is safe.
 - [ ] Map (M) fills in and fades after a Shift.
 
-## Uploads: everything in one go (about 5 minutes of your time)
-SHIFT now has 19 PBR texture sets, the crew suit's clothing and 25 sounds in `assets/`. Roblox only plays uploaded files, so until this is done the game uses built-in materials and stand-in sounds. One script uploads the lot and fills in the IDs for you.
-- [ ] **Make an Open Cloud API key** (the only part only you can do):
-  1. Go to https://create.roblox.com/dashboard/credentials and click **Create API Key**.
-  2. Name it `SHIFT uploads`. Under **Access Permissions** pick **Assets API**, then tick **Read** and **Write**.
-  3. Under **Security**, add the IP address `0.0.0.0/0` (or your own IP).
-  4. Click **Save & Generate Key**, then **Copy Key**. Keep it private: don't paste it in the chat or commit it.
-  5. Find your user ID: open your Roblox profile; it's the number in the address bar.
-- [ ] **Run the upload** (the Claude session on your PC can do this for you, you just paste the key into its prompt when asked):
-  1. Optional but better: `python tools/fetch_cc0.py` swaps in real CC0 footsteps and impacts from Kenney and scanned textures from ambientCG (your PC can reach those sites; the cloud can't).
-  2. `python tools/upload_assets.py`, paste the key and your user ID when it asks.
-  3. It writes `src/shared/AssetIds.luau`. Commit and push that file so it's saved.
-- [ ] In Studio, after the next pull: Play. Output shows `[Surfaces] ...` and the sounds play.
+## Uploads (done 27 Nov: 99 assets uploaded, IDs in `src/shared/AssetIds.luau`)
+- [ ] **Install the textures once (about 1 minute).** A running game isn't allowed to create textured materials, so this one step happens in Studio itself:
+  1. Make sure the game is **stopped** (not playing).
+  2. Open **View > Command Bar**, paste this and press Enter:
+     `require(game.ReplicatedStorage.Shared.Surfaces).install()`
+  3. **File > Save** (so the materials are kept in the place).
+  4. Play. Output should say `[Surfaces] 19 of 19 PBR sets active`.
+  Do it again only after new textures are uploaded.
+- To re-upload after changing files: `python tools/upload_assets.py` (skips anything unchanged), then commit `src/shared/AssetIds.luau` and `assets/uploaded.json`.
+- Audio is moderated: a new sound can show "not approved" for a while after upload. It starts working by itself once Roblox approves it.
 
 ## Entities (optional, when you want them to look modelled)
 - [ ] Real Tenant and Lampjaw meshes (Cube or Tripo, under 20k triangles) and Animation Editor animations. Step by step: `docs/ENTITY_GUIDE.md`. The built-in rigs and procedural animations work until then.

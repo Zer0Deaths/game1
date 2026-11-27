@@ -117,6 +117,20 @@ function Surfaces.image(id: string?): string
 					out = d.Texture
 				end
 				model:Destroy()
+			elseif not RunService:IsRunning() then
+				-- Studio command bar: GetObjects reads the decal directly.
+				local ok2, objects = pcall(function()
+					return (game :: any):GetObjects(`rbxassetid://{decal}`)
+				end)
+				if ok2 and objects then
+					for _, o in objects do
+						local d = if o:IsA("Decal") then o else o:FindFirstChildWhichIsA("Decal", true)
+						if d and d.Texture ~= "" then
+							out = d.Texture
+						end
+						o:Destroy()
+					end
+				end
 			end
 		end
 	elseif string.match(id, "^%d+$") then
@@ -178,20 +192,28 @@ function Surfaces.install(): (number, number)
 			continue
 		end
 		local v = MaterialService:FindFirstChild(name)
+		local existing = v ~= nil and v:IsA("MaterialVariant") and (v :: MaterialVariant).ColorMap ~= ""
 		if not (v and v:IsA("MaterialVariant")) then
 			v = Instance.new("MaterialVariant")
 			v.Name = name
 		end
 		local variant = v :: MaterialVariant
-		variant.BaseMaterial = material(spec.base)
-		variant.StudsPerTile = spec.studs
-		if setMaps(variant, ids) then
+		-- A running game isn't allowed to set BaseMaterial or the texture
+		-- maps (Plugin-only); the command bar is. So every write is guarded.
+		local ok = pcall(function()
+			variant.BaseMaterial = material(spec.base)
+			variant.StudsPerTile = spec.studs
+		end) and setMaps(variant, ids)
+		if ok then
 			variant.Parent = MaterialService
 			made += 1
-		elseif variant.Parent == MaterialService and variant.ColorMap ~= "" then
+		elseif existing then
 			made += 1 -- installed earlier from the command bar
 		else
 			blocked += 1
+			if variant.Parent == nil then
+				variant:Destroy()
+			end
 		end
 		local sa = templates:FindFirstChild(name)
 		if not (sa and sa:IsA("SurfaceAppearance")) then
@@ -200,6 +222,8 @@ function Surfaces.install(): (number, number)
 		end
 		if setMaps(sa :: SurfaceAppearance, ids) then
 			(sa :: SurfaceAppearance).Parent = templates
+		elseif (sa :: SurfaceAppearance).Parent == nil then
+			sa:Destroy()
 		end
 	end
 	Surfaces.refresh()
@@ -279,26 +303,41 @@ function Surfaces.applyMesh(part: MeshPart, name: string)
 	end
 end
 
--- Server start: install what's uploaded and report.
+-- Server start: use what's installed, try to install the rest, report.
+-- Never throws and never holds up the server: the level is built straight
+-- away with whatever is ready (built-in materials otherwise).
+local COMMAND = "require(game.ReplicatedStorage.Shared.Surfaces).install()"
+
 function Surfaces.init()
-	local total = 0
-	for _, spec in Surfaces.SPECS do
+	Surfaces.refresh() -- variants saved into the place from the command bar
+	local count, total, ready = 0, 0, 0
+	for name, spec in Surfaces.SPECS do
+		count += 1
 		if texturesFor(spec.set) then
 			total += 1
 		end
-	end
-	local made, blocked = Surfaces.install()
-	local count = 0
-	for _ in Surfaces.SPECS do
-		count += 1
+		if available[name] then
+			ready += 1
+		end
 	end
 	if total == 0 then
 		print(`[Surfaces] 0 of {count} PBR sets uploaded: built-in materials until then (TODO.md, "Uploads")`)
-	elseif blocked > 0 and made == 0 then
-		warn(`[Surfaces] {total} sets uploaded but Roblox blocked setting texture maps while running. In Studio (not playing), paste this in View > Command Bar and press Enter, then save the place:  require(game.ReplicatedStorage.Shared.Surfaces).install()`)
-	else
-		print(`[Surfaces] {made} of {count} PBR sets active`)
+		return
 	end
+	if ready >= total then
+		print(`[Surfaces] {ready} of {count} PBR sets active`)
+		return
+	end
+	task.spawn(function()
+		local ok, made, blocked = pcall(Surfaces.install)
+		if not ok then
+			warn(`[Surfaces] install failed ({made}); using built-in materials`)
+		elseif (blocked :: number) > 0 and ready == 0 then
+			warn(`[Surfaces] {total} PBR sets are uploaded but a running game can't install them. ONE TIME: stop the game, paste this in View > Command Bar, press Enter, then save the place (File > Save):  {COMMAND}`)
+		else
+			print(`[Surfaces] {made} of {count} PBR sets active`)
+		end
+	end)
 end
 
 return Surfaces
