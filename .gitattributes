@@ -1,0 +1,10 @@
+# Keep text files LF in the repo and on every checkout, so files the
+# tools regenerate on Windows (MeshManifest.luau, AssetIds.luau) don't show
+# up as changed just because of line endings.
+*.luau text eol=lf
+*.lua text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.txt text eol=lf

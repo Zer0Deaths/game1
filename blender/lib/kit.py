@@ -67,6 +67,7 @@ LOOKS = {
     "skin": ("Rubber", "SHIFT_TenantSkin", 0.7, 0.0),
     "suit": ("Fabric", "SHIFT_SuitFabric", 0.9, 0.0),
     "glass": ("Glass", "", 0.1, 0.0),
+    "foil": ("Foil", "", 0.3, 1.0),
     "neon": ("Neon", "", 0.5, 0.0),
 }
 

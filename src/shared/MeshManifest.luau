@@ -120,6 +120,84 @@ return {
 			{ name = "Carpet", size = Vector3.new(19.96, 0.12, 19.96), centre = Vector3.new(0, 0.06, 0), look = "carpet", material = "Carpet", surface = "SHIFT_Carpet", colour = Color3.fromRGB(128, 110, 62), transparency = 0, shadow = true, attach = "" },
 		},
 	},
+	item_cashbox = {
+		tris = 452,
+		size = Vector3.new(1.62, 0.91, 1.265),
+		origin = Vector3.new(0, 0, -0.0225), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Box", size = Vector3.new(1.62, 0.84, 1.22), centre = Vector3.new(0, 0.42, 0.0225), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(60, 80, 60), transparency = 0, shadow = true, attach = "" },
+			{ name = "Handle", size = Vector3.new(0.84, 0.1, 0.1), centre = Vector3.new(0, 0.86, 0.0225), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(110, 110, 104), transparency = 0, shadow = true, attach = "" },
+			{ name = "Lock", size = Vector3.new(0.34, 0.3, 0.065), centre = Vector3.new(0, 0.55, -0.6), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(150, 124, 70), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	item_fan = {
+		tris = 1814,
+		size = Vector3.new(1.71, 1.805, 0.8037),
+		origin = Vector3.new(0, 0, 0.0781), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Guard", size = Vector3.new(1.71, 1.71, 0.4341), centre = Vector3.new(0, 0.95, -0.1848), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(190, 190, 176), transparency = 0, shadow = true, attach = "" },
+			{ name = "Blades", size = Vector3.new(1.397, 1.431, 0.2476), centre = Vector3.new(0, 0.95, -0.1781), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(150, 150, 140), transparency = 0, shadow = true, attach = "" },
+			{ name = "Body", size = Vector3.new(1, 1.2, 0.72), centre = Vector3.new(0, 0.6, 0.0419), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(60, 62, 58), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	item_idol = {
+		tris = 472,
+		size = Vector3.new(1.16, 2.273, 1.16),
+		origin = Vector3.new(0, 0, 0), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Figure", size = Vector3.new(1.16, 2.273, 1.16), centre = Vector3.new(0, 1.1365, 0), look = "foil", material = "Foil", surface = "", colour = Color3.fromRGB(196, 150, 60), transparency = 0, shadow = true, attach = "" },
+			{ name = "Groove", size = Vector3.new(0.05, 0.5, 0.04), centre = Vector3.new(0, 1.78, -0.34), look = "foil", material = "Foil", surface = "", colour = Color3.fromRGB(60, 44, 20), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	item_pager = {
+		tris = 388,
+		size = Vector3.new(0.78, 0.36, 1.25),
+		origin = Vector3.new(0, 0, -0.045), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Body", size = Vector3.new(0.78, 0.36, 1.25), centre = Vector3.new(0, 0.18, 0), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(40, 40, 44), transparency = 0, shadow = true, attach = "" },
+			{ name = "Screen", size = Vector3.new(0.56, 0.04, 0.36), centre = Vector3.new(0, 0.32, -0.105), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(104, 122, 92), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	item_phone = {
+		tris = 1128,
+		size = Vector3.new(1.48, 0.86, 1.16),
+		origin = Vector3.new(0, 0, 0), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Body", size = Vector3.new(1.36, 0.629, 1.16), centre = Vector3.new(0, 0.3145, 0), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(132, 38, 34), transparency = 0, shadow = true, attach = "" },
+			{ name = "Handset", size = Vector3.new(1.48, 0.24, 0.32), centre = Vector3.new(0, 0.74, 0.28), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(132, 38, 34), transparency = 0, shadow = true, attach = "" },
+			{ name = "Dial", size = Vector3.new(0.5909, 0.587, 0.1863), centre = Vector3.new(0, 0.52, -0.38), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(150, 146, 136), transparency = 0, shadow = true, attach = "" },
+			{ name = "DialFace", size = Vector3.new(0.4819, 0.4378, 0.1329), centre = Vector3.new(0.0025, 0.4984, -0.4247), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(34, 30, 28), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	item_reel = {
+		tris = 1256,
+		size = Vector3.new(0.4266, 1.58, 1.58),
+		origin = Vector3.new(0, 0.01, 0), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Flanges", size = Vector3.new(0.4266, 1.58, 1.58), centre = Vector3.new(0, 0.79, 0), look = "brushed_metal", material = "Metal", surface = "SHIFT_BrushedMetal", colour = Color3.fromRGB(120, 120, 126), transparency = 0, shadow = true, attach = "" },
+			{ name = "Film", size = Vector3.new(0.3, 1.1, 1.1), centre = Vector3.new(0, 0.79, 0), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(48, 38, 30), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	item_stapler = {
+		tris = 316,
+		size = Vector3.new(0.56, 0.6022, 1.56),
+		origin = Vector3.new(0, 0, 0), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Base", size = Vector3.new(0.56, 0.44, 1.56), centre = Vector3.new(0, 0.22, 0), look = "rust", material = "CorrodedMetal", surface = "SHIFT_Rust", colour = Color3.fromRGB(70, 60, 52), transparency = 0, shadow = true, attach = "" },
+			{ name = "Arm", size = Vector3.new(0.46, 0.4723, 1.4397), centre = Vector3.new(0, 0.3661, -0.0502), look = "rust", material = "CorrodedMetal", surface = "SHIFT_Rust", colour = Color3.fromRGB(110, 40, 36), transparency = 0, shadow = true, attach = "" },
+		},
+	},
+	item_typewriter = {
+		tris = 928,
+		size = Vector3.new(2, 1.249, 1.52),
+		origin = Vector3.new(0, 0, 0.04), -- where the origin sits in the frame the script modelled it in
+		parts = {
+			{ name = "Body", size = Vector3.new(2, 0.8928, 1.5), centre = Vector3.new(0, 0.4464, 0.01), look = "painted_metal", material = "Metal", surface = "SHIFT_PaintedMetal", colour = Color3.fromRGB(30, 34, 30), transparency = 0, shadow = true, attach = "" },
+			{ name = "Platen", size = Vector3.new(1.9, 0.26, 0.2535), centre = Vector3.new(0, 0.73, 0.46), look = "rubber", material = "Rubber", surface = "SHIFT_Rubber", colour = Color3.fromRGB(28, 28, 28), transparency = 0, shadow = true, attach = "" },
+			{ name = "Keys", size = Vector3.new(1.44, 0.21, 0.5806), centre = Vector3.new(0.05, 0.495, -0.4697), look = "worn_plastic", material = "Plastic", surface = "SHIFT_AgedPlastic", colour = Color3.fromRGB(196, 188, 164), transparency = 0, shadow = true, attach = "" },
+			{ name = "Paper", size = Vector3.new(1.2, 0.5506, 0.1261), centre = Vector3.new(0, 0.9737, 0.5141), look = "paper", material = "Fabric", surface = "SHIFT_Paper", colour = Color3.fromRGB(226, 222, 206), transparency = 0, shadow = true, attach = "" },
+		},
+	},
 	lift_doors = {
 		tris = 772,
 		size = Vector3.new(9.2, 10, 0.9),
