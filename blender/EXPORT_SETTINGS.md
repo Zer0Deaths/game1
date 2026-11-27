@@ -100,3 +100,32 @@ A correct file shows `UnitScaleFactor = 100.0`, `UpAxis = 1`, every node at
 If a door part arrives untextured, add a **SurfaceAppearance** to that
 MeshPart and set ColorMap, MetalnessMap and RoughnessMap to the three PNGs in
 `exports\textures\`.
+
+## The SHIFT model kit (build_all)
+
+Every game model has one script in `scripts/`, named like its FBX. They use
+`lib/kit.py`, which models in the game's own units (studs, Roblox axes,
+front -Z) with the same numbers as the Luau code, then converts to metres
+for this export. Every edge is bevelled, every mesh gets a named PBR
+material (painted metal, worn plastic, wallpaper, carpet, concrete...), and
+the origin is moved to the bottom centre of the whole model.
+
+Build them all, then upload:
+
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.3\blender.exe" --background --factory-startup --python-exit-code 1 --python blender\build_all.py
+python tools\upload_assets.py
+```
+
+`build_all.py` prints each model's triangle count and writes
+`src/shared/MeshManifest.luau` (each mesh's size, centre and look), which
+the game uses to place the uploaded meshes exactly where its primitive
+parts stand. `upload_assets.py` uploads each FBX as a Model asset and
+writes the IDs to `AssetIds.models`. Until a model is uploaded the game
+keeps its primitive parts, so nothing breaks.
+
+Build only some: `... --python blender\build_all.py -- door fixture`.
+
+Grid: one maze cell is 20 studs (5.6 m), the ceiling 11 studs (3.08 m),
+walls 1 stud thick, doorways 9 x 8.5 studs. Wall panels are one cell long;
+a `wall_post` stands on every grid point a wall touches and covers the joins.

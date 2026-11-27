@@ -77,4 +77,6 @@ return {
 		water_stain = "decal:129853679144896",
 		wear_path = "decal:137173839456064",
 	},
+	models = {
+	},
 }
