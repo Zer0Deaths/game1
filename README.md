@@ -40,26 +40,28 @@ Save the place in Studio (File > Save to Roblox) to keep non-code stuff like map
 
 ## How to play (current build)
 
-**The loop.** You spawn in the **safehouse**. Pick a crew at the crew board (4 crews of up to 4), buy supplies at the counter, then press **Ready** at the descent lift. When everyone is ready (or after 60 s) every crew drops into the same fresh level.
+**The loop.** You spawn in the **safehouse**. Pick a crew at the crew board (4 crews of up to 4), buy supplies at the counter, then press **Ready** at the descent lift. When everyone in your crew is ready, your crew drops into **sublevel 1** of its own level (every crew has its own, and progresses on its own).
+
+**Sublevels.** Your crew shares one quota (bigger for bigger crews). Meet it and the exit lift turns **green**. Get everyone still alive into the lift, then use its panel: **Go deeper** (E) or **Return to safehouse** (R). Either way the bank is split evenly as Cash. Deeper means a bigger quota, loot worth more, and more danger: Lampjaw from sublevel 2, the Tenant in the level from the start at 3, two Tenants from 4, faster Shifts every level. Crew mates who died come back down with you. Each sublevel has a timer (8 min): run out of time, or everyone dies, and the crew is **wiped**: loot lost, and everything bought in the shop lost too. Cash is kept.
 
 **In the level**
 - Find artefacts and pick them up (**E**). You can carry 4 (more with the bigger pack). Heavy ones slow you down.
 - Drop the one in your hand with **G**. Dropping loot is loud.
 - Sprint with **Left Shift**. Sprinting is loud too.
 - The compass points to the **exit lift**. **M** opens the crew map: everything anyone has seen, faded where a Shift may have changed it.
-- Walk into the lift to deposit. The money goes to *your crew's* quota. When the timer ends, crews that met quota split the bank as personal **Cash** and face a bigger quota; crews that missed are wiped.
-- Die and your loot drops where you fell. You wait out the run in the safehouse.
+- Walk into the lift to deposit. The money goes to your crew's quota.
+- Die and your loot drops where you fell. You wait in the safehouse and come down with your crew to the next sublevel.
 - **F** toggles your flashlight once you own one.
 
 **The Shift:** every 80-120 s the hum rises and the lights stutter, then 3 s of black while the maze rewires around you and the lift may move. Testing: tick a Boolean Workspace attribute `ForceShift`.
 
 **Entities**
-- **The Tenant** (tall, faceless, long coat) hunts by sound. It turns up after the first Shift, near whoever has been loudest. It only hears what is near it: walking a few studs, sprinting a couple of cells, dropped loot further. When it sees you it stops and shrieks, then chases, faster than you walk but a little slower than you sprint. Out of sight it only knows where it last saw you, so break line of sight and go quiet. You hear its drone and heavy steps first. The exit lift is safe.
+- **The Tenant** (tall, faceless, long coat) hunts by sound. It turns up after the first Shift (from the start on sublevel 3 and below), near whoever has been loudest. It only hears what is near it: walking a few studs, sprinting a couple of cells, dropped loot further. When it sees you it stops and shrieks, then chases, faster than you walk but a little slower than you sprint. Out of sight it only knows where it last saw you, so break line of sight and go quiet. You hear its drone and heavy steps first. The exit lift is safe.
 - **Lampjaw** hides in flickering lights. When one strobes **red and buzzes**, don't stop under it: linger about a second and it takes you. More active when a Shift is coming.
 
-**Levels:** The Carpet (run 1), The Ward (from run 2), The Plant Room (from run 3). Each is about 30x30 cells (600 studs across), with long walled halls, a pillared atrium, offices, storage rooms and open rooms between the maze corridors. The Shift rewires everything out of sight but keeps the level stocked with these set pieces.
+**Levels:** The Carpet (sublevel 1), The Ward (from 2), The Plant Room (from 3). Size depends on crew size: 22x22 cells solo up to 30x30 for a crew of 4 (20 studs a cell), with long walled halls, a pillared atrium, offices, storage rooms and open rooms between the maze corridors. The Shift rewires everything out of sight but keeps the level stocked with these set pieces.
 
-**Studio testing:** set the Workspace attribute `LevelSeed` to a number while in the safehouse to descend straight into that layout.
+**Studio testing:** set the Workspace attribute `LevelSeed` to a number to drop your crew straight into that layout. Tick `ForceShift` to trigger a Shift.
 
 Tuning numbers live in `src/shared/Config.luau`. Things only you can do (Studio settings, uploads, publishing, products) are in **TODO.md**.
 
@@ -77,15 +79,15 @@ Until then the hum is silent and footsteps use Roblox's default sound.
 
 Shared (`src/shared`, pure logic, mostly tested offline):
 - `LevelGen` maze generator, the Shift rewiring, and path finding. `LevelTypes` the three level kinds.
-- `Config` every tuning number. `Artefacts`, `ShopItems` item lists. `Crews` crew rules. `MapKnowledge` the crew map. `PlayerData` what gets saved.
+- `Config` every tuning number. `Artefacts`, `ShopItems` item lists. `Crews` crew rules (quota, loot, level size). `CrewState` each crew's live state. `MapKnowledge` the crew map. `PlayerData` what gets saved.
 
 Server (`src/server`):
 - `main.server` the game loop: safehouse, descent, run, results.
 - `LevelBuilder`, `Atmosphere`, `ExitLift`, `Safehouse` build the world. `Materials` the SHIFT textures (`assets/textures`, regenerate with `python tools/make_textures.py`).
-- `RunManager` quotas and timer per crew. `CrewService` crews and Cash. `ArtefactService` loot.
+- `Sublevels` the crew loop: each crew's level, quota, lift, deeper/return, wipes. `CrewService` crews and Cash. `ArtefactService` loot.
 - `ShiftService` the Shift. `Tenant`, `Lampjaw` the entities. `NoiseService` what they can hear.
 - `MapService` crew map. `ShopService` shop and flashlight. `DataService` saving. `MonetisationService` paid extras (off until IDs are set). `Uniform` the crew suit.
 
-Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Footsteps`, `Ambience`, `TenantSounds`, `Controls`, `StartupLight`, `Dust`, `Arms` (off for now).
+Client (`src/client`): `main.client` lights, `Hud`, `Compass`, `Map`, `Shop`, `Movement` (sprint), `Footsteps`, `Ambience`, `TenantSounds`, `Controls`, `StartupLight`, `Dust`, `CrewMirror` (your crew's state onto Workspace), `Arms` (off for now).
 
 Offline tests (need the [Luau CLI](https://github.com/luau-lang/luau/releases)): `luau tests/levelgen.test.luau`, `tests/map.test.luau`, `tests/crews.test.luau`, `tests/playerdata.test.luau`.

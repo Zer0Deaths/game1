@@ -132,8 +132,11 @@ liftMarker.AnchorPoint = Vector2.new(0.5, 0.5)
 liftMarker.ZIndex = 3
 local dots: { [Player]: Frame } = {}
 
+-- Your crew's level is built at its own origin (mirrored as LevelOrigin).
 local function toMap(pos: Vector3): (number, number)
-	return pos.X / CELL * px, pos.Z / CELL * px
+	local origin = workspace:GetAttribute("LevelOrigin")
+	local p = if typeof(origin) == "Vector3" then pos - origin else pos
+	return p.X / CELL * px, p.Z / CELL * px
 end
 
 RunService.RenderStepped:Connect(function()
@@ -158,8 +161,10 @@ RunService.RenderStepped:Connect(function()
 			corner.Parent = dot
 			dots[p] = dot
 		end
-		dot.Visible = root ~= nil
-		if root then
+		-- Only your crew mates in the level (not people in the safehouse).
+		local show = root ~= nil and p:GetAttribute("Crew") == player:GetAttribute("Crew") and (root :: BasePart).Position.X >= 0
+		dot.Visible = show
+		if root and show then
 			local x, y = toMap(root.Position)
 			dot.Position = UDim2.fromOffset(x, y)
 		end

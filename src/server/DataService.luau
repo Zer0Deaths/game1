@@ -164,12 +164,8 @@ function DataService.init()
 			task.wait(0.2)
 		end
 	end)
-	-- Checkpoints: after every run, and every 2 minutes.
-	workspace:GetAttributeChangedSignal("RunState"):Connect(function()
-		if workspace:GetAttribute("RunState") == "hub" then
-			DataService.saveAll()
-		end
-	end)
+	-- Checkpoints: Sublevels saves a crew whenever a sublevel is cleared or
+	-- the crew is wiped, and everyone is saved every 2 minutes.
 	task.spawn(function()
 		while true do
 			task.wait(120)

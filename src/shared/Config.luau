@@ -1,10 +1,30 @@
 -- Game tuning numbers in one place. All first guesses: change them
 -- after playtests. Shared so the HUD can read them too.
 return {
-	RUN_SECONDS = 600, -- length of one run (10 min; levels are 30x30 cells now)
-	BASE_QUOTA = 400, -- money needed in the first run
-	QUOTA_GROWTH = 1.4, -- each met quota multiplies the next one by this
-	ARTEFACT_COUNT = 70, -- artefacts scattered per level
+	-- SUBLEVELS. Each crew gets its own level. Meet the crew quota, get
+	-- everyone alive into the lift, then go deeper (bigger quota, better
+	-- loot, more danger) or return to the safehouse. Run out of time, or
+	-- all die, and the crew is wiped.
+	SUBLEVEL_SECONDS = 480, -- time to meet the quota and get everyone in the lift
+	QUOTA_SOLO = 250, -- sublevel 1 quota for a crew of one
+	QUOTA_PER_EXTRA = 100, -- + this per extra crew member (crew of 4: 550)
+	QUOTA_GROWTH = 1.35, -- each sublevel deeper multiplies the quota by this
+	LOOT_VALUE_PER_DEPTH = 0.2, -- loot is worth +20% per sublevel deeper (x1.0, x1.2, x1.4 ...)
+	ARTEFACTS_PER_100_CELLS = 8, -- how much loot a level holds (a 30x30 level: 72)
+	LEVEL_SIZE_BY_CREW = { 22, 26, 28, 30 }, -- level width/depth in cells for crews of 1-4
+	LEVEL_SPACING = 4000, -- studs between crews' levels (keeps them out of each other's streaming range)
+	DESCENT_COUNTDOWN = 5, -- seconds after a crew is all Ready (or chooses Deeper) before the lift drops
+	WIPE_LOSES_KIT = true, -- a wiped crew loses everything bought in the shop (Cash is kept)
+	-- Danger by depth (sublevel number).
+	DEPTH = {
+		lampjawFrom = 2, -- Lampjaw starts haunting the lights from this sublevel
+		tenantAtStartFrom = 3, -- from here the Tenant is in the level from the start, not after the first Shift
+		secondTenantFrom = 4, -- a second Tenant from here
+		tenantSpeedPerDepth = 0.4, -- chase speed + this per sublevel after the first...
+		tenantSpeedCap = 24.5, -- ...but never as fast as a sprint (25.6)
+		shiftFasterPerDepth = 0.07, -- Shifts come this much more often per sublevel...
+		shiftMinScale = 0.55, -- ...down to this fraction of the normal gap
+	},
 	MAX_CARRY = 4, -- artefacts one player can hold at once (the shop's bigger pack adds to this)
 	WALK_SPEED = 16, -- Roblox default
 	MIN_WALK_SPEED = 6, -- slowest you can get from carrying heavy loot
@@ -22,7 +42,6 @@ return {
 	STAMINA_REGEN_DELAY = 0.8, -- pause after sprinting before regen starts
 	EXHAUSTED_UNTIL = 30, -- run dry and you can't sprint again until this
 	LIFT_RADIUS = 6, -- how close to the lift centre counts as "inside"
-	INTERMISSION_SECONDS = 8, -- pause between runs to show the result
 
 	-- Lighting. Roblox takes ~15 s after joining before the ceiling lights
 	-- actually light the walls, so each player starts with a brighter warm
@@ -45,8 +64,9 @@ return {
 		ease = 7, -- how quickly arms settle (higher = snappier)
 	},
 
-	-- THE TENANT: hunts by sound. Arrives right after the first Shift and
-	-- re-appears near the loudest player after every Shift. Counter: stay
+	-- THE TENANT: hunts by sound. Arrives right after the first Shift (from
+	-- the start deeper down, see DEPTH) and re-appears near the loudest
+	-- player after every Shift. Counter: stay
 	-- quiet, split up, hide in the exit lift.
 	TENANT = {
 		enabled = true,
@@ -110,8 +130,6 @@ return {
 
 	-- Safehouse hub: where crews wait, shop and pick crews between runs.
 	HUB_ORIGIN = Vector3.new(-160, 0, 140), -- far from the level (which starts at 0,0)
-	HUB_SECONDS = 60, -- countdown before the next descent
-	HUB_ALL_READY_SECONDS = 5, -- countdown once everyone has pressed Ready
 
 	-- Flashlight (shop item)
 	FLASHLIGHT_SECONDS = 150, -- battery life per run

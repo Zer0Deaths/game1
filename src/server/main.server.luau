@@ -1,14 +1,14 @@
 -- Runs on the server. Synced to ServerScriptService.Server.main
--- The game loop:
---   HUB      everyone is in the safehouse: pick a crew, shop, press Ready.
---            When all are ready (or the countdown ends) everyone descends.
---   PLAYING  a fresh level is built and every crew is dropped into it.
---            The dead go back to the safehouse until the next descent;
---            late joiners can use the descent lift to join in.
---   INTERMISSION  quotas are settled, then everyone returns to the hub.
+-- Sets up the world and the safehouse. The crew loop itself (sublevels,
+-- quota, the lift, wipes) is in Sublevels.luau:
+--   SAFEHOUSE  pick a crew, shop, press Ready. A crew drops into its own
+--              sublevel 1 when everyone in it is ready.
+--   SUBLEVEL   meet the crew quota, get everyone alive into the lift, then
+--              go deeper or return to the safehouse. Out of time or all
+--              dead: the crew is wiped and comes back here.
 --
--- Studio testing: set the Workspace attribute "LevelSeed" to a number while
--- in the hub to descend straight away into that exact layout.
+-- Studio testing: Workspace attributes "LevelSeed" (number) drops your
+-- crew straight into that layout; "ForceShift" (bool) triggers a Shift.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,20 +16,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- WaitForChild instead of a dot: if Rojo is mid-sync, this waits instead of crashing.
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
-local LevelGen = require(Shared:WaitForChild("LevelGen"))
-local LevelTypes = require(Shared:WaitForChild("LevelTypes"))
-local LevelBuilder = require(script.Parent:WaitForChild("LevelBuilder"))
+local CrewState = require(Shared:WaitForChild("CrewState"))
 
 local Atmosphere = require(script.Parent:WaitForChild("Atmosphere"))
 local ArtefactService = require(script.Parent:WaitForChild("ArtefactService"))
-local ExitLift = require(script.Parent:WaitForChild("ExitLift"))
-local RunManager = require(script.Parent:WaitForChild("RunManager"))
-local ShiftService = require(script.Parent:WaitForChild("ShiftService"))
 local Remotes = require(script.Parent:WaitForChild("Remotes"))
 local Uniform = require(script.Parent:WaitForChild("Uniform"))
-local Tenant = require(script.Parent:WaitForChild("Tenant"))
-local Lampjaw = require(script.Parent:WaitForChild("Lampjaw"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
+local Sublevels = require(script.Parent:WaitForChild("Sublevels"))
 local CrewService = require(script.Parent:WaitForChild("CrewService"))
 local Safehouse = require(script.Parent:WaitForChild("Safehouse"))
 local ShopService = require(script.Parent:WaitForChild("ShopService"))
@@ -56,22 +50,6 @@ for _, name in { "Baseplate", "SpawnLocation" } do
 	end
 end
 
-local currentLevel: Model? = nil
-local currentLayout: LevelGen.Layout? = nil
-
-local function now(): number
-	return workspace:GetServerTimeNow()
-end
-
-local function levelSpawnCFrame(index: number): CFrame
-	local layout = currentLayout
-	local pos = if layout then LevelBuilder.cellCenter(layout.spawn.x, layout.spawn.z) else Vector3.zero
-	-- Spread people around the start cell so nobody lands inside someone else.
-	local angle = index * 2.4
-	local r = 2 + (index % 4) * 1.5
-	return CFrame.new(pos + Vector3.new(math.cos(angle) * r, 4, math.sin(angle) * r))
-end
-
 local function aliveRoot(player: Player): BasePart?
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -79,41 +57,6 @@ local function aliveRoot(player: Player): BasePart?
 		return character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	end
 	return nil
-end
-
-local function buildLevel(seed: number, levelType: LevelTypes.LevelType)
-	if currentLevel then
-		currentLevel:Destroy()
-	end
-	local started = os.clock()
-	currentLayout = LevelGen.generate(seed, levelType.gen)
-	local layout = currentLayout :: LevelGen.Layout
-	LevelBuilder.setTheme(levelType.colours, levelType.materials, levelType.variants)
-	Atmosphere.applyTheme(levelType.haze, levelType.tint)
-	workspace:SetAttribute("LevelType", levelType.id)
-	workspace:SetAttribute("LevelName", levelType.name)
-	workspace:SetAttribute("LightColour", levelType.light)
-	currentLevel = LevelBuilder.build(layout, workspace)
-	ArtefactService.spawnAll(layout, currentLevel :: Model, LevelBuilder.cellCenter)
-
-	local function placeLift(l: LevelGen.Layout): Vector3
-		local old = (currentLevel :: Model):FindFirstChild("ExitLift")
-		if old then
-			old:Destroy()
-		end
-		return ExitLift.build(LevelBuilder.cellCenter(l.exit.x, l.exit.z), LevelBuilder.HEIGHT, currentLevel :: Model)
-	end
-	local lift = placeLift(layout)
-	ShiftService.setLevel(layout, currentLevel :: Model, function(l)
-		RunManager.setLift(placeLift(l))
-		Remotes.Notify:FireAllClients("The lift has moved. Follow the compass.", "warn")
-	end)
-	Tenant.setLevel(layout)
-	Lampjaw.setLevel(layout)
-	MapService.setLevel(layout)
-	workspace:SetAttribute("LiftPosition", lift)
-	print(`[Level] {levelType.name}, seed {seed}: built in {math.round((os.clock() - started) * 1000)} ms`)
-	return lift
 end
 
 -- HUB -----------------------------------------------------------------------
@@ -127,46 +70,19 @@ local function sendToHub(player: Player, index: number)
 	end
 end
 
-local function startHub()
-	workspace:SetAttribute("RunState", "hub")
-	workspace:SetAttribute("HubEndsAt", now() + Config.HUB_SECONDS)
-	for i, player in Players:GetPlayers() do
-		player:SetAttribute("Ready", false)
-		player:SetAttribute("DiedThisRun", false)
-		sendToHub(player, i)
-	end
-end
-
-local descending = false
-local seedFromStudio = false
-
-local function descend(seed: number?)
-	if descending then
-		return
-	end
-	descending = true
-	local chosen = seed or math.random(1, 999999)
-	seedFromStudio = true
-	workspace:SetAttribute("LevelSeed", chosen)
-	seedFromStudio = false
-	local nextRun = ((workspace:GetAttribute("RunNumber") or 0) :: number) + 1
-	local levelType = LevelTypes.pick(nextRun, math.random())
-	local lift = buildLevel(chosen, levelType)
-	for i, player in Players:GetPlayers() do
-		player:SetAttribute("Ready", false)
-		player:SetAttribute("DiedThisRun", false)
-		if aliveRoot(player) then
-			(player.Character :: Model):PivotTo(levelSpawnCFrame(i))
-		end
-	end
-	RunManager.startRun(lift)
-	descending = false
+local function inSafehouse(player: Player): boolean
+	local root = aliveRoot(player)
+	return root ~= nil and root.Position.X < 0
 end
 
 -- Crew board.
 for c, pr in hub.crewPrompts do
 	pr.Triggered:Connect(function(player)
+		if player:GetAttribute("Crew") ~= c and not inSafehouse(player) then
+			return
+		end
 		if CrewService.switch(player, c) then
+			player:SetAttribute("Ready", false)
 			Remotes.Notify:FireClient(player, `You joined {Config.CREW_NAMES[c]}.`, "money")
 		elseif player:GetAttribute("Crew") ~= c then
 			Remotes.Notify:FireClient(player, `{Config.CREW_NAMES[c]} is full.`, "warn")
@@ -183,53 +99,36 @@ end)
 hub.wardrobePrompt.Triggered:Connect(MonetisationService.useWardrobe)
 hub.supplyPrompt.Triggered:Connect(MonetisationService.promptSupplyDrop)
 
--- Descent lift: Ready in the hub, or join a run already under way.
+-- Descent lift: Ready up with your crew, or join your crew's sublevel if
+-- it's already down there (not if you died on this one: wait for the next).
 hub.readyPrompt.Triggered:Connect(function(player)
-	local state = workspace:GetAttribute("RunState")
-	if state == "hub" then
-		local ready = not player:GetAttribute("Ready")
-		player:SetAttribute("Ready", ready)
-		Remotes.Notify:FireClient(player, if ready then "Ready. Waiting for the others." else "Not ready.", "money")
+	local crew = (player:GetAttribute("Crew") or 1) :: number
+	local state = CrewState.folder(crew):GetAttribute("State")
+	if state == "hub" or state == "countdown" then
+		Sublevels.toggleReady(player)
 	elseif state == "playing" then
 		if player:GetAttribute("DiedThisRun") then
-			Remotes.Notify:FireClient(player, "You died this run. Wait for the next descent.", "warn")
-		elseif aliveRoot(player) then
-			(player.Character :: Model):PivotTo(levelSpawnCFrame(math.random(1, 16)))
+			Remotes.Notify:FireClient(player, "You died on this sublevel. You'll go down with your crew to the next one.", "warn")
+		else
+			Sublevels.join(player)
 		end
 	end
 end)
 
--- Hub countdown, ready check, and the signs.
+-- The signs: each crew's state on the board, and a note at the lift.
 task.spawn(function()
 	while true do
-		task.wait(0.25)
-		local state = workspace:GetAttribute("RunState")
-		local players = Players:GetPlayers()
-		local ready = 0
-		for _, p in players do
-			if p:GetAttribute("Ready") then
-				ready += 1
-			end
-		end
+		task.wait(0.5)
 		for c, label in hub.crewSigns do
-			label.Text = `{Config.CREW_NAMES[c]}\n{#CrewService.members(c)}/{Config.CREW_SIZE}`
+			local st = CrewState.folder(c)
+			local state = st:GetAttribute("State")
+			local where = if state == "playing" or state == "descending" or state == "cleared"
+				then `SUBLEVEL {st:GetAttribute("Depth") or 1}`
+				elseif state == "countdown" then "DROPPING"
+				else `READY {st:GetAttribute("ReadyCount") or 0}/{#CrewService.members(c)}`
+			label.Text = `{Config.CREW_NAMES[c]}\n{#CrewService.members(c)}/{Config.CREW_SIZE}  ·  {where}`
 		end
-		if state == "hub" then
-			local endsAt = (workspace:GetAttribute("HubEndsAt") or now()) :: number
-			if #players > 0 and ready == #players and endsAt - now() > Config.HUB_ALL_READY_SECONDS then
-				endsAt = now() + Config.HUB_ALL_READY_SECONDS
-				workspace:SetAttribute("HubEndsAt", endsAt)
-			end
-			workspace:SetAttribute("ReadyCount", ready)
-			hub.liftSign.Text = `DESCENT IN {math.max(0, math.ceil(endsAt - now()))}s  ·  READY {ready}/{#players}`
-			if now() >= endsAt and #players > 0 then
-				descend(nil)
-			end
-		elseif state == "playing" then
-			hub.liftSign.Text = "RUN UNDER WAY  ·  JOIN AT THE PANEL"
-		else
-			hub.liftSign.Text = "STAND BY"
-		end
+		hub.liftSign.Text = "DESCENT  ·  YOUR CREW DROPS WHEN ALL ARE READY"
 	end
 end)
 
@@ -238,7 +137,7 @@ local function watchDeaths(player: Player)
 	player.CharacterAdded:Connect(function(character)
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 		humanoid.Died:Connect(function()
-			if workspace:GetAttribute("RunState") == "playing" then
+			if CrewState.folder((player:GetAttribute("Crew") or 1) :: number):GetAttribute("State") == "playing" and not inSafehouse(player) then
 				player:SetAttribute("DiedThisRun", true)
 				player:SetAttribute("Stat_Deaths", ((player:GetAttribute("Stat_Deaths") or 0) :: number) + 1)
 			end
@@ -257,13 +156,8 @@ ShopService.init()
 DataService.init()
 MonetisationService.init()
 ArtefactService.init()
-ShiftService.init()
-Tenant.init()
-Lampjaw.init()
 MapService.init()
-RunManager.init(startHub) -- after each run's results, everyone goes back to the hub
-
-startHub()
+Sublevels.init(sendToHub) -- each crew's sublevels; back to the safehouse after a wipe or by choice
 
 -- The safehouse is built and lit: now let people spawn (in the safehouse).
 Players.CharacterAutoLoads = true
@@ -275,9 +169,19 @@ for _, player in Players:GetPlayers() do
 	end
 end
 
+-- Studio testing:
+--   LevelSeed (number): drop the first player's crew straight into that layout.
+--   ForceShift (bool): trigger a Shift in every crew's level now.
 workspace:GetAttributeChangedSignal("LevelSeed"):Connect(function()
 	local seed = workspace:GetAttribute("LevelSeed")
-	if not seedFromStudio and typeof(seed) == "number" and workspace:GetAttribute("RunState") == "hub" then
-		descend(seed)
+	local first = Players:GetPlayers()[1]
+	if typeof(seed) == "number" and first then
+		Sublevels.descendWithSeed((first:GetAttribute("Crew") or 1) :: number, seed)
+	end
+end)
+workspace:GetAttributeChangedSignal("ForceShift"):Connect(function()
+	if workspace:GetAttribute("ForceShift") == true then
+		workspace:SetAttribute("ForceShift", false)
+		Sublevels.forceShift()
 	end
 end)

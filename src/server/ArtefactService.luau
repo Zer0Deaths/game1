@@ -18,7 +18,14 @@ local NoiseService = require(script.Parent:WaitForChild("NoiseService"))
 
 local ArtefactService = {}
 
-local worldFolder: Folder? = nil -- where artefacts lying in the level live
+-- Each crew's level has its own "Artefacts" folder. Sublevels tells us
+-- which one a player is standing in (for drops and death spills).
+local folderFor: (Player) -> Folder? = function()
+	return nil
+end
+function ArtefactService.setFolderResolver(fn: (Player) -> Folder?)
+	folderFor = fn
+end
 
 local function handleOf(tool: Tool): BasePart
 	return tool:FindFirstChild("Handle") :: BasePart
@@ -103,9 +110,9 @@ function ArtefactService.updateBackLoad(player: Player)
 end
 
 -- Put a tool on the floor at a position, ready to be picked up.
-local function placeInWorld(tool: Tool, position: Vector3, yaw: number)
+local function placeInWorld(tool: Tool, position: Vector3, yaw: number, folder: Instance)
 	local handle = handleOf(tool)
-	tool.Parent = worldFolder
+	tool.Parent = folder
 	handle.Anchored = true
 	handle.CanCollide = true
 	handle.Massless = false
@@ -119,7 +126,8 @@ end
 local function pickUp(player: Player, tool: Tool)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not humanoid or humanoid.Health <= 0 or tool.Parent ~= worldFolder then
+	local parent = tool.Parent
+	if not humanoid or humanoid.Health <= 0 or not parent or parent.Name ~= "Artefacts" or not parent:IsDescendantOf(workspace) then
 		return
 	end
 	local maxCarry = Config.MAX_CARRY + ((player:GetAttribute("CarryBonus") or 0) :: number)
@@ -190,26 +198,26 @@ local function pickDef(rng): Artefacts.ArtefactDef
 	return Artefacts[1]
 end
 
--- Scatter artefacts across the level. cellCenter converts a grid cell
--- to a world position (from LevelBuilder).
-function ArtefactService.spawnAll(layout: LevelGen.Layout, levelModel: Instance, cellCenter: (number, number) -> Vector3)
+-- Scatter artefacts across a level. cellCenter converts a grid cell to a
+-- world position. Deeper sublevels pass a valueMultiplier > 1.
+function ArtefactService.spawnAll(layout: LevelGen.Layout, levelModel: Instance, cellCenter: (number, number) -> Vector3, count: number, valueMultiplier: number): Folder
 	local folder = Instance.new("Folder")
 	folder.Name = "Artefacts"
 	folder.Parent = levelModel
-	worldFolder = folder
 
 	local rng = LevelGen.makeRng(layout.seed + 101)
-	for _ = 1, Config.ARTEFACT_COUNT do
+	for _ = 1, count do
 		local x, z
 		repeat
 			x, z = rng.int(1, layout.width), rng.int(1, layout.depth)
 		until not (x == layout.spawn.x and z == layout.spawn.z) and not (x == layout.exit.x and z == layout.exit.z)
 		local def = pickDef(rng)
-		local value = rng.int(def.minValue, def.maxValue)
+		local value = math.floor(rng.int(def.minValue, def.maxValue) * valueMultiplier + 0.5)
 		local center = cellCenter(x, z)
 		local offset = Vector3.new((rng.float() - 0.5) * 12, 0, (rng.float() - 0.5) * 12)
-		placeInWorld(makeArtefact(def, value), center + offset, rng.float() * math.pi * 2)
+		placeInWorld(makeArtefact(def, value), center + offset, rng.float() * math.pi * 2, folder)
 	end
+	return folder
 end
 
 -- Remove every artefact a player is carrying and return their total value.
@@ -224,17 +232,11 @@ function ArtefactService.takeAll(player: Player): (number, number)
 	return total, count
 end
 
--- Unsold loot is lost when a run ends.
-function ArtefactService.clearCarried()
-	for _, player in Players:GetPlayers() do
-		ArtefactService.takeAll(player)
-	end
-end
-
 local function dropHeld(player: Player)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not character or not root or not worldFolder then
+	local folder = folderFor(player)
+	if not character or not root or not folder then
 		return
 	end
 	local tool = character:FindFirstChildOfClass("Tool")
@@ -244,7 +246,7 @@ local function dropHeld(player: Player)
 	end
 	local pos = root.Position + root.CFrame.LookVector * 3
 	local _, yaw, _ = root.CFrame:ToOrientation()
-	placeInWorld(tool, pos, yaw)
+	placeInWorld(tool, pos, yaw, folder)
 	ArtefactService.refreshCarry(player)
 	-- Loot hitting the floor is loud.
 	NoiseService.emit(pos, Config.TENANT.hearDrop, player)
@@ -267,12 +269,13 @@ local function onCharacter(player: Player, character: Model)
 	humanoid.Died:Connect(function()
 		-- Your loot spills on the floor where you die. Someone can come back for it.
 		local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if not root or not worldFolder then
+		local folder = folderFor(player)
+		if not root or not folder then
 			return
 		end
 		for _, tool in ArtefactService.carried(player) do
 			local scatter = Vector3.new(math.random() * 4 - 2, 0, math.random() * 4 - 2)
-			placeInWorld(tool, root.Position + scatter, math.random() * math.pi * 2)
+			placeInWorld(tool, root.Position + scatter, math.random() * math.pi * 2, folder)
 		end
 		player:SetAttribute("CarryCount", 0)
 		player:SetAttribute("CarryWeight", 0)

@@ -2,8 +2,8 @@
 -- CrewService: splits the server into crews (Config.CREW_COUNT crews of up
 -- to Config.CREW_SIZE). Each player gets a "Crew" attribute (1-4) and a
 -- "Cash" attribute (their own money for the safehouse shop).
--- Per-crew state lives in Workspace attributes so every HUD can read it:
---   Crew<n>Name, Crew<n>Quota, Crew<n>Banked
+-- Each crew's live state (sublevel, quota, bank...) is on its CrewState
+-- folder, written by Sublevels.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -56,11 +56,6 @@ local function assign(player: Player)
 end
 
 function CrewService.init()
-	for c = 1, Config.CREW_COUNT do
-		workspace:SetAttribute(`Crew{c}Name`, Config.CREW_NAMES[c])
-		workspace:SetAttribute(`Crew{c}Quota`, Config.BASE_QUOTA)
-		workspace:SetAttribute(`Crew{c}Banked`, 0)
-	end
 	Players.PlayerAdded:Connect(assign)
 	for _, p in Players:GetPlayers() do
 		assign(p)

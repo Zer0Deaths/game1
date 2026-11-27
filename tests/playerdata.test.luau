@@ -9,7 +9,7 @@ local function check(cond, msg)
 end
 
 -- Round trip.
-local attrs = { Cash = 1234, Own_flashlight = 1, Own_bigpack = 2, Stat_Deposited = 9000, Stat_QuotasMet = 7, Stat_Deaths = 3, Junk = "x" }
+local attrs = { Cash = 1234, Own_flashlight = 1, Own_bigpack = 2, Stat_Deposited = 9000, Stat_QuotasMet = 7, Stat_Deaths = 3, Stat_Deepest = 5, Junk = "x" }
 local saved = PlayerData.serialize(function(n) return attrs[n] end)
 check(saved.v == PlayerData.VERSION, "version missing")
 check(saved.Junk == nil, "unknown field saved")
