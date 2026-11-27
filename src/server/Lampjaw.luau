@@ -80,7 +80,9 @@ local function possess(now: number)
 		rest(now)
 		return
 	end
-	setCell(near[math.random(1, #near)])
+	local chosen = near[math.random(1, #near)]
+	setCell(chosen)
+	print(`[Lampjaw] in the light at {chosen // 1000},{chosen % 1000}`)
 	holdUntil = now + L.holdMin + math.random() * (L.holdMax - L.holdMin)
 end
 
