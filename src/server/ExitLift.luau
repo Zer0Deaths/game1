@@ -5,6 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Surfaces = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Surfaces"))
+local Meshes = require(script.Parent:WaitForChild("Meshes"))
 
 local ExitLift = {}
 
@@ -29,7 +30,7 @@ function ExitLift.build(center: Vector3, height: number, parent: Instance): (Vec
 	model.Name = "ExitLift"
 
 	-- Steel floor plate with a glowing amber edge strip.
-	part({
+	local plate = part({
 		Name = "Plate",
 		Size = Vector3.new(10, 0.2, 10),
 		Position = center + Vector3.new(0, 0.1, 0),
@@ -50,14 +51,15 @@ function ExitLift.build(center: Vector3, height: number, parent: Instance): (Vec
 	end
 
 	-- Four steel posts and a header frame, like an open freight lift cage.
+	local cage: { BasePart } = { plate }
 	for _, corner in { Vector3.new(5, 0, 5), Vector3.new(-5, 0, 5), Vector3.new(5, 0, -5), Vector3.new(-5, 0, -5) } do
-		part({
+		table.insert(cage, part({
 			Name = "Post",
 			Size = Vector3.new(0.6, height, 0.6),
 			Position = center + corner + Vector3.new(0, height / 2, 0),
 			Color = Color3.fromRGB(90, 88, 80),
 			Material = Enum.Material.CorrodedMetal,
-		}, model)
+		}, model))
 	end
 
 	-- Warm light so the lift reads as "safe" from down a corridor.
@@ -120,6 +122,13 @@ function ExitLift.build(center: Vector3, height: number, parent: Instance): (Vec
 
 	Surfaces.autoAll(model) -- PBR steel, rust and paint
 	model.Parent = parent
+	-- The Blender cage (deck, posts, header, ropes, lamp guard, control box)
+	-- for the 11-stud levels. The edge strips and the lamp stay these parts:
+	-- they turn green when the quota's met. The panel keeps its prompts.
+	if height == 11 then
+		table.insert(cage, panel)
+		Meshes.dress("exit_lift", CFrame.new(center), model, cage)
+	end
 	return center, model
 end
 

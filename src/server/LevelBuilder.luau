@@ -211,30 +211,56 @@ local function desk(parent: Instance, at: CFrame, h: (number) -> number)
 		-- An old CRT-ish monitor, left on its stand or knocked over.
 		local fallen = h(2) < 0.2
 		local m = if fallen then at * CFrame.new(0.4, 2.9, -0.2) * CFrame.Angles(math.rad(-90), 0, 0) else at * CFrame.new(0.4, 3.55, -0.6)
-		detail({ Name = "Monitor", Size = Vector3.new(1.7, 1.25, 1.1), CFrame = m, Color = Color3.fromRGB(196, 190, 172), Material = Enum.Material.Plastic }, parent)
-		detail({ Name = "Screen", Size = Vector3.new(1.4, 0.95, 0.05), CFrame = m * CFrame.new(0, 0, 0.56), Color = Color3.fromRGB(24, 28, 26), Material = Enum.Material.Glass, Reflectance = 0.15 }, parent)
+		Meshes.dress("crt_monitor", m + ORIGIN, parent, {
+			detail({ Name = "Monitor", Size = Vector3.new(1.7, 1.25, 1.1), CFrame = m, Color = Color3.fromRGB(196, 190, 172), Material = Enum.Material.Plastic }, parent),
+			detail({ Name = "Screen", Size = Vector3.new(1.4, 0.95, 0.05), CFrame = m * CFrame.new(0, 0, 0.56), Color = Color3.fromRGB(24, 28, 26), Material = Enum.Material.Glass, Reflectance = 0.15 }, parent),
+		})
 	end
 	if h(3) < 0.6 then
-		detail({ Name = "Keyboard", Size = Vector3.new(1.5, 0.08, 0.5), CFrame = at * CFrame.new(0.4, 2.77, 0.5) * CFrame.Angles(0, math.rad((h(4) - 0.5) * 30), 0), Color = Color3.fromRGB(186, 180, 162), Material = Enum.Material.Plastic }, parent)
+		local k = at * CFrame.new(0.4, 2.73, 0.5) * CFrame.Angles(0, math.rad((h(4) - 0.5) * 30), 0)
+		Meshes.dress("keyboard", k + ORIGIN, parent, {
+			detail({ Name = "Keyboard", Size = Vector3.new(1.5, 0.08, 0.5), CFrame = k * CFrame.new(0, 0.04, 0), Color = Color3.fromRGB(186, 180, 162), Material = Enum.Material.Plastic }, parent),
+		})
 	end
-	-- Paper left lying around.
+	-- Paper left lying around (the Blender scatter of sheets, where the first fell).
+	local sheets = {}
 	for i = 1, math.floor(h(5) * 4) do
-		detail({ Name = "Paper", Size = Vector3.new(0.85, 0.02, 1.1), CFrame = at * CFrame.new((h(10 + i) - 0.5) * 7, 0.02, (h(20 + i) - 0.5) * 6) * CFrame.Angles(0, h(30 + i) * 6.28, 0), Color = PAPER, Material = Enum.Material.Plastic }, parent)
+		table.insert(sheets, detail({ Name = "Paper", Size = Vector3.new(0.85, 0.02, 1.1), CFrame = at * CFrame.new((h(10 + i) - 0.5) * 7, 0.02, (h(20 + i) - 0.5) * 6) * CFrame.Angles(0, h(30 + i) * 6.28, 0), Color = PAPER, Material = Enum.Material.Plastic }, parent))
+	end
+	if #sheets > 0 then
+		-- The papers model is built face down (Safehouse flips it the same way).
+		local first = at * CFrame.new((h(11) - 0.5) * 7, 0.05, (h(21) - 0.5) * 6)
+		Meshes.dress("papers", CFrame.new(first.Position + ORIGIN) * CFrame.Angles(math.pi, h(31) * 6.28, 0), parent, sheets)
 	end
 	chair(parent, at * CFrame.new((h(6) - 0.5) * 1.5, 0, 2.2 + h(7)) * CFrame.Angles(0, (h(8) - 0.5) * 1.6, 0), h(9) < 0.15)
 end
 
 local function filingCabinet(parent: Instance, at: CFrame)
-	prop({ Name = "Cabinet", Size = Vector3.new(1.8, 4.4, 2.2), CFrame = at * CFrame.new(0, 2.2, 0), Color = Color3.fromRGB(140, 138, 126), Material = Enum.Material.Metal }, parent)
+	local body = prop({ Name = "Cabinet", Size = Vector3.new(1.8, 4.4, 2.2), CFrame = at * CFrame.new(0, 2.2, 0), Color = Color3.fromRGB(140, 138, 126), Material = Enum.Material.Metal }, parent)
+	local parts = { body }
 	for i = 0, 3 do
-		detail({ Name = "DrawerLine", Size = Vector3.new(1.6, 0.05, 0.04), CFrame = at * CFrame.new(0, 0.6 + i * 1.05, -1.11), Color = DARK, Material = Enum.Material.Metal }, parent)
-		detail({ Name = "Handle", Size = Vector3.new(0.5, 0.1, 0.1), CFrame = at * CFrame.new(0, 0.95 + i * 1.05, -1.14), Color = Color3.fromRGB(180, 178, 170), Material = Enum.Material.Metal }, parent)
+		table.insert(parts, detail({ Name = "DrawerLine", Size = Vector3.new(1.6, 0.05, 0.04), CFrame = at * CFrame.new(0, 0.6 + i * 1.05, -1.11), Color = DARK, Material = Enum.Material.Metal }, parent))
+		table.insert(parts, detail({ Name = "Handle", Size = Vector3.new(0.5, 0.1, 0.1), CFrame = at * CFrame.new(0, 0.95 + i * 1.05, -1.14), Color = Color3.fromRGB(180, 178, 170), Material = Enum.Material.Metal }, parent))
 	end
+	Meshes.dress("filing_cabinet", at + ORIGIN, parent, parts)
 end
 
+-- A box on a shelf. With the Blender boxes uploaded it's an archive box or
+-- a packing carton (whichever fits the gap), at the model's own size, so
+-- the box you bump into is the box you see.
 local function box(parent: Instance, cf: CFrame, size: Vector3)
-	prop({ Name = "Box", Size = size, CFrame = cf * CFrame.new(0, size.Y / 2, 0), Color = CARDBOARD, Material = Enum.Material.Cardboard }, parent)
-	detail({ Name = "Tape", Size = Vector3.new(size.X + 0.02, 0.02, 0.35), CFrame = cf * CFrame.new(0, size.Y + 0.01, 0), Color = Color3.fromRGB(190, 170, 120), Material = Enum.Material.Plastic }, parent)
+	local name = if size.X >= 1.8 then "carton" else "archive_box"
+	local model = Meshes.size(name)
+	local scale = 1
+	if Meshes.has(name) and model then
+		scale = math.min(1, size.X / model.X)
+		size = model * scale
+	end
+	local parts = {
+		prop({ Name = "Box", Size = size, CFrame = cf * CFrame.new(0, size.Y / 2, 0), Color = CARDBOARD, Material = Enum.Material.Cardboard }, parent),
+		detail({ Name = "Tape", Size = Vector3.new(size.X + 0.02, 0.02, 0.35), CFrame = cf * CFrame.new(0, size.Y + 0.01, 0), Color = Color3.fromRGB(190, 170, 120), Material = Enum.Material.Plastic }, parent),
+	}
+	Meshes.dress(name, cf + ORIGIN, parent, parts, { scale = scale })
 end
 
 -- Gaps left on shelves while building, where loot can sit (world CFrame
@@ -244,14 +270,18 @@ local SLOTS: { { cf: CFrame, width: number } } = {}
 
 local function shelving(parent: Instance, at: CFrame, h: (number) -> number)
 	local W, Dp, Ht = 8, 2.4, 7.4
+	local rack = {}
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do
-			prop({ Name = "Upright", Size = Vector3.new(0.25, Ht, 0.25), CFrame = at * CFrame.new(sx * W / 2, Ht / 2, sz * Dp / 2), Color = Color3.fromRGB(70, 96, 140), Material = Enum.Material.Metal }, parent)
+			table.insert(rack, prop({ Name = "Upright", Size = Vector3.new(0.25, Ht, 0.25), CFrame = at * CFrame.new(sx * W / 2, Ht / 2, sz * Dp / 2), Color = Color3.fromRGB(70, 96, 140), Material = Enum.Material.Metal }, parent))
 		end
 	end
 	for level = 0, 3 do
+		table.insert(rack, prop({ Name = "Shelf", Size = Vector3.new(W, 0.15, Dp), CFrame = at * CFrame.new(0, 0.4 + level * 2.2, 0), Color = GREY_METAL, Material = Enum.Material.DiamondPlate }, parent))
+	end
+	Meshes.dress("shelf_rack", at + ORIGIN, parent, rack)
+	for level = 0, 3 do
 		local y = 0.4 + level * 2.2
-		prop({ Name = "Shelf", Size = Vector3.new(W, 0.15, Dp), CFrame = at * CFrame.new(0, y, 0), Color = GREY_METAL, Material = Enum.Material.DiamondPlate }, parent)
 		-- Boxes on the shelf (not all of them full).
 		local x = -W / 2 + 0.3
 		local i = 0
@@ -286,33 +316,38 @@ end
 
 -- Office clutter (The Carpet).
 local function waterCooler(parent: Instance, at: CFrame)
-	prop({ Name = "CoolerBody", Size = Vector3.new(1.4, 3.2, 1.4), CFrame = at * CFrame.new(0, 1.6, 0), Color = Color3.fromRGB(206, 200, 184), Material = Enum.Material.Plastic }, parent)
+	local body = prop({ Name = "CoolerBody", Size = Vector3.new(1.4, 3.2, 1.4), CFrame = at * CFrame.new(0, 1.6, 0), Color = Color3.fromRGB(206, 200, 184), Material = Enum.Material.Plastic }, parent)
 	local bottle = detail({ Name = "CoolerBottle", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 1.15, 1.15), CFrame = at * CFrame.new(0, 4.0, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(150, 176, 186), Material = Enum.Material.Glass, Transparency = 0.45 }, parent)
 	bottle.Reflectance = 0.1
-	detail({ Name = "CoolerTap", Size = Vector3.new(0.2, 0.25, 0.3), CFrame = at * CFrame.new(0.3, 2.4, -0.78), Color = Color3.fromRGB(60, 90, 170), Material = Enum.Material.Plastic }, parent)
+	local tap = detail({ Name = "CoolerTap", Size = Vector3.new(0.2, 0.25, 0.3), CFrame = at * CFrame.new(0.3, 2.4, -0.78), Color = Color3.fromRGB(60, 90, 170), Material = Enum.Material.Plastic }, parent)
+	Meshes.dress("water_cooler", at + ORIGIN, parent, { body, bottle, tap })
 end
 
 local function wastebin(parent: Instance, at: CFrame, h: (number) -> number)
 	local tipped = h(70) < 0.25
 	local cf = if tipped then at * CFrame.new(0, 0.45, 0) * CFrame.Angles(math.rad(90), 0, 0) else at * CFrame.new(0, 0.6, 0)
-	detail({ Name = "Bin", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 0.9, 0.9), CFrame = cf * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 72, 70), Material = Enum.Material.Metal }, parent)
+	local parts = { detail({ Name = "Bin", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 0.9, 0.9), CFrame = cf * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 72, 70), Material = Enum.Material.Metal }, parent) }
 	for i = 1, 3 do
-		detail({ Name = "Paper", Size = Vector3.new(0.4, 0.35, 0.4), CFrame = (if tipped then at * CFrame.new((i - 2) * 0.5, 0.18, -0.9 - h(70 + i)) else at * CFrame.new(0, 1.15, 0)) * CFrame.Angles(h(73 + i) * 3, h(76 + i) * 3, 0), Color = PAPER, Material = Enum.Material.Plastic }, parent)
+		table.insert(parts, detail({ Name = "Paper", Size = Vector3.new(0.4, 0.35, 0.4), CFrame = (if tipped then at * CFrame.new((i - 2) * 0.5, 0.18, -0.9 - h(70 + i)) else at * CFrame.new(0, 1.15, 0)) * CFrame.Angles(h(73 + i) * 3, h(76 + i) * 3, 0), Color = PAPER, Material = Enum.Material.Plastic }, parent))
 	end
+	Meshes.dress(if tipped then "wastebin_tipped" else "wastebin", at + ORIGIN, parent, parts)
 end
 
 local function binders(parent: Instance, at: CFrame, h: (number) -> number)
 	local colours = { Color3.fromRGB(120, 40, 36), Color3.fromRGB(40, 60, 100), Color3.fromRGB(60, 80, 50), Color3.fromRGB(60, 58, 54) }
+	local parts = {}
 	for i = 0, math.floor(h(80) * 4) + 1 do
-		detail({ Name = "Binder", Size = Vector3.new(0.35, 1.3, 1.0), CFrame = at * CFrame.new(i * 0.38, 0.65, 0) * CFrame.Angles(0, 0, if i == 0 and h(81) < 0.5 then math.rad(20) else 0), Color = colours[(i % #colours) + 1], Material = Enum.Material.Plastic }, parent)
+		table.insert(parts, detail({ Name = "Binder", Size = Vector3.new(0.35, 1.3, 1.0), CFrame = at * CFrame.new(i * 0.38, 0.65, 0) * CFrame.Angles(0, 0, if i == 0 and h(81) < 0.5 then math.rad(20) else 0), Color = colours[(i % #colours) + 1], Material = Enum.Material.Plastic }, parent))
 	end
+	Meshes.dress("binders", at + ORIGIN, parent, parts)
 end
 
 local function fallenTile(parent: Instance, at: CFrame, h: (number) -> number)
-	detail({ Name = "FallenTile", Size = Vector3.new(4.6, 0.25, 4.6), CFrame = at * CFrame.new(0, 0.35, 0) * CFrame.Angles(math.rad(8 * (h(85) - 0.5)), h(86) * 6, math.rad(10)), Color = Color3.fromRGB(198, 190, 166), Material = Enum.Material.Plaster }, parent)
+	local parts = { detail({ Name = "FallenTile", Size = Vector3.new(4.6, 0.25, 4.6), CFrame = at * CFrame.new(0, 0.35, 0) * CFrame.Angles(math.rad(8 * (h(85) - 0.5)), h(86) * 6, math.rad(10)), Color = Color3.fromRGB(198, 190, 166), Material = Enum.Material.Plaster }, parent) }
 	for i = 1, 4 do
-		detail({ Name = "TileChunk", Size = Vector3.new(0.5 + h(86 + i) * 0.8, 0.2, 0.4 + h(90 + i) * 0.6), CFrame = at * CFrame.new((h(94 + i) - 0.5) * 6, 0.1, (h(98 + i) - 0.5) * 6) * CFrame.Angles(0, h(102 + i) * 6, 0), Color = Color3.fromRGB(198, 190, 166), Material = Enum.Material.Plaster }, parent)
+		table.insert(parts, detail({ Name = "TileChunk", Size = Vector3.new(0.5 + h(86 + i) * 0.8, 0.2, 0.4 + h(90 + i) * 0.6), CFrame = at * CFrame.new((h(94 + i) - 0.5) * 6, 0.1, (h(98 + i) - 0.5) * 6) * CFrame.Angles(0, h(102 + i) * 6, 0), Color = Color3.fromRGB(198, 190, 166), Material = Enum.Material.Plaster }, parent))
 	end
+	Meshes.dress("fallen_tile", at * CFrame.Angles(0, h(86) * 6, 0) + ORIGIN, parent, parts)
 end
 
 -- Medical kit (The Ward).
@@ -320,43 +355,52 @@ local CHROME = Color3.fromRGB(170, 172, 170)
 local SHEET = Color3.fromRGB(196, 204, 198)
 
 local function gurney(parent: Instance, at: CFrame, h: (number) -> number)
-	prop({ Name = "GurneyFrame", Size = Vector3.new(2.6, 0.25, 6.4), CFrame = at * CFrame.new(0, 2.3, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
-	detail({ Name = "Mattress", Size = Vector3.new(2.4, 0.4, 6.1), CFrame = at * CFrame.new(0, 2.6, 0), Color = Color3.fromRGB(110, 140, 130), Material = Enum.Material.Rubber }, parent)
-	-- A rumpled sheet half pulled off.
-	detail({ Name = "Sheet", Size = Vector3.new(2.6, 0.06, 4.2), CFrame = at * CFrame.new(0.2, 2.84, 0.8) * CFrame.Angles(0, 0, math.rad(4 + h(110) * 8)), Color = SHEET, Material = Enum.Material.Fabric }, parent)
-	detail({ Name = "Sheet", Size = Vector3.new(0.06, 1.6, 3.6), CFrame = at * CFrame.new(1.4, 2.0, 0.9) * CFrame.Angles(0, 0, math.rad(-6)), Color = SHEET, Material = Enum.Material.Fabric }, parent)
+	local parts = {
+		prop({ Name = "GurneyFrame", Size = Vector3.new(2.6, 0.25, 6.4), CFrame = at * CFrame.new(0, 2.3, 0), Color = CHROME, Material = Enum.Material.Metal }, parent),
+		detail({ Name = "Mattress", Size = Vector3.new(2.4, 0.4, 6.1), CFrame = at * CFrame.new(0, 2.6, 0), Color = Color3.fromRGB(110, 140, 130), Material = Enum.Material.Rubber }, parent),
+		-- A rumpled sheet half pulled off.
+		detail({ Name = "Sheet", Size = Vector3.new(2.6, 0.06, 4.2), CFrame = at * CFrame.new(0.2, 2.84, 0.8) * CFrame.Angles(0, 0, math.rad(4 + h(110) * 8)), Color = SHEET, Material = Enum.Material.Fabric }, parent),
+		detail({ Name = "Sheet", Size = Vector3.new(0.06, 1.6, 3.6), CFrame = at * CFrame.new(1.4, 2.0, 0.9) * CFrame.Angles(0, 0, math.rad(-6)), Color = SHEET, Material = Enum.Material.Fabric }, parent),
+	}
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do
-			detail({ Name = "GurneyLeg", Size = Vector3.new(0.15, 2.1, 0.15), CFrame = at * CFrame.new(sx * 1.1, 1.15, sz * 2.9), Color = CHROME, Material = Enum.Material.Metal }, parent)
-			detail({ Name = "Caster", Shape = Enum.PartType.Ball, Size = Vector3.new(0.35, 0.35, 0.35), CFrame = at * CFrame.new(sx * 1.1, 0.18, sz * 2.9), Color = DARK, Material = Enum.Material.Rubber }, parent)
+			table.insert(parts, detail({ Name = "GurneyLeg", Size = Vector3.new(0.15, 2.1, 0.15), CFrame = at * CFrame.new(sx * 1.1, 1.15, sz * 2.9), Color = CHROME, Material = Enum.Material.Metal }, parent))
+			table.insert(parts, detail({ Name = "Caster", Shape = Enum.PartType.Ball, Size = Vector3.new(0.35, 0.35, 0.35), CFrame = at * CFrame.new(sx * 1.1, 0.18, sz * 2.9), Color = DARK, Material = Enum.Material.Rubber }, parent))
 		end
-		detail({ Name = "Rail", Size = Vector3.new(0.1, 0.1, 3.6), CFrame = at * CFrame.new(sx * 1.3, 3.0, -1.0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+		table.insert(parts, detail({ Name = "Rail", Size = Vector3.new(0.1, 0.1, 3.6), CFrame = at * CFrame.new(sx * 1.3, 3.0, -1.0), Color = CHROME, Material = Enum.Material.Metal }, parent))
 	end
+	Meshes.dress("gurney", at + ORIGIN, parent, parts)
 end
 
 local function ivStand(parent: Instance, at: CFrame, h: (number) -> number)
 	local tilt = if h(112) < 0.2 then math.rad(70) else 0
 	local base = at * CFrame.Angles(0, 0, tilt) * CFrame.new(0, if tilt ~= 0 then 0.3 else 0, 0)
-	detail({ Name = "IVPole", Size = Vector3.new(0.12, 6.2, 0.12), CFrame = base * CFrame.new(0, 3.1, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
-	detail({ Name = "IVFoot", Size = Vector3.new(1.6, 0.12, 0.2), CFrame = base * CFrame.new(0, 0.15, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
-	detail({ Name = "IVFoot", Size = Vector3.new(0.2, 0.12, 1.6), CFrame = base * CFrame.new(0, 0.15, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
-	detail({ Name = "IVHook", Size = Vector3.new(1.0, 0.08, 0.08), CFrame = base * CFrame.new(0, 6.1, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
 	local bag = detail({ Name = "IVBag", Size = Vector3.new(0.6, 0.9, 0.2), CFrame = base * CFrame.new(0.45, 5.5, 0), Color = Color3.fromRGB(210, 214, 200), Material = Enum.Material.Glass, Transparency = 0.35 }, parent)
 	bag.Reflectance = 0.05
+	Meshes.dress("iv_stand", base + ORIGIN, parent, {
+		detail({ Name = "IVPole", Size = Vector3.new(0.12, 6.2, 0.12), CFrame = base * CFrame.new(0, 3.1, 0), Color = CHROME, Material = Enum.Material.Metal }, parent),
+		detail({ Name = "IVFoot", Size = Vector3.new(1.6, 0.12, 0.2), CFrame = base * CFrame.new(0, 0.15, 0), Color = CHROME, Material = Enum.Material.Metal }, parent),
+		detail({ Name = "IVFoot", Size = Vector3.new(0.2, 0.12, 1.6), CFrame = base * CFrame.new(0, 0.15, 0), Color = CHROME, Material = Enum.Material.Metal }, parent),
+		detail({ Name = "IVHook", Size = Vector3.new(1.0, 0.08, 0.08), CFrame = base * CFrame.new(0, 6.1, 0), Color = CHROME, Material = Enum.Material.Metal }, parent),
+		bag,
+	})
 end
 
 local function wheelchair(parent: Instance, at: CFrame, h: (number) -> number)
-	prop({ Name = "ChairSeat", Size = Vector3.new(1.9, 0.25, 1.8), CFrame = at * CFrame.new(0, 2.0, 0), Color = Color3.fromRGB(40, 42, 44), Material = Enum.Material.Fabric }, parent)
-	detail({ Name = "ChairBack", Size = Vector3.new(1.9, 1.8, 0.15), CFrame = at * CFrame.new(0, 3.0, 0.9) * CFrame.Angles(math.rad(-10), 0, 0), Color = Color3.fromRGB(40, 42, 44), Material = Enum.Material.Fabric }, parent)
+	local parts = {
+		prop({ Name = "ChairSeat", Size = Vector3.new(1.9, 0.25, 1.8), CFrame = at * CFrame.new(0, 2.0, 0), Color = Color3.fromRGB(40, 42, 44), Material = Enum.Material.Fabric }, parent),
+		detail({ Name = "ChairBack", Size = Vector3.new(1.9, 1.8, 0.15), CFrame = at * CFrame.new(0, 3.0, 0.9) * CFrame.Angles(math.rad(-10), 0, 0), Color = Color3.fromRGB(40, 42, 44), Material = Enum.Material.Fabric }, parent),
+	}
 	for _, sx in { -1, 1 } do
-		detail({ Name = "Wheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.18, 2.6, 2.6), CFrame = at * CFrame.new(sx * 1.15, 1.3, 0.3), Color = DARK, Material = Enum.Material.Rubber }, parent)
-		detail({ Name = "Handle", Size = Vector3.new(0.12, 0.12, 0.6), CFrame = at * CFrame.new(sx * 0.85, 3.9, 1.2), Color = CHROME, Material = Enum.Material.Metal }, parent)
-		detail({ Name = "Caster", Shape = Enum.PartType.Ball, Size = Vector3.new(0.4, 0.4, 0.4), CFrame = at * CFrame.new(sx * 0.8, 0.2, -1.0), Color = DARK, Material = Enum.Material.Rubber }, parent)
+		table.insert(parts, detail({ Name = "Wheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.18, 2.6, 2.6), CFrame = at * CFrame.new(sx * 1.15, 1.3, 0.3), Color = DARK, Material = Enum.Material.Rubber }, parent))
+		table.insert(parts, detail({ Name = "Handle", Size = Vector3.new(0.12, 0.12, 0.6), CFrame = at * CFrame.new(sx * 0.85, 3.9, 1.2), Color = CHROME, Material = Enum.Material.Metal }, parent))
+		table.insert(parts, detail({ Name = "Caster", Shape = Enum.PartType.Ball, Size = Vector3.new(0.4, 0.4, 0.4), CFrame = at * CFrame.new(sx * 0.8, 0.2, -1.0), Color = DARK, Material = Enum.Material.Rubber }, parent))
 	end
+	Meshes.dress("wheelchair", at + ORIGIN, parent, parts)
 end
 
 local function curtainRail(parent: Instance, at: CFrame, h: (number) -> number, height: number)
-	detail({ Name = "CurtainRail", Size = Vector3.new(8, 0.1, 0.1), CFrame = at * CFrame.new(0, height - 0.6, 0), Color = CHROME, Material = Enum.Material.Metal }, parent)
+	local parts = { detail({ Name = "CurtainRail", Size = Vector3.new(8, 0.1, 0.1), CFrame = at * CFrame.new(0, height - 0.6, 0), Color = CHROME, Material = Enum.Material.Metal }, parent) }
 	local x = -3.8
 	local i = 0
 	while x < 3.8 do
@@ -365,16 +409,23 @@ local function curtainRail(parent: Instance, at: CFrame, h: (number) -> number, 
 		if h(130 + i) < 0.78 then
 			-- Pleated panels, some pushed aside, a few hanging torn short.
 			local len = if h(140 + i) < 0.15 then 3 + h(150 + i) * 2 else height - 1.6
-			detail({ Name = "Curtain", Size = Vector3.new(w, len, 0.06), CFrame = at * CFrame.new(x + w / 2, height - 0.65 - len / 2, (i % 2) * 0.12) * CFrame.Angles(0, (h(160 + i) - 0.5) * 0.5, 0), Color = Color3.fromRGB(150, 176, 168), Material = Enum.Material.Fabric }, parent)
+			table.insert(parts, detail({ Name = "Curtain", Size = Vector3.new(w, len, 0.06), CFrame = at * CFrame.new(x + w / 2, height - 0.65 - len / 2, (i % 2) * 0.12) * CFrame.Angles(0, (h(160 + i) - 0.5) * 0.5, 0), Color = Color3.fromRGB(150, 176, 168), Material = Enum.Material.Fabric }, parent))
 		end
 		x += w
+	end
+	-- The Blender curtains are drawn for the 11-stud ceilings; turned
+	-- round at random so they aren't all bunched at the same end.
+	if height == 11 then
+		Meshes.dress("curtain_rail", at * CFrame.Angles(0, if h(119) < 0.5 then math.pi else 0, 0) + ORIGIN, parent, parts)
 	end
 end
 
 local function medCabinet(parent: Instance, at: CFrame)
-	prop({ Name = "MedCabinet", Size = Vector3.new(3, 5.4, 1.4), CFrame = at * CFrame.new(0, 2.7, 0), Color = Color3.fromRGB(210, 212, 204), Material = Enum.Material.Metal }, parent)
-	detail({ Name = "CabinetGlass", Size = Vector3.new(2.6, 2.4, 0.05), CFrame = at * CFrame.new(0, 3.8, -0.72), Color = Color3.fromRGB(150, 170, 170), Material = Enum.Material.Glass, Transparency = 0.5 }, parent)
-	detail({ Name = "SharpsBin", Size = Vector3.new(0.8, 0.9, 0.6), CFrame = at * CFrame.new(1.0, 5.85, 0), Color = Color3.fromRGB(200, 170, 40), Material = Enum.Material.Plastic }, parent)
+	Meshes.dress("med_cabinet", at + ORIGIN, parent, {
+		prop({ Name = "MedCabinet", Size = Vector3.new(3, 5.4, 1.4), CFrame = at * CFrame.new(0, 2.7, 0), Color = Color3.fromRGB(210, 212, 204), Material = Enum.Material.Metal }, parent),
+		detail({ Name = "CabinetGlass", Size = Vector3.new(2.6, 2.4, 0.05), CFrame = at * CFrame.new(0, 3.8, -0.72), Color = Color3.fromRGB(150, 170, 170), Material = Enum.Material.Glass, Transparency = 0.5 }, parent),
+		detail({ Name = "SharpsBin", Size = Vector3.new(0.8, 0.9, 0.6), CFrame = at * CFrame.new(1.0, 5.85, 0), Color = Color3.fromRGB(200, 170, 40), Material = Enum.Material.Plastic }, parent),
+	})
 end
 
 -- Plant machinery (The Plant Room).
@@ -385,28 +436,41 @@ local function drum(parent: Instance, at: CFrame, h: (number) -> number)
 	local tipped = h(170) < 0.2
 	local cf = if tipped then at * CFrame.new(0, 1.1, 0) * CFrame.Angles(0, h(171) * 6, 0) else at * CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0, math.rad(90))
 	local colours = { Color3.fromRGB(70, 84, 70), Color3.fromRGB(110, 60, 40), Color3.fromRGB(60, 64, 80) }
-	prop({ Name = "Drum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(if tipped then 3.4 else 3.4, 2.2, 2.2), CFrame = cf, Color = colours[math.floor(h(172) * 3) + 1], Material = Enum.Material.CorrodedMetal }, parent)
+	local body = prop({ Name = "Drum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(if tipped then 3.4 else 3.4, 2.2, 2.2), CFrame = cf, Color = colours[math.floor(h(172) * 3) + 1], Material = Enum.Material.CorrodedMetal }, parent)
+	-- The Blender drum is modelled standing up (axis Y); a Cylinder part's
+	-- axis is X, so turn the model's Y onto the part's X and drop it back
+	-- by half its height (it's modelled from the floor up).
+	Meshes.dress("oil_drum", cf * CFrame.Angles(0, 0, math.rad(-90)) * CFrame.new(0, -1.7, 0) + ORIGIN, parent, { body }, { copy = { Drum = body } })
 end
 
 local function boiler(parent: Instance, at: CFrame, h: (number) -> number, height: number)
-	prop({ Name = "Tank", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height - 2.5, 5, 5), CFrame = at * CFrame.new(0, (height - 2.5) / 2 + 0.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(104, 100, 90), Material = Enum.Material.Metal }, parent)
-	prop({ Name = "TankPlinth", Size = Vector3.new(5.6, 0.5, 5.6), CFrame = at * CFrame.new(0, 0.25, 0), Color = Color3.fromRGB(120, 116, 108), Material = Enum.Material.Concrete }, parent)
-	detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.2, 0.6, 0.6), CFrame = at * CFrame.new(0, height - 1.0, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, parent)
-	-- Gauge on the side.
-	detail({ Name = "Gauge", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 0.9, 0.9), CFrame = at * CFrame.new(0, 4, -2.55) * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(220, 214, 196), Material = Enum.Material.Plastic }, parent)
+	local parts = {
+		prop({ Name = "Tank", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height - 2.5, 5, 5), CFrame = at * CFrame.new(0, (height - 2.5) / 2 + 0.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(104, 100, 90), Material = Enum.Material.Metal }, parent),
+		prop({ Name = "TankPlinth", Size = Vector3.new(5.6, 0.5, 5.6), CFrame = at * CFrame.new(0, 0.25, 0), Color = Color3.fromRGB(120, 116, 108), Material = Enum.Material.Concrete }, parent),
+		detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.2, 0.6, 0.6), CFrame = at * CFrame.new(0, height - 1.0, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, parent),
+		-- Gauge on the side.
+		detail({ Name = "Gauge", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 0.9, 0.9), CFrame = at * CFrame.new(0, 4, -2.55) * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(220, 214, 196), Material = Enum.Material.Plastic }, parent),
+	}
+	if height == 11 then -- the Blender boiler's flue is cut for the 11-stud ceilings
+		Meshes.dress("boiler", at + ORIGIN, parent, parts)
+	end
 end
 
 local function pump(parent: Instance, at: CFrame)
-	prop({ Name = "PumpBase", Size = Vector3.new(4.4, 0.6, 2.4), CFrame = at * CFrame.new(0, 0.3, 0), Color = Color3.fromRGB(70, 70, 66), Material = Enum.Material.Metal }, parent)
-	prop({ Name = "Motor", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 1.7, 1.7), CFrame = at * CFrame.new(-0.8, 1.45, 0), Color = Color3.fromRGB(60, 90, 80), Material = Enum.Material.Metal }, parent)
-	prop({ Name = "PumpHead", Size = Vector3.new(1.4, 1.6, 1.6), CFrame = at * CFrame.new(1.3, 1.4, 0), Color = Color3.fromRGB(90, 70, 50), Material = Enum.Material.CorrodedMetal }, parent)
-	detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(5, 0.5, 0.5), CFrame = at * CFrame.new(1.3, 3.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, parent)
+	Meshes.dress("pump", at + ORIGIN, parent, {
+		prop({ Name = "PumpBase", Size = Vector3.new(4.4, 0.6, 2.4), CFrame = at * CFrame.new(0, 0.3, 0), Color = Color3.fromRGB(70, 70, 66), Material = Enum.Material.Metal }, parent),
+		prop({ Name = "Motor", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 1.7, 1.7), CFrame = at * CFrame.new(-0.8, 1.45, 0), Color = Color3.fromRGB(60, 90, 80), Material = Enum.Material.Metal }, parent),
+		prop({ Name = "PumpHead", Size = Vector3.new(1.4, 1.6, 1.6), CFrame = at * CFrame.new(1.3, 1.4, 0), Color = Color3.fromRGB(90, 70, 50), Material = Enum.Material.CorrodedMetal }, parent),
+		detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(5, 0.5, 0.5), CFrame = at * CFrame.new(1.3, 3.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, parent),
+	})
 end
 
 -- A valve wheel facing out of a wall (frame: -Z out of the wall).
-local function valve(parent: Instance, cf: CFrame)
-	detail({ Name = "ValveWheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.12, 1.3, 1.3), CFrame = cf * CFrame.Angles(0, math.rad(90), 0), Color = VALVE_RED, Material = Enum.Material.Metal }, parent)
-	detail({ Name = "ValveStem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 0.25, 0.25), CFrame = cf * CFrame.new(0, 0, 0.25) * CFrame.Angles(0, math.rad(90), 0), Color = PIPE, Material = Enum.Material.Metal }, parent)
+local function valve(parent: Instance, cf: CFrame): { BasePart }
+	return {
+		detail({ Name = "ValveWheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.12, 1.3, 1.3), CFrame = cf * CFrame.Angles(0, math.rad(90), 0), Color = VALVE_RED, Material = Enum.Material.Metal }, parent),
+		detail({ Name = "ValveStem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 0.25, 0.25), CFrame = cf * CFrame.new(0, 0, 0.25) * CFrame.Angles(0, math.rad(90), 0), Color = PIPE, Material = Enum.Material.Metal }, parent),
+	}
 end
 
 -- The Ward's set pieces: exam bays, parked gurneys, abandoned wheelchairs.
@@ -680,6 +744,41 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		return Color3.new(c.R * shade, c.G * shade, c.B * (shade - 0.04))
 	end
 
+	-- The Blender wall: a panel per cell along each run (the run's part stays
+	-- as the collider), wallpaper peeling off here and there on The Carpet,
+	-- and a post wherever walls turn, meet or end. Each segment remembers
+	-- its run's parts so the posts can take their colour.
+	local segs: { [number]: { wall: BasePart, skirt: BasePart } } = {}
+	local function segKey(alongX: boolean, line: number, cell: number): number
+		return (if alongX then 1 else 2) * 1000000 + line * 1000 + cell
+	end
+	local modular = S == 20 and H == 11
+	local function panels(wall: BasePart, skirt: BasePart, alongX: boolean, line: number, c0: number, c1: number)
+		local list = {}
+		for c = c0, c1 do
+			segs[segKey(alongX, line, c)] = { wall = wall, skirt = skirt }
+			local centre = if alongX then Vector3.new((c - 0.5) * S, 0, line * S) else Vector3.new(line * S, 0, (c - 0.5) * S)
+			local peel = KIND == "carpet" and hash(centre.X + 3, centre.Z - 7, 5.5, seed) < 0.12 and Meshes.ready("wall_panel_peeling")
+			local flip = hash(centre.Z + 11, centre.X - 2, 9.1, seed) < 0.5 -- which face peels
+			local yaw = (if alongX then 0 else math.pi / 2) + (if flip then math.pi else 0)
+			table.insert(list, { name = if peel then "wall_panel_peeling" else "wall_panel_skirting", cf = CFrame.new(centre + ORIGIN) * CFrame.Angles(0, yaw, 0) })
+		end
+		if not modular then
+			return
+		end
+		-- The run's own parts go when the plain panel arrives (or the only one).
+		local holder = list[1]
+		for _, seg in list do
+			if seg.name == "wall_panel_skirting" then
+				holder = seg
+				break
+			end
+		end
+		for _, seg in list do
+			Meshes.dress(seg.name, seg.cf, walls, if seg == holder then { wall, skirt } else {}, { copy = { Wall = wall, Skirting = skirt } })
+		end
+	end
+
 	local function wallX(xLine: number, z0: number, z1: number)
 		-- Wall running north-south along X = xLine * S, covering cells z0..z1.
 		local w = makePart({
@@ -690,13 +789,14 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 			Material = MATERIALS.wall,
 		}, walls)
 		surface(w, "wall")
-		detail({
+		local skirt = detail({
 			Name = "Skirting",
 			Size = Vector3.new(T + 0.3, 0.7, (z1 - z0 + 1) * S + T + 0.3),
 			Position = Vector3.new(xLine * S, 0.35, ((z0 - 1) * S + z1 * S) / 2),
 			Color = COLORS.skirting,
 			Material = MATERIALS.trim,
 		}, walls)
+		panels(w, skirt, false, xLine, z0, z1)
 	end
 	local function wallZ(zLine: number, x0: number, x1: number)
 		-- Wall running east-west along Z = zLine * S, covering cells x0..x1.
@@ -708,13 +808,14 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 			Material = MATERIALS.wall,
 		}, walls)
 		surface(w, "wall")
-		detail({
+		local skirt = detail({
 			Name = "Skirting",
 			Size = Vector3.new((x1 - x0 + 1) * S + T + 0.3, 0.7, T + 0.3),
 			Position = Vector3.new(((x0 - 1) * S + x1 * S) / 2, 0.35, zLine * S),
 			Color = COLORS.skirting,
 			Material = MATERIALS.trim,
 		}, walls)
+		panels(w, skirt, true, zLine, x0, x1)
 	end
 
 	-- Outer west and north border (east/south borders come from the cells).
@@ -757,10 +858,11 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		end
 		local along = (h(1) - 0.5) * (S - 4)
 		if h(2) < 0.07 then
-			detail({ Name = "Outlet", Size = Vector3.new(0.55, 0.85, 0.08), CFrame = frame * CFrame.new(along, 1.4, -0.04), Color = Color3.fromRGB(226, 220, 200), Material = Enum.Material.Plastic }, details)
+			local outlet = { detail({ Name = "Outlet", Size = Vector3.new(0.55, 0.85, 0.08), CFrame = frame * CFrame.new(along, 1.4, -0.04), Color = Color3.fromRGB(226, 220, 200), Material = Enum.Material.Plastic }, details) }
 			for _, dy in { 0.18, -0.18 } do
-				detail({ Name = "Socket", Size = Vector3.new(0.22, 0.14, 0.04), CFrame = frame * CFrame.new(along, 1.4 + dy, -0.09), Color = DARK, Material = Enum.Material.Plastic }, details)
+				table.insert(outlet, detail({ Name = "Socket", Size = Vector3.new(0.22, 0.14, 0.04), CFrame = frame * CFrame.new(along, 1.4 + dy, -0.09), Color = DARK, Material = Enum.Material.Plastic }, details))
 			end
+			Meshes.dress("wall_outlet", frame * CFrame.new(along, 0, 0) + ORIGIN, details, outlet)
 		end
 		if h(3) < 0.035 then
 			local vy = H - 1.3
@@ -810,15 +912,22 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		end
 		if KIND == "ward" and h(18) < 0.16 then
 			-- A hospital handrail along the corridor wall.
-			detail({ Name = "Handrail", Size = Vector3.new(S - 3, 0.25, 0.25), CFrame = frame * CFrame.new(0, 3.1, -0.45), Color = Color3.fromRGB(150, 128, 96), Material = Enum.Material.Wood }, details)
+			local rail = { detail({ Name = "Handrail", Size = Vector3.new(S - 3, 0.25, 0.25), CFrame = frame * CFrame.new(0, 3.1, -0.45), Color = Color3.fromRGB(150, 128, 96), Material = Enum.Material.Wood }, details) }
 			for _, bx in { -(S - 5) / 2, 0, (S - 5) / 2 } do
-				detail({ Name = "RailBracket", Size = Vector3.new(0.15, 0.15, 0.45), CFrame = frame * CFrame.new(bx, 3.0, -0.22), Color = Color3.fromRGB(170, 172, 170), Material = Enum.Material.Metal }, details)
+				table.insert(rail, detail({ Name = "RailBracket", Size = Vector3.new(0.15, 0.15, 0.45), CFrame = frame * CFrame.new(bx, 3.0, -0.22), Color = Color3.fromRGB(170, 172, 170), Material = Enum.Material.Metal }, details))
+			end
+			if S == 20 then
+				Meshes.dress("handrail", frame + ORIGIN, details, rail)
 			end
 		end
 		if KIND == "plant" and h(19) < 0.18 then
 			-- A pipe run along the top of the wall, on brackets; sometimes a
 			-- drop to a valve and a gauge. Rust runs down from the joints.
+			local drops = h(22) < 0.5
 			local py = H - 1.6 - h(20) * 1.4
+			if drops and Meshes.has("pipe_drop") and H == 11 then
+				py = H - 2.3 -- where the Blender drop's tee is
+			end
 			-- The Blender pipe run has its middle flange at x = 1.5; the rust runs from there.
 			local fx = if Meshes.has("pipe_run") and S == 20 then 1.5 else (h(21) - 0.5) * (S - 6)
 			local run = { detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(S, 0.7, 0.7), CFrame = frame * CFrame.new(0, py, -0.6), Color = PIPE, Material = Enum.Material.Metal }, details) }
@@ -830,17 +939,35 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 				Meshes.dress("pipe_run", frame * CFrame.new(0, py, 0) + ORIGIN, details, run)
 			end
 			grime(details, "rust_streak", frame * CFrame.new(fx, py - 2.6, -0.05), Vector3.new(2.2, 4.4, 0.05), FRONT, 0)
-			if h(22) < 0.5 then
+			if drops then
 				local vx = (h(23) - 0.5) * (S - 6)
 				local drop = py - 3.2
-				detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(drop, 0.45, 0.45), CFrame = frame * CFrame.new(vx, 3.2 + drop / 2, -0.6) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, details)
-				valve(details, frame * CFrame.new(vx, 3.6, -1.05))
-				detail({ Name = "Gauge", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.15, 0.75, 0.75), CFrame = frame * CFrame.new(vx + 0.75, 4.8, -0.75) * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(214, 208, 190), Material = Enum.Material.Plastic }, details)
+				local parts = valve(details, frame * CFrame.new(vx, 3.6, -1.05))
+				table.insert(parts, detail({ Name = "Pipe", Shape = Enum.PartType.Cylinder, Size = Vector3.new(drop, 0.45, 0.45), CFrame = frame * CFrame.new(vx, 3.2 + drop / 2, -0.6) * CFrame.Angles(0, 0, math.rad(90)), Color = PIPE, Material = Enum.Material.Metal }, details))
+				table.insert(parts, detail({ Name = "Gauge", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.15, 0.75, 0.75), CFrame = frame * CFrame.new(vx + 0.75, 4.8, -0.75) * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(214, 208, 190), Material = Enum.Material.Plastic }, details))
+				if H == 11 then
+					Meshes.dress("pipe_drop", frame * CFrame.new(vx, 0, 0) + ORIGIN, details, parts)
+				end
 			end
 		end
+		-- Blender-only dressing (nothing stands in for these until they're
+		-- uploaded): a cork notice board on office-y walls, a cable tray
+		-- along the top of Plant walls that have no pipe run.
+		if modular and KIND ~= "plant" and h(26) < 0.025 then
+			Meshes.dress("notice_board", frame * CFrame.new((h(27) - 0.5) * (S - 8), 3.6, 0) + ORIGIN, details, {})
+		end
+		if modular and KIND == "plant" and h(19) >= 0.18 and h(28) < 0.05 then
+			Meshes.dress("cable_tray", frame * CFrame.new(0, H - 1.4, 0) + ORIGIN, details, {})
+		end
 		if KIND == "plant" and h(24) < 0.05 then
-			detail({ Name = "JunctionBox", Size = Vector3.new(1.6, 2.0, 0.5), CFrame = frame * CFrame.new((h(25) - 0.5) * (S - 4), 5, -0.25), Color = Color3.fromRGB(90, 96, 90), Material = Enum.Material.Metal }, details)
-			detail({ Name = "Conduit", Size = Vector3.new(0.2, H - 6, 0.2), CFrame = frame * CFrame.new((h(25) - 0.5) * (S - 4), 6 + (H - 6) / 2, -0.2), Color = Color3.fromRGB(110, 110, 104), Material = Enum.Material.Metal }, details)
+			local jx = (h(25) - 0.5) * (S - 4)
+			local parts = {
+				detail({ Name = "JunctionBox", Size = Vector3.new(1.6, 2.0, 0.5), CFrame = frame * CFrame.new(jx, 5, -0.25), Color = Color3.fromRGB(90, 96, 90), Material = Enum.Material.Metal }, details),
+				detail({ Name = "Conduit", Size = Vector3.new(0.2, H - 6, 0.2), CFrame = frame * CFrame.new(jx, 6 + (H - 6) / 2, -0.2), Color = Color3.fromRGB(110, 110, 104), Material = Enum.Material.Metal }, details),
+			}
+			if H == 11 then
+				Meshes.dress("junction_box", frame * CFrame.new(jx, 0, 0) + ORIGIN, details, parts)
+			end
 		end
 	end
 	local half = T / 2
@@ -890,9 +1017,11 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 	-- (wall stubs and a header) where they meet a corridor, so they read as
 	-- rooms rather than gaps. Size in Config (wide enough to haul loot through).
 	local DOOR_W, DOOR_H = Config.DOOR_WIDTH, Config.DOOR_HEIGHT
-	local function doorway(mid: Vector3, alongX: boolean)
+	local function doorway(mid: Vector3, alongX: boolean, key: number)
 		local stub = (S - DOOR_W) / 2
 		local trim = {}
+		local shell: { BasePart } = {}
+		local skirts: { BasePart } = {}
 		for _, side in { -1, 1 } do
 			local offset = side * (DOOR_W / 2 + stub / 2)
 			local w = makePart({
@@ -903,6 +1032,14 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 				Material = MATERIALS.wall,
 			}, walls)
 			surface(w, "wall")
+			table.insert(shell, w)
+			table.insert(skirts, detail({
+				Name = "Skirting",
+				Size = if alongX then Vector3.new(stub, 0.7, T + 0.3) else Vector3.new(T + 0.3, 0.7, stub),
+				Position = mid + (if alongX then Vector3.new(offset, 0.35, 0) else Vector3.new(0, 0.35, offset)),
+				Color = COLORS.skirting,
+				Material = MATERIALS.trim,
+			}, walls))
 			trim[#trim + 1] = detail({
 				Name = "DoorJamb",
 				Size = if alongX then Vector3.new(0.35, DOOR_H, T + 0.4) else Vector3.new(T + 0.4, DOOR_H, 0.35),
@@ -919,6 +1056,12 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 			Material = MATERIALS.wall,
 		}, walls)
 		surface(header, "wall")
+		segs[key] = { wall = shell[1], skirt = skirts[1] }
+		if modular and DOOR_W == 9 and DOOR_H == 8.5 then
+			-- The Blender wall panel with the doorway cut through it.
+			local at = CFrame.new(mid + ORIGIN) * (if alongX then CFrame.identity else CFrame.Angles(0, math.rad(90), 0))
+			Meshes.dress("wall_doorway", at, walls, { shell[1], shell[2], header, skirts[1], skirts[2] }, { copy = { Wall = shell[1], Skirting = skirts[1] } })
+		end
 		table.insert(trim, detail({
 			Name = "DoorLintel",
 			Size = if alongX then Vector3.new(DOOR_W + 0.7, 0.35, T + 0.4) else Vector3.new(T + 0.4, 0.35, DOOR_W + 0.7),
@@ -946,10 +1089,25 @@ function LevelBuilder.buildStructure(layout: LevelGen.Layout, model: Instance)
 		for z = 1, D do
 			local here = roomAt[x * 1000 + z]
 			if x < W and not cells[x][z].wallEast and needsDoor(here, roomAt[(x + 1) * 1000 + z]) then
-				doorway(Vector3.new(x * S, 0, (z - 0.5) * S), false)
+				doorway(Vector3.new(x * S, 0, (z - 0.5) * S), false, segKey(false, x, z))
 			end
 			if z < D and not cells[x][z].wallSouth and needsDoor(here, roomAt[x * 1000 + z + 1]) then
-				doorway(Vector3.new((x - 0.5) * S, 0, z * S), true)
+				doorway(Vector3.new((x - 0.5) * S, 0, z * S), true, segKey(true, z, x))
+			end
+		end
+	end
+
+	-- Wall posts where walls turn, meet or end (a straight run just shows
+	-- the seam between two panels). They cover the panels' cut ends.
+	if modular and Meshes.has("wall_post") then
+		for gx = 0, W do
+			for gz = 0, D do
+				local e, w = segs[segKey(true, gz, gx + 1)], segs[segKey(true, gz, gx)]
+				local s, n = segs[segKey(false, gx, gz + 1)], segs[segKey(false, gx, gz)]
+				local any = e or w or s or n
+				if any and not ((e and w and not n and not s) or (n and s and not e and not w)) then
+					Meshes.dress("wall_post", CFrame.new(Vector3.new(gx * S, 0, gz * S) + ORIGIN), walls, {}, { copy = { Post = any.wall, Skirting = any.skirt } })
+				end
 			end
 		end
 	end
@@ -1045,11 +1203,47 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 	ceilingFolder.Name = "CeilingGrid"
 	ceilingFolder.Parent = model
 	local step = S / 4
+	local strips: { BasePart } = {}
 	for i = 0, math.floor(W * S / step) do
-		detail({ Name = "GridX", Size = Vector3.new(0.25, 0.1, D * S), Position = Vector3.new(i * step, H - 0.05, D * S / 2), Color = COLORS.grid, Material = MATERIALS.trim }, ceilingFolder)
+		table.insert(strips, detail({ Name = "GridX", Size = Vector3.new(0.25, 0.1, D * S), Position = Vector3.new(i * step, H - 0.05, D * S / 2), Color = COLORS.grid, Material = MATERIALS.trim }, ceilingFolder))
 	end
 	for i = 0, math.floor(D * S / step) do
-		detail({ Name = "GridZ", Size = Vector3.new(W * S, 0.1, 0.25), Position = Vector3.new(W * S / 2, H - 0.05, i * step), Color = COLORS.grid, Material = MATERIALS.trim }, ceilingFolder)
+		table.insert(strips, detail({ Name = "GridZ", Size = Vector3.new(W * S, 0.1, 0.25), Position = Vector3.new(W * S / 2, H - 0.05, i * step), Color = COLORS.grid, Material = MATERIALS.trim }, ceilingFolder))
+	end
+
+	-- The Blender floor tiles and ceiling panels, a cell at a time. The
+	-- slabs stay as what you walk on and the lid (invisible once the panels
+	-- are in); the strips above go. A few floors have a tile gone or curling
+	-- (not the Plant's steel), and a missing ceiling tile is a panel with a
+	-- tile hanging out of the grid.
+	local modular = S == 20 and H == 11
+	local floorMesh = modular and Meshes.has("floor_panel")
+	local ceilingMesh = modular and Meshes.has("ceiling_tile")
+	local tilesFolder = Instance.new("Folder")
+	tilesFolder.Name = "Tiles"
+	tilesFolder.Parent = model
+	local floorHeld, ceilingHeld = false, false
+	local function floorPanel(x: number, z: number, h: (number) -> number)
+		local c = LevelBuilder.cellCenter(x, z)
+		local damaged = KIND ~= "plant" and h(21) < 0.04 and Meshes.ready("floor_panel_damaged")
+		local yaw = math.floor(h(22) * 4) * math.rad(90)
+		local prims = if not damaged and not floorHeld then { floor } else {}
+		floorHeld = floorHeld or #prims > 0
+		Meshes.dress(if damaged then "floor_panel_damaged" else "floor_panel", CFrame.new(Vector3.new(c.X, -0.12, c.Z) + ORIGIN) * CFrame.Angles(0, yaw, 0), tilesFolder, prims, { copy = { Carpet = floor } })
+	end
+	local function ceilingPanel(x: number, z: number, gap: { tx: number, tz: number, hole: BasePart }?)
+		local c = LevelBuilder.cellCenter(x, z)
+		local at = CFrame.new(Vector3.new(c.X, H - 0.2, c.Z) + ORIGIN)
+		local copy = { copy = { Tiles = ceiling, Grid = strips[1] } }
+		if gap then
+			-- Modelled with the hole in the (0, 0) corner; turned to the one picked.
+			local yaw = if gap.tx == 0 then (if gap.tz == 0 then 0 else 90) else (if gap.tz == 0 then -90 else 180)
+			Meshes.dress("ceiling_tile_gap", at * CFrame.Angles(0, math.rad(yaw), 0), tilesFolder, { gap.hole }, copy)
+		else
+			local prims = if ceilingHeld then {} else { ceiling, table.unpack(strips) }
+			ceilingHeld = true
+			Meshes.dress("ceiling_tile", at, tilesFolder, prims, copy)
+		end
 	end
 
 	-- Damage: stained or missing ceiling tiles and damp patches on the floor.
@@ -1063,15 +1257,23 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 				return hash(x * 11 + n, z * 17 + n, n * 1.7, seed)
 			end
 			-- Ceiling tiles are 5x5 studs; pick one of the 16 in this cell
-			-- that isn't where the light fitting hangs.
+			-- that isn't where the light fitting hangs. (Under the Blender
+			-- panels, stains go just below the tiles' undersides.)
 			local tx, tz = math.floor(h(1) * 4), math.floor(h(2) * 4)
-			local tile = Vector3.new(c.X - S / 2 + (tx + 0.5) * step, H - 0.03, c.Z - S / 2 + (tz + 0.5) * step)
 			local onLight = (tx == 1 or tx == 2) and (tz == 1 or tz == 2)
+			local roll = if onLight then 1 else h(3)
+			local gap = ceilingMesh and roll < 0.05 and Meshes.ready("ceiling_tile_gap")
+			if gap then
+				-- The Blender panel with a tile down has its hole in a corner.
+				tx = if tx < 2 then 0 else 3
+				tz = if tz < 2 then 0 else 3
+			end
+			local tile = Vector3.new(c.X - S / 2 + (tx + 0.5) * step, if ceilingMesh then H - 0.17 else H - 0.03, c.Z - S / 2 + (tz + 0.5) * step)
+			local hole: BasePart? = nil
 			if not onLight then
-				local roll = h(3)
 				if roll < 0.05 then
 					-- Missing tile: a black hole into the ceiling void.
-					detail({ Name = "MissingTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = Color3.fromRGB(8, 8, 8), Material = Enum.Material.Plastic }, damage)
+					hole = detail({ Name = "MissingTile", Size = Vector3.new(step - 0.3, 0.04, step - 0.3), Position = tile, Color = Color3.fromRGB(8, 8, 8), Material = Enum.Material.Plastic }, damage)
 				elseif roll < 0.2 then
 					-- A water-stained tile: the tide-mark decal once uploaded.
 					if not grime(damage, "water_stain", CFrame.new(tile - Vector3.new(0, 0.01, 0)) * CFrame.Angles(0, h(4) * 6, 0), Vector3.new(step - 0.4, 0.04, step - 0.4), Enum.NormalId.Bottom, 0) then
@@ -1081,6 +1283,12 @@ function LevelBuilder.build(layout: LevelGen.Layout, parent: Instance, origin: V
 						grime(damage, if KIND == "plant" then "oil_stain" else "floor_stain", CFrame.new(Vector3.new(tile.X, 0.025, tile.Z)) * CFrame.Angles(0, h(12) * 6, 0), Vector3.new(3 + h(13) * 2, 0.04, 2.4 + h(14) * 2), Enum.NormalId.Top, 0.1)
 					end
 				end
+			end
+			if ceilingMesh then
+				ceilingPanel(x, z, if gap and hole then { tx = tx, tz = tz, hole = hole } else nil)
+			end
+			if floorMesh then
+				floorPanel(x, z, h)
 			end
 			-- Carpet worn into paths down the corridors.
 			if KIND == "carpet" and not layout.cells[x][z].room and h(15) < 0.3 then
