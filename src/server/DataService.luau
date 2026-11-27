@@ -9,6 +9,7 @@
 -- Also shows Cash and Quotas met on the player list.
 
 local DataStoreService = game:GetService("DataStoreService")
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -27,6 +28,11 @@ if not okStore then
 end
 
 local loaded: { [Player]: boolean } = {}
+local studioOffline = false -- Studio without API access: play with a fresh, unsaved profile
+
+local function studioBlocked(err: string): boolean
+	return RunService:IsStudio() and string.find(err, "StudioAccessToApisNotAllowed", 1, true) ~= nil
+end
 
 local function key(player: Player): string
 	return `p_{player.UserId}`
@@ -66,12 +72,29 @@ end
 
 local function load(player: Player)
 	leaderstats(player)
-	if not okStore then
+	if not okStore or studioOffline then
+		for name, value in PlayerData.deserialize(nil) do
+			player:SetAttribute(name, value)
+		end
 		return
 	end
-	local ok, result = withRetries(function()
+	-- One quick try first, so Studio without API access doesn't spam retries.
+	local ok, result = pcall(function()
 		return (store :: DataStore):GetAsync(key(player))
 	end)
+	if not ok and studioBlocked(tostring(result)) then
+		studioOffline = true
+		warn("[Data] Studio has no API access, so progress won't save in this test. (Fine for testing; see TODO.md to turn it on.)")
+		for name, value in PlayerData.deserialize(nil) do
+			player:SetAttribute(name, value)
+		end
+		return
+	end
+	if not ok then
+		ok, result = withRetries(function()
+			return (store :: DataStore):GetAsync(key(player))
+		end)
+	end
 	if not player.Parent then
 		return
 	end

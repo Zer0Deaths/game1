@@ -5,7 +5,9 @@
 --     Shift, it arrives a few corridors away from the loudest player.
 --   * Hears moving players (sprinting and heavy loads carry much further)
 --     and dropped loot, and walks the maze to the noise.
---   * Chases anyone it can see. Faster than walking, slower than sprinting.
+--   * When it spots you it stops and shrieks first (Config.TENANT.noticeSeconds),
+--     then chases. Slower than walking, so you can always get away if you
+--     keep moving; dead ends and hesitation are what kill you.
 --   * Catching you kills you; your loot spills where you fell.
 --   * The exit lift is safe: it won't take anyone standing inside it.
 -- Counter: stay quiet, split up, don't drop loot near it.
@@ -33,19 +35,22 @@ local DECIDE_EVERY = 0.25
 
 local Tenant = {}
 
-type State = "dormant" | "wander" | "investigate" | "chase" | "linger"
+type State = "dormant" | "wander" | "investigate" | "notice" | "chase" | "linger"
 
 local layout: LevelGen.Layout? = nil
 local model: Model? = nil
 local root: BasePart? = nil
 local state: State = "dormant"
 local position = Vector3.zero
+local wasShifting = false -- only a real blackout ending (true -> false) brings it in
+local graceUntil = 0 -- no kills for a moment after it arrives
 local facing = 0 -- yaw in radians
 local route: { Vector3 } = {}
 local goalCell: { number }? = nil
 local target: Player? = nil
 local lastNoticed = 0
 local lingerUntil = 0
+local noticeUntil = 0 -- it stops and shrieks before every chase
 local loudness: { [Player]: number } = {} -- running average of how loud each player is
 
 -- Body -----------------------------------------------------------------------
@@ -179,7 +184,8 @@ end
 
 local function speed(): number
 	if state == "chase" then
-		return T.chaseSpeed
+		local firstRun = ((workspace:GetAttribute("RunNumber") or 1) :: number) <= 1
+		return T.chaseSpeed * (if firstRun then T.firstRunChaseScale else 1)
 	elseif state == "investigate" then
 		return T.investigateSpeed
 	end
@@ -249,6 +255,7 @@ local function arrive()
 	target = nil
 	lastNoticed = os.clock()
 	walkTo(vx, vz)
+	graceUntil = os.clock() + T.arriveGraceSeconds
 	print(`[Tenant] arrived {fromVictim[key]} cells from {victim.Name}`)
 end
 
@@ -298,7 +305,7 @@ local function decide()
 		local r = rootOf(player)
 		if r and not inLift(r.Position) then
 			local d = r.Position - position
-			if Vector3.new(d.X, 0, d.Z).Magnitude <= T.killRange and state ~= "linger" then
+			if Vector3.new(d.X, 0, d.Z).Magnitude <= T.killRange and state ~= "linger" and now >= graceUntil then
 				take(player)
 				return
 			end
@@ -323,12 +330,24 @@ local function decide()
 			end
 		end
 	end
+	if state == "notice" then
+		if now < noticeUntil then
+			return -- standing still, shrieking: your head start
+		end
+		setState("chase")
+	end
 	if seen then
 		if state ~= "chase" then
-			print(`[Tenant] chasing {seen.Name}`)
+			-- First it stops and shrieks. That's the warning to run.
+			print(`[Tenant] spotted {seen.Name}`)
+			target = seen
+			setState("notice")
+			noticeUntil = now + T.noticeSeconds
+			lastNoticed = now
+			route = {}
+			return
 		end
 		target = seen
-		setState("chase")
 		lastNoticed = now
 		local r = rootOf(seen) :: BasePart
 		route = { Vector3.new(r.Position.X, 0, r.Position.Z) } -- straight at you: nothing is in the way
@@ -425,6 +444,7 @@ function Tenant.setLevel(newLayout: LevelGen.Layout)
 	model = buildBody()
 	root = (model :: Model).PrimaryPart
 	model:SetAttribute("State", "dormant")
+	wasShifting = false
 	hide()
 	setState("dormant")
 end
@@ -460,10 +480,15 @@ function Tenant.init()
 		if workspace:GetAttribute("RunState") ~= "playing" then
 			return
 		end
+		-- Signals can be deferred, so a level reset (Shifting set to false)
+		-- may only arrive here once the run has started. Only a real
+		-- blackout ending counts.
 		if workspace:GetAttribute("Shifting") then
+			wasShifting = true
 			hide()
 			setState("dormant")
-		else
+		elseif wasShifting then
+			wasShifting = false
 			arrive()
 		end
 	end)

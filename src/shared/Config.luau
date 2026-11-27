@@ -51,11 +51,12 @@ return {
 	TENANT = {
 		enabled = true,
 		height = 9.5, -- studs (ceiling is 11)
-		wanderSpeed = 6, -- studs/s
-		investigateSpeed = 11, -- heading to a noise
-		chaseSpeed = 17.5, -- faster than walking (16), slower than sprinting (25.6)
+		wanderSpeed = 5, -- studs/s
+		investigateSpeed = 8, -- heading to a noise
+		chaseSpeed = 14, -- slower than walking (16) and sprinting (25.6): keep moving and you get away
+		noticeSeconds = 1.6, -- when it spots you it stops and shrieks this long before it chases
 		killRange = 4, -- studs: caught
-		sightRange = 45, -- studs: will chase what it can see this close
+		sightRange = 40, -- studs: will chase what it can see this close
 		hearWalk = 40, -- studs: hears a walking player this far away
 		hearSprint = 110, -- studs: hears a sprinting player this far away
 		hearPerWeight = 2, -- extra studs per point of carried weight
@@ -64,6 +65,8 @@ return {
 		arriveMinCells = 4, -- after a Shift it appears at least this many cells (by path) from everyone
 		arriveMaxCells = 7, -- ...and at most this far from the loudest player
 		killCooldown = 6, -- seconds it lingers after taking someone
+		arriveGraceSeconds = 6, -- after it arrives it can't take anyone for this long
+		firstRunChaseScale = 0.85, -- run 1 only: chase speed x this (14 -> ~12)
 	},
 
 	-- LAMPJAW: lives in the flickering light fittings. It takes over one

@@ -29,6 +29,23 @@ local function attach(model: Model)
 	end
 	local drone = makeSound(root, "Drone", 0.22, 1.4, 120, true)
 	local step = makeSound(root, "Step", 0.45, 1.6, 110, false)
+	-- The shriek when it spots someone: the hum dragged up and torn.
+	local shriek = makeSound(root, "Shriek", 1.6, 3, 160, false)
+	local shriekBend = Instance.new("PitchShiftSoundEffect")
+	shriekBend.Octave = 0.6
+	shriekBend.Parent = shriek
+	local shriekGrit = Instance.new("DistortionSoundEffect")
+	shriekGrit.Level = 0.6
+	shriekGrit.Parent = shriek
+	model:GetAttributeChangedSignal("State"):Connect(function()
+		if model:GetAttribute("State") == "notice" and shriek.SoundId ~= "" then
+			shriek.TimePosition = 0
+			shriek:Play()
+			task.delay(1.5, function()
+				shriek:Stop()
+			end)
+		end
+	end)
 	-- The sound IDs are worked out at runtime; wait until they are known.
 	task.spawn(function()
 		while model.Parent and not (SoundIds.get("HUM") and SoundIds.get("STEP_HARD")) do
@@ -36,6 +53,7 @@ local function attach(model: Model)
 		end
 		drone.SoundId = SoundIds.get("HUM") or ""
 		step.SoundId = SoundIds.get("STEP_HARD") or ""
+		shriek.SoundId = SoundIds.get("HUM") or ""
 		drone:Play()
 	end)
 
@@ -51,7 +69,8 @@ local function attach(model: Model)
 			end
 			return
 		end
-		local hunting = model:GetAttribute("State") == "chase"
+		local st = model:GetAttribute("State")
+		local hunting = st == "chase" or st == "notice"
 		drone.Volume = if hunting then 2 else 1.4
 		drone.PlaybackSpeed = if hunting then 0.3 else 0.22
 		local moved = (root.Position - last).Magnitude
