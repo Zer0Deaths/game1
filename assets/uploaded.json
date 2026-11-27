@@ -59,6 +59,76 @@
   "id": "decal:137173839456064",
   "sha": "71112682ccb8deaa"
  },
+ "models/cable_tray.fbx": {
+  "decal": null,
+  "id": "81125467599741",
+  "sha": "f5354afacc9cb810"
+ },
+ "models/ceiling_tile.fbx": {
+  "decal": null,
+  "id": "81150220783996",
+  "sha": "d6758376a48b3b1e"
+ },
+ "models/door.fbx": {
+  "decal": null,
+  "id": "71439856647296",
+  "sha": "069d026897dbdc98"
+ },
+ "models/exit_sign.fbx": {
+  "decal": null,
+  "id": "137308820317495",
+  "sha": "6a7ac9f38716967c"
+ },
+ "models/fixture.fbx": {
+  "decal": null,
+  "id": "135658509650574",
+  "sha": "2d0c7aa99a5c3020"
+ },
+ "models/floor_panel.fbx": {
+  "decal": null,
+  "id": "129978361308772",
+  "sha": "65e9cc3ffcfece7e"
+ },
+ "models/lift_doors.fbx": {
+  "decal": null,
+  "id": "131155358307242",
+  "sha": "7f72dd0768d028eb"
+ },
+ "models/pillar.fbx": {
+  "decal": null,
+  "id": "79869651852649",
+  "sha": "6070b7a7bcc86228"
+ },
+ "models/pipe_run.fbx": {
+  "decal": null,
+  "id": "83573041997146",
+  "sha": "5c85ef72e857d236"
+ },
+ "models/vent_grate.fbx": {
+  "decal": null,
+  "id": "71320897570939",
+  "sha": "3846f405b74eeae5"
+ },
+ "models/wall_panel.fbx": {
+  "decal": null,
+  "id": "89560833621178",
+  "sha": "68539a1417628456"
+ },
+ "models/wall_panel_peeling.fbx": {
+  "decal": null,
+  "id": "107572745907404",
+  "sha": "06c07804ea857a09"
+ },
+ "models/wall_panel_skirting.fbx": {
+  "decal": null,
+  "id": "79499493950353",
+  "sha": "41a3d0cb1be6f079"
+ },
+ "models/wall_post.fbx": {
+  "decal": null,
+  "id": "111257870945800",
+  "sha": "de31719d60a7f50b"
+ },
  "sounds/BLACKOUT.ogg": {
   "decal": null,
   "id": "108787335070634",
