@@ -62,7 +62,7 @@ local LevelTypes: { LevelType } = {
 		blurb = "Tiled corridors, cold light, more of it broken.",
 		unlockRun = 2,
 		weight = 2,
-		sizeBonus = -2,
+		sizeBonus = 0, -- tighter corridors, same size (Jason: never under 30x30)
 		gen = { loopChance = 0.1, roomCount = 4, atriumCount = 0, officeCount = 5, storageCount = 1, hallCount = 8, deadChance = 0.32, flickerChance = 0.14 },
 		colours = {
 			wall = rgb(196, 206, 200),

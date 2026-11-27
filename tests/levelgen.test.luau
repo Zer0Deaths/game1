@@ -153,7 +153,7 @@ for _, t in LevelTypes.list do
 	for seed = 1, 100 do
 		-- Every crew size (22..30 cells) plus the type's size bonus.
 		local gen = table.clone(t.gen) :: any
-		local size = ({ 22, 26, 28, 30 })[seed % 4 + 1] + t.sizeBonus
+		local size = ({ 30, 30, 32, 32 })[seed % 4 + 1] + t.sizeBonus
 		gen.width, gen.depth = size, size
 		local layout = LevelGen.generate(seed, gen)
 		if LevelGen.reachableCount(layout) ~= layout.width * layout.depth then
