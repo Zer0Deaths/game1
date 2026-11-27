@@ -126,8 +126,8 @@
  },
  "models/descent_lift.fbx": {
   "decal": null,
-  "id": "81450128404307",
-  "sha": "f9b670b2bcac7e8f"
+  "id": "119213681145680",
+  "sha": "936d4f04ee1e5e61"
  },
  "models/desk.fbx": {
   "decal": null,
@@ -146,8 +146,8 @@
  },
  "models/exit_lift.fbx": {
   "decal": null,
-  "id": "72628333839440",
-  "sha": "9028294235d92fe9"
+  "id": "121792656678145",
+  "sha": "0f27d97eaeb6224c"
  },
  "models/exit_sign.fbx": {
   "decal": null,
@@ -249,6 +249,11 @@
   "id": "121039005920771",
   "sha": "bd05f7f74e1a7bd4"
  },
+ "models/lift_armoury.fbx": {
+  "decal": null,
+  "id": "97739438041246",
+  "sha": "ce82aa824acedc9d"
+ },
  "models/lift_doors.fbx": {
   "decal": null,
   "id": "71056251841426",
@@ -263,6 +268,26 @@
   "decal": null,
   "id": "86184338588945",
   "sha": "a86937b46009241b"
+ },
+ "models/melee_axe.fbx": {
+  "decal": null,
+  "id": "132574915937789",
+  "sha": "ce1353b72629fc7e"
+ },
+ "models/melee_crowbar.fbx": {
+  "decal": null,
+  "id": "105426646625489",
+  "sha": "c0f43088098f55fa"
+ },
+ "models/melee_pipe.fbx": {
+  "decal": null,
+  "id": "122415336446873",
+  "sha": "64c5e424fd574dd9"
+ },
+ "models/melee_sledge.fbx": {
+  "decal": null,
+  "id": "122720907946456",
+  "sha": "b48928da4549eec0"
  },
  "models/notice_board.fbx": {
   "decal": null,
