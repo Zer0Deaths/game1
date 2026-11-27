@@ -65,4 +65,5 @@ return {
 		pants = "decal:135223071668249",
 		shirt = "decal:81942948737839",
 	},
+	decals = {},
 }

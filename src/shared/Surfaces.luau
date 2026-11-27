@@ -152,12 +152,43 @@ local function setMaps(target: Instance, ids: { [string]: string }): boolean
 	end)
 end
 
+-- Best lighting the place allows: shadows from every light (Future). A
+-- running game can't change these; the command-bar install() can. Newer
+-- Studios replace Technology with LightingStyle + PrioritizeLightingQuality,
+-- which is why Technology may look locked; whichever exists is set.
+function Surfaces.lighting(): string
+	local Lighting = game:GetService("Lighting")
+	local done = {}
+	if pcall(function()
+		(Lighting :: any).Technology = Enum.Technology.Future
+	end) then
+		table.insert(done, "Technology = Future")
+	end
+	if pcall(function()
+		(Lighting :: any).LightingStyle = (Enum :: any).LightingStyle.Realistic
+	end) then
+		table.insert(done, "LightingStyle = Realistic")
+	end
+	if pcall(function()
+		(Lighting :: any).PrioritizeLightingQuality = true
+	end) then
+		table.insert(done, "PrioritizeLightingQuality = on")
+	end
+	pcall(function()
+		Lighting.GlobalShadows = true
+	end)
+	return if #done > 0 then table.concat(done, ", ") else "not allowed here"
+end
+
 -- Make (or update) every uploaded set's MaterialVariant and SurfaceAppearance.
 -- Safe to call again; runs on the server at start, or from Studio's
 -- command bar (which is allowed to set texture maps and saves them into
 -- the place).
 function Surfaces.install(): (number, number)
 	local MaterialService = game:GetService("MaterialService")
+	if not RunService:IsRunning() then
+		print(`[Surfaces] lighting: {Surfaces.lighting()}`)
+	end
 	local templates = ReplicatedStorage:FindFirstChild("SHIFT_Surfaces")
 	if not templates then
 		templates = Instance.new("Folder")
@@ -227,6 +258,9 @@ function Surfaces.install(): (number, number)
 		end
 	end
 	Surfaces.refresh()
+	if not RunService:IsRunning() then
+		print(`[Surfaces] installed {made} PBR sets ({blocked} could not be). Now File > Save, then Play.`)
+	end
 	return made, blocked
 end
 

@@ -131,6 +131,15 @@ return {
 
 	-- Safehouse hub: where crews wait, shop and pick crews between runs.
 	HUB_ORIGIN = Vector3.new(-160, 0, 140), -- far from the level (which starts at 0,0)
+	HUB_AMBIENT = Color3.fromRGB(30, 27, 19), -- dimmer than the levels: the safehouse's tubes do the lighting
+	HUB_LIGHT_BRIGHTNESS = 2.3, -- each fluorescent fitting (a downward SurfaceLight with shadows)
+	HUB_LIGHT_RANGE = 17, -- low enough that the light pools and it goes dark between fittings
+	HUB_LIGHT_ANGLE = 100,
+
+	-- Light shafts and dust under the ceiling lights (on your device only).
+	SHAFTS_MAX = 10, -- how many lights near you get a shaft and dust at once
+	SHAFT_RADIUS = 48, -- studs: lights further away than this don't get one
+	SHAFT_OPACITY = 0.055, -- 0 = invisible; keep it faint
 
 	-- Flashlight (shop item)
 	FLASHLIGHT_SECONDS = 150, -- battery life per run

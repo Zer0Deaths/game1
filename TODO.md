@@ -18,12 +18,13 @@ Tick them off as you go. Nothing here is urgent unless marked.
 - [ ] Map (M) fills in and fades after a Shift.
 
 ## Uploads (done 27 Nov: 99 assets uploaded, IDs in `src/shared/AssetIds.luau`)
-- [ ] **Install the textures once (about 1 minute).** A running game isn't allowed to create textured materials, so this one step happens in Studio itself:
+- [ ] **After the realism pass:** the PC session runs `python tools/upload_assets.py` once more (it only uploads the 10 new grime decals in `assets/decals`) and commits `src/shared/AssetIds.luau` and `assets/uploaded.json`. Until then the stains use the old flat patches.
+- [ ] **Install the textures once (about 1 minute).** This same line also turns on the best lighting your Studio allows (Future, or Realistic + Prioritize Lighting Quality in newer Studios), which a running game can't do. A running game isn't allowed to create textured materials, so this one step happens in Studio itself:
   1. Make sure the game is **stopped** (not playing).
   2. Open **View > Command Bar**, paste this and press Enter:
      `require(game.ReplicatedStorage.Shared.Surfaces).install()`
   3. **File > Save** (so the materials are kept in the place).
-  4. Play. Output should say `[Surfaces] 19 of 19 PBR sets active`.
+  4. Play. Output should say `[Surfaces] 19 of 19 PBR sets active`. The command bar also prints `[Surfaces] lighting: ...` with what it could set.
   Do it again only after new textures are uploaded.
 - To re-upload after changing files: `python tools/upload_assets.py` (skips anything unchanged), then commit `src/shared/AssetIds.luau` and `assets/uploaded.json`.
 - Audio is moderated: a new sound can show "not approved" for a while after upload. It starts working by itself once Roblox approves it.

@@ -125,7 +125,7 @@ def main():
     ledger = json.load(open(LEDGER)) if os.path.exists(LEDGER) else {}
 
     jobs = []  # (relative path, Decal|Audio)
-    for folder, kind in (("textures", "Decal"), ("clothing", "Decal"), ("sounds", "Audio")):
+    for folder, kind in (("textures", "Decal"), ("clothing", "Decal"), ("decals", "Decal"), ("sounds", "Audio")):
         d = os.path.join(ASSETS, folder)
         if os.path.isdir(d):
             for f in sorted(os.listdir(d)):
@@ -166,7 +166,7 @@ def main():
 
 
 def write_luau(ledger):
-    textures, sounds, clothing = {}, {}, {}
+    textures, sounds, clothing, decals = {}, {}, {}, {}
     for rel, entry in ledger.items():
         folder, file = rel.split("/", 1)
         stem = os.path.splitext(file)[0]
@@ -178,6 +178,8 @@ def write_luau(ledger):
             sounds[stem] = entry["id"]
         elif folder == "clothing":
             clothing[stem.replace("suit_", "")] = entry["id"]
+        elif folder == "decals":
+            decals[stem] = entry["id"]
     lines = [
         "--!strict",
         "-- Uploaded asset IDs. WRITTEN BY tools/upload_assets.py: run that",
@@ -195,6 +197,9 @@ def write_luau(ledger):
     lines += ["\t},", "\tclothing = {"]
     for k in sorted(clothing):
         lines.append(f'\t\t{k} = "{clothing[k]}",')
+    lines += ["\t},", "\tdecals = {"]
+    for k in sorted(decals):
+        lines.append(f'\t\t{k} = "{decals[k]}",')
     lines += ["\t},", "}", ""]
     with open(OUT, "w", newline="\n") as f:
         f.write("\n".join(lines))

@@ -255,7 +255,7 @@ local function start(crew: number, depth: number, seed: number?)
 	local chosenSeed = seed or math.random(1, 999999)
 	local layout = LevelGen.generate(chosenSeed, gen)
 	local origin = Sublevels.origin(crew)
-	LevelBuilder.setTheme(levelType.colours, levelType.materials, levelType.variants)
+	LevelBuilder.setTheme(levelType.colours, levelType.materials, levelType.variants, levelType.id)
 	local model = LevelBuilder.build(layout, workspace, origin, crew)
 	local cells = layout.width * layout.depth
 	local artefacts = ArtefactService.spawnAll(
