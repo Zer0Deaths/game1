@@ -1,0 +1,16 @@
+Texture carpet: ambientCG Carpet016 (https://ambientcg.com/a/Carpet016), CC0 1.0
+Texture concrete: ambientCG Concrete049 (https://ambientcg.com/a/Concrete049), CC0 1.0
+Texture ceiling: ambientCG OfficeCeiling001 (https://ambientcg.com/a/OfficeCeiling001), CC0 1.0
+Texture ward_tile: ambientCG Tiles141 (https://ambientcg.com/a/Tiles141), CC0 1.0
+Texture ward_floor: ambientCG Tiles040 (https://ambientcg.com/a/Tiles040), CC0 1.0
+Texture steel_plate: ambientCG DiamondPlate009 (https://ambientcg.com/a/DiamondPlate009), CC0 1.0
+Texture painted_metal: ambientCG Metal027 (https://ambientcg.com/a/Metal027), CC0 1.0
+Texture brushed_metal: ambientCG Metal009 (https://ambientcg.com/a/Metal009), CC0 1.0
+Texture rust: ambientCG Metal064 (https://ambientcg.com/a/Metal064), CC0 1.0
+Texture wood: ambientCG Wood099 (https://ambientcg.com/a/Wood099), CC0 1.0
+Texture fabric: ambientCG Fabric087 (https://ambientcg.com/a/Fabric087), CC0 1.0
+Texture cardboard: ambientCG Paper005 (https://ambientcg.com/a/Paper005), CC0 1.0
+Texture aged_plastic: ambientCG Plastic013A (https://ambientcg.com/a/Plastic013A), CC0 1.0
+Texture rubber: ambientCG Rubber004 (https://ambientcg.com/a/Rubber004), CC0 1.0
+Texture suit_fabric: ambientCG Fabric087 (https://ambientcg.com/a/Fabric087), CC0 1.0
+Sounds: Kenney 'Impact Sounds' (https://kenney.nl/assets/impact-sounds), CC0 1.0

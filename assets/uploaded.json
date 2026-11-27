@@ -1,0 +1,497 @@
+{
+ "clothing/suit_pants.png": {
+  "decal": "135223071668249",
+  "id": "decal:135223071668249",
+  "sha": "0d8c4c8677f619d1"
+ },
+ "clothing/suit_shirt.png": {
+  "decal": "81942948737839",
+  "id": "decal:81942948737839",
+  "sha": "9cefbea92c2feff9"
+ },
+ "sounds/BLACKOUT.ogg": {
+  "decal": null,
+  "id": "108787335070634",
+  "sha": "007fbd9523b49667"
+ },
+ "sounds/COUNTDOWN.ogg": {
+  "decal": null,
+  "id": "127543011066669",
+  "sha": "2ba3a1106e22a4b3"
+ },
+ "sounds/DEPOSIT.ogg": {
+  "decal": null,
+  "id": "95491335113584",
+  "sha": "1e1d76751b76d1cc"
+ },
+ "sounds/DRONE.ogg": {
+  "decal": null,
+  "id": "104186980245861",
+  "sha": "282bed9f50530901"
+ },
+ "sounds/DROP.ogg": {
+  "decal": null,
+  "id": "133342136213715",
+  "sha": "49e7ca88743fca97"
+ },
+ "sounds/ERROR.ogg": {
+  "decal": null,
+  "id": "81310544600341",
+  "sha": "f14dd97996f86f30"
+ },
+ "sounds/FLASHLIGHT.ogg": {
+  "decal": null,
+  "id": "118616664092457",
+  "sha": "05c2b78effa9044d"
+ },
+ "sounds/HEARTBEAT.ogg": {
+  "decal": null,
+  "id": "135515131622375",
+  "sha": "1ee08ffc7fb7bd8e"
+ },
+ "sounds/LAMPJAW_CUE.ogg": {
+  "decal": null,
+  "id": "137448121231311",
+  "sha": "d536e6aa1102c3cf"
+ },
+ "sounds/LIFT_DING.ogg": {
+  "decal": null,
+  "id": "84638920763255",
+  "sha": "f78f1edd99d9440e"
+ },
+ "sounds/LIFT_MOTOR.ogg": {
+  "decal": null,
+  "id": "116578198947536",
+  "sha": "d4a1ec31c4bbd8f5"
+ },
+ "sounds/LIGHTS_ON.ogg": {
+  "decal": null,
+  "id": "108210931534772",
+  "sha": "c86e2b01d45c0abc"
+ },
+ "sounds/PICKUP.ogg": {
+  "decal": null,
+  "id": "103250498089239",
+  "sha": "7642a4fd43e547af"
+ },
+ "sounds/PURCHASE.ogg": {
+  "decal": null,
+  "id": "72884476945798",
+  "sha": "f2341652ee58f1fd"
+ },
+ "sounds/QUOTA_MET.ogg": {
+  "decal": null,
+  "id": "78199019273917",
+  "sha": "966d13c2d2a1a47b"
+ },
+ "sounds/SHIFT_WARN.ogg": {
+  "decal": null,
+  "id": "118275806103209",
+  "sha": "348e3ed2ff3c60f8"
+ },
+ "sounds/STEP_CARPET.ogg": {
+  "decal": null,
+  "id": "95846368760902",
+  "sha": "b9524658b52a99a2"
+ },
+ "sounds/STEP_CARPET_2.ogg": {
+  "decal": null,
+  "id": "131594711880943",
+  "sha": "9af3c3f767051073"
+ },
+ "sounds/STEP_CARPET_3.ogg": {
+  "decal": null,
+  "id": "108534882819584",
+  "sha": "9af3c3f767051073"
+ },
+ "sounds/STEP_METAL.ogg": {
+  "decal": null,
+  "id": "121226649832381",
+  "sha": "6e797cf8a5bfc52d"
+ },
+ "sounds/STEP_METAL_2.ogg": {
+  "decal": null,
+  "id": "77225401554603",
+  "sha": "947915c2eb6ac57e"
+ },
+ "sounds/STEP_METAL_3.ogg": {
+  "decal": null,
+  "id": "128008270796654",
+  "sha": "8ac5869ea434cf0d"
+ },
+ "sounds/STEP_TILE.ogg": {
+  "decal": null,
+  "id": "108945875248806",
+  "sha": "d7267e183067757c"
+ },
+ "sounds/STEP_TILE_2.ogg": {
+  "decal": null,
+  "id": "103327036428972",
+  "sha": "507a75eb19b89708"
+ },
+ "sounds/STEP_TILE_3.ogg": {
+  "decal": null,
+  "id": "105094912308725",
+  "sha": "b21fa546d7494119"
+ },
+ "sounds/STING_DEATH.ogg": {
+  "decal": null,
+  "id": "80242612946935",
+  "sha": "4c8bce917bc7f681"
+ },
+ "sounds/STING_GLIMPSE.ogg": {
+  "decal": null,
+  "id": "87510089643845",
+  "sha": "b3f7ddccf2a4acfa"
+ },
+ "sounds/STING_REVEAL.ogg": {
+  "decal": null,
+  "id": "71094739655491",
+  "sha": "f532c4de0474a8fb"
+ },
+ "sounds/STING_WIPE.ogg": {
+  "decal": null,
+  "id": "111463436244005",
+  "sha": "250118d6f800c300"
+ },
+ "sounds/TENANT_CUE.ogg": {
+  "decal": null,
+  "id": "76920422249443",
+  "sha": "8ed3a95899d044a4"
+ },
+ "sounds/TENANT_STEP.ogg": {
+  "decal": null,
+  "id": "117685543190132",
+  "sha": "ce1e06f2a05f2634"
+ },
+ "sounds/UI_CLICK.ogg": {
+  "decal": null,
+  "id": "80127096901555",
+  "sha": "bcbde905e7d58e31"
+ },
+ "sounds/UI_CLOSE.ogg": {
+  "decal": null,
+  "id": "138415603758606",
+  "sha": "134ec1c6825e04c7"
+ },
+ "sounds/UI_OPEN.ogg": {
+  "decal": null,
+  "id": "124706376478491",
+  "sha": "e440dc813c7fe120"
+ },
+ "sounds/WHISPERS.ogg": {
+  "decal": null,
+  "id": "93516311823399",
+  "sha": "d7691645b0c15610"
+ },
+ "textures/aged_plastic_colour.png": {
+  "decal": "101640141465465",
+  "id": "decal:101640141465465",
+  "sha": "78b7ffb1c2ac8dda"
+ },
+ "textures/aged_plastic_normal.png": {
+  "decal": "108303903197002",
+  "id": "decal:108303903197002",
+  "sha": "0150bb7f3f3720aa"
+ },
+ "textures/aged_plastic_roughness.png": {
+  "decal": "118356090878831",
+  "id": "decal:118356090878831",
+  "sha": "73a1450e238e3d72"
+ },
+ "textures/brushed_metal_colour.png": {
+  "decal": "138079881749160",
+  "id": "decal:138079881749160",
+  "sha": "dc07ed4e1747d08e"
+ },
+ "textures/brushed_metal_metalness.png": {
+  "decal": "139003600535387",
+  "id": "decal:139003600535387",
+  "sha": "ed2595fcf3159455"
+ },
+ "textures/brushed_metal_normal.png": {
+  "decal": "117022188295384",
+  "id": "decal:117022188295384",
+  "sha": "ea8f91d58b5ac4de"
+ },
+ "textures/brushed_metal_roughness.png": {
+  "decal": "88342630385449",
+  "id": "decal:88342630385449",
+  "sha": "14cd01cbc47b548e"
+ },
+ "textures/cardboard_colour.png": {
+  "decal": "84011091991607",
+  "id": "decal:84011091991607",
+  "sha": "561b5c1714ef9795"
+ },
+ "textures/cardboard_normal.png": {
+  "decal": "116872226841737",
+  "id": "decal:116872226841737",
+  "sha": "5ea262af034ce1a7"
+ },
+ "textures/cardboard_roughness.png": {
+  "decal": "92720047574846",
+  "id": "decal:92720047574846",
+  "sha": "6d4227bc557049bc"
+ },
+ "textures/carpet_colour.png": {
+  "decal": "98959707019241",
+  "id": "decal:98959707019241",
+  "sha": "4089957e7ba935ce"
+ },
+ "textures/carpet_normal.png": {
+  "decal": "134483381141760",
+  "id": "decal:134483381141760",
+  "sha": "cef16df511200bcb"
+ },
+ "textures/carpet_roughness.png": {
+  "decal": "97070198265453",
+  "id": "decal:97070198265453",
+  "sha": "48fb783245a5e3fa"
+ },
+ "textures/ceiling_colour.png": {
+  "decal": "123888100897721",
+  "id": "decal:123888100897721",
+  "sha": "3d9106893d2fa647"
+ },
+ "textures/ceiling_metalness.png": {
+  "decal": "127862559983855",
+  "id": "decal:127862559983855",
+  "sha": "1eb50a3ee3fcac0a"
+ },
+ "textures/ceiling_normal.png": {
+  "decal": "91805864528916",
+  "id": "decal:91805864528916",
+  "sha": "e902feb2f87f231d"
+ },
+ "textures/ceiling_roughness.png": {
+  "decal": "92263228680490",
+  "id": "decal:92263228680490",
+  "sha": "32b75887be83e4e7"
+ },
+ "textures/concrete_colour.png": {
+  "decal": "138847782589621",
+  "id": "decal:138847782589621",
+  "sha": "0054ee67ddfd947e"
+ },
+ "textures/concrete_normal.png": {
+  "decal": "131365377597614",
+  "id": "decal:131365377597614",
+  "sha": "b3d58559aad32905"
+ },
+ "textures/concrete_roughness.png": {
+  "decal": "97694671418653",
+  "id": "decal:97694671418653",
+  "sha": "9a38552151d9e5b1"
+ },
+ "textures/fabric_colour.png": {
+  "decal": "104361973564435",
+  "id": "decal:104361973564435",
+  "sha": "7da839b148c4c547"
+ },
+ "textures/fabric_normal.png": {
+  "decal": "84597429458736",
+  "id": "decal:84597429458736",
+  "sha": "ff369e7a1dd40154"
+ },
+ "textures/fabric_roughness.png": {
+  "decal": "92871027995081",
+  "id": "decal:92871027995081",
+  "sha": "cf2f33e055c0816a"
+ },
+ "textures/painted_metal_colour.png": {
+  "decal": "92273537501115",
+  "id": "decal:92273537501115",
+  "sha": "48603bcc3da24e02"
+ },
+ "textures/painted_metal_metalness.png": {
+  "decal": "78692221074620",
+  "id": "decal:78692221074620",
+  "sha": "ed2595fcf3159455"
+ },
+ "textures/painted_metal_normal.png": {
+  "decal": "84892004085300",
+  "id": "decal:84892004085300",
+  "sha": "a82e49ad7546c7b7"
+ },
+ "textures/painted_metal_roughness.png": {
+  "decal": "93615213253712",
+  "id": "decal:93615213253712",
+  "sha": "d38e8b7212cef437"
+ },
+ "textures/paper_colour.png": {
+  "decal": "117277199403625",
+  "id": "decal:117277199403625",
+  "sha": "1c63dcfd53e055dd"
+ },
+ "textures/paper_normal.png": {
+  "decal": "121909459143389",
+  "id": "decal:121909459143389",
+  "sha": "8bdf999767729a00"
+ },
+ "textures/paper_roughness.png": {
+  "decal": "84807347273805",
+  "id": "decal:84807347273805",
+  "sha": "954e75c9361ebed8"
+ },
+ "textures/rubber_colour.png": {
+  "decal": "110110899596409",
+  "id": "decal:110110899596409",
+  "sha": "a27315c087fce2ae"
+ },
+ "textures/rubber_normal.png": {
+  "decal": "93274972610342",
+  "id": "decal:93274972610342",
+  "sha": "5903448885eff258"
+ },
+ "textures/rubber_roughness.png": {
+  "decal": "129313662131543",
+  "id": "decal:129313662131543",
+  "sha": "c132224d8e49046e"
+ },
+ "textures/rust_colour.png": {
+  "decal": "73881922218400",
+  "id": "decal:73881922218400",
+  "sha": "b0a337a711fdfc19"
+ },
+ "textures/rust_metalness.png": {
+  "decal": "79621899815252",
+  "id": "decal:79621899815252",
+  "sha": "8aede72d20007668"
+ },
+ "textures/rust_normal.png": {
+  "decal": "95199408323282",
+  "id": "decal:95199408323282",
+  "sha": "45352f78e74aeb7e"
+ },
+ "textures/rust_roughness.png": {
+  "decal": "129060795700952",
+  "id": "decal:129060795700952",
+  "sha": "df804213144111e4"
+ },
+ "textures/steel_plate_colour.png": {
+  "decal": "104253671410988",
+  "id": "decal:104253671410988",
+  "sha": "e86547b76e9389e2"
+ },
+ "textures/steel_plate_metalness.png": {
+  "decal": "137759449737238",
+  "id": "decal:137759449737238",
+  "sha": "a6f29d34ccfd073f"
+ },
+ "textures/steel_plate_normal.png": {
+  "decal": "95736623007335",
+  "id": "decal:95736623007335",
+  "sha": "c13d2afa35ac77e9"
+ },
+ "textures/steel_plate_roughness.png": {
+  "decal": "113621989977052",
+  "id": "decal:113621989977052",
+  "sha": "215440f06f4b5eeb"
+ },
+ "textures/suit_fabric_colour.png": {
+  "decal": "72372364439128",
+  "id": "decal:72372364439128",
+  "sha": "719f80a8531648a6"
+ },
+ "textures/suit_fabric_normal.png": {
+  "decal": "72596917318180",
+  "id": "decal:72596917318180",
+  "sha": "ff369e7a1dd40154"
+ },
+ "textures/suit_fabric_roughness.png": {
+  "decal": "73986165864954",
+  "id": "decal:73986165864954",
+  "sha": "cf2f33e055c0816a"
+ },
+ "textures/tenant_coat_colour.png": {
+  "decal": "136211080845294",
+  "id": "decal:136211080845294",
+  "sha": "6773172521bb6adf"
+ },
+ "textures/tenant_coat_normal.png": {
+  "decal": "117492838708692",
+  "id": "decal:117492838708692",
+  "sha": "95ea2df19d4f4dcd"
+ },
+ "textures/tenant_coat_roughness.png": {
+  "decal": "102399047009334",
+  "id": "decal:102399047009334",
+  "sha": "94a787b9cf878beb"
+ },
+ "textures/tenant_skin_colour.png": {
+  "decal": "76155823335260",
+  "id": "decal:76155823335260",
+  "sha": "b5425b1d0f57fe5d"
+ },
+ "textures/tenant_skin_normal.png": {
+  "decal": "91229871851721",
+  "id": "decal:91229871851721",
+  "sha": "e355726ebd368feb"
+ },
+ "textures/tenant_skin_roughness.png": {
+  "decal": "80650870745388",
+  "id": "decal:80650870745388",
+  "sha": "a2abd8bd20ec4853"
+ },
+ "textures/wallpaper_colour.png": {
+  "decal": "77829574118525",
+  "id": "decal:77829574118525",
+  "sha": "28d88a8a8f2efc6c"
+ },
+ "textures/wallpaper_normal.png": {
+  "decal": "82746495755355",
+  "id": "decal:82746495755355",
+  "sha": "ce88df87fb2fe299"
+ },
+ "textures/wallpaper_roughness.png": {
+  "decal": "119978389944329",
+  "id": "decal:119978389944329",
+  "sha": "aa5dfc13a2b57def"
+ },
+ "textures/ward_floor_colour.png": {
+  "decal": "122109523422227",
+  "id": "decal:122109523422227",
+  "sha": "486f7d5450d509b0"
+ },
+ "textures/ward_floor_normal.png": {
+  "decal": "123917512379975",
+  "id": "decal:123917512379975",
+  "sha": "589cdef0fa4c53e0"
+ },
+ "textures/ward_floor_roughness.png": {
+  "decal": "92672097634200",
+  "id": "decal:92672097634200",
+  "sha": "8f6294c53d08f3d7"
+ },
+ "textures/ward_tile_colour.png": {
+  "decal": "114917910152500",
+  "id": "decal:114917910152500",
+  "sha": "77c7ff9efbc535c0"
+ },
+ "textures/ward_tile_normal.png": {
+  "decal": "121051246429339",
+  "id": "decal:121051246429339",
+  "sha": "47c5362fa225e618"
+ },
+ "textures/ward_tile_roughness.png": {
+  "decal": "133307178437716",
+  "id": "decal:133307178437716",
+  "sha": "9b7b3e437e443313"
+ },
+ "textures/wood_colour.png": {
+  "decal": "106941057592064",
+  "id": "decal:106941057592064",
+  "sha": "3484d575a7b83a77"
+ },
+ "textures/wood_normal.png": {
+  "decal": "133220378294801",
+  "id": "decal:133220378294801",
+  "sha": "745c0c9c55fad987"
+ },
+ "textures/wood_roughness.png": {
+  "decal": "135623495541717",
+  "id": "decal:135623495541717",
+  "sha": "2998d836d76d0db2"
+ }
+}
