@@ -45,7 +45,19 @@ return {
 	STAMINA_REGEN_PER_WEIGHT = 0.08, -- regen is divided by (1 + weight * this)
 	STAMINA_REGEN_DELAY = 0.8, -- pause after sprinting before regen starts
 	EXHAUSTED_UNTIL = 30, -- run dry and you can't sprint again until this
-	LIFT_RADIUS = 6, -- how close to the lift centre counts as "inside"
+	LIFT_RADIUS = 8, -- how close to the lift centre counts as "inside" (the cage is 16 x 16 studs, was 10 x 10 with 6)
+	LIFT_SIZE = 16, -- the exit lift cage, studs square (room for the armoury on its west side)
+	-- The first sublevels keep the lift easy to find. Per sublevel:
+	--   band       where the lift starts, as a fraction of the furthest walk from spawn (deeper: 0.45-0.6)
+	--   min        ...but never fewer cells than this
+	--   shiftMin/shiftMax  after a Shift it moves only this many cells (by walking) from the nearest player
+	--   beacon     the LIFT sign shows through walls (in the lift's colour, fading with distance)
+	--   steady     the compass needle doesn't wander
+	LIFT_EASY = {
+		[1] = { band = { 0.15, 0.25 }, min = 5, shiftMin = 4, shiftMax = 9, beacon = true, steady = true },
+		[2] = { band = { 0.25, 0.35 }, min = 6, shiftMin = 5, shiftMax = 12, beacon = true, steady = true },
+		[3] = { band = { 0.35, 0.45 }, min = 7, shiftMin = 5, shiftMax = 16, beacon = false, steady = true },
+	} :: { [number]: { band: { number }, min: number, shiftMin: number, shiftMax: number, beacon: boolean, steady: boolean } },
 
 	-- Lighting. Roblox takes ~15 s after joining before the ceiling lights
 	-- actually light the walls, so each player starts with a brighter warm

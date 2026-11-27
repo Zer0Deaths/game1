@@ -1,5 +1,6 @@
 """Shared builder for SHIFT's two lift cages (exit_lift.py in the levels,
-descent_lift.py in the safehouse): a 10 x 10 stud chequer-plate deck, four
+descent_lift.py in the safehouse): a square chequer-plate deck (10 x 10
+studs in the safehouse, 16 x 16 in the levels so the armoury fits), four
 steel H-section posts at the corners, a channel-beam header round the top
 with a cross beam, and the lift's hoist ropes running up into the ceiling.
 Origin on the floor at the middle of the deck. Not a model on its own."""
@@ -12,16 +13,15 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "lib"))
 import kit  # noqa: E402
 from kit import cf, deg  # noqa: E402
 
-CORNERS = [(5, 5), (-5, 5), (5, -5), (-5, -5)]
-
-
-def build(name, H, post_colour, footings=False, kerb=False, panel=None, lamp=False):
+def build(name, H, post_colour, footings=False, kerb=False, panel=None, lamp=False, half=5.0):
+    S = half * 2
+    CORNERS = [(half, half), (-half, half), (half, -half), (-half, -half)]
     deck = kit.Mesh("Deck", "steel_plate", (70, 70, 74))
-    deck.box((10, 0.2, 10), cf(0, 0.1, 0), bevel=0.03)
+    deck.box((S, 0.2, S), cf(0, 0.1, 0), bevel=0.03)
     trim = kit.Mesh("Trim", "painted_metal", (56, 56, 58))
     for s in (-1, 1):  # angle-iron round the deck edge
-        trim.box((10.2, 0.22, 0.12), cf(0, 0.11, s * 5.04), bevel=0.02)
-        trim.box((0.12, 0.22, 10.2), cf(s * 5.04, 0.11, 0), bevel=0.02)
+        trim.box((S + 0.2, 0.22, 0.12), cf(0, 0.11, s * (half + 0.04)), bevel=0.02)
+        trim.box((0.12, 0.22, S + 0.2), cf(s * (half + 0.04), 0.11, 0), bevel=0.02)
     posts = kit.Mesh("Posts", "painted_metal", post_colour)
     for x, z in CORNERS:
         # H-section: two flanges and a web, flanges facing along X.
@@ -31,9 +31,9 @@ def build(name, H, post_colour, footings=False, kerb=False, panel=None, lamp=Fal
         posts.box((0.8, 0.06, 0.8), cf(x, 0.23, z), bevel=0.02)  # base plate on the deck
     hy = H - 0.35
     for s in (-1, 1):  # header channels between the posts
-        posts.box((10.6, 0.5, 0.3), cf(0, hy, s * 5), bevel=0.03)
-        posts.box((0.3, 0.5, 10.0), cf(s * 5, hy, 0), bevel=0.03)
-    posts.box((10.0, 0.36, 0.36), cf(0, hy - 0.05, 0), bevel=0.03)  # cross beam over the middle
+        posts.box((S + 0.6, 0.5, 0.3), cf(0, hy, s * half), bevel=0.03)
+        posts.box((0.3, 0.5, S), cf(s * half, hy, 0), bevel=0.03)
+    posts.box((S, 0.36, 0.36), cf(0, hy - 0.05, 0), bevel=0.03)  # cross beam over the middle
     bolts = kit.Mesh("Bolts", "brushed_metal", (130, 128, 120))
     for x, z in CORNERS:
         for dx, dz in ((0.28, 0.28), (-0.28, 0.28), (0.28, -0.28), (-0.28, -0.28)):
@@ -51,8 +51,8 @@ def build(name, H, post_colour, footings=False, kerb=False, panel=None, lamp=Fal
     if kerb:
         k = kit.Mesh("Kerb", "concrete", (140, 136, 126))
         for s in (-1, 1):
-            k.box((11.4, 0.18, 0.9), cf(0, 0.09, s * 5.45), bevel=0.04)
-            k.box((0.9, 0.18, 10.0), cf(s * 5.45, 0.09, 0), bevel=0.04)
+            k.box((S + 1.4, 0.18, 0.9), cf(0, 0.09, s * (half + 0.45)), bevel=0.04)
+            k.box((0.9, 0.18, S), cf(s * (half + 0.45), 0.09, 0), bevel=0.04)
         meshes.append(k)
     if panel:
         # The control box on the corner post: two lit buttons and a key.

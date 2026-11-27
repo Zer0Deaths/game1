@@ -29,7 +29,16 @@ local TICK = 0.1
 
 local Lampjaw = {}
 
-export type Lampjaw = { destroy: () -> () }
+export type Lampjaw = {
+	destroy: () -> (),
+	-- A melee swing from `eye` along `look`: true if it smashed the light
+	-- Lampjaw is in (MeleeService).
+	strike: (eye: Vector3, look: Vector3, reach: number, player: Player?) -> boolean,
+}
+
+local SMASH_REACH_BONUS = 3.5 -- the fittings are overhead: reach up to them
+local SMASH_ARC = math.cos(math.rad(60))
+local SMASH_REST = 45 -- seconds it stays out after its light is smashed
 
 function Lampjaw.create(ctx: any): Lampjaw
 	local state: Folder = ctx.state
@@ -179,6 +188,30 @@ function Lampjaw.create(ctx: any): Lampjaw
 			end
 		end
 	end)
+	-- Smash the possessed fitting: the light dies for good (until a Shift
+	-- re-rolls it) and Lampjaw is thrown out for a long while.
+	local function strike(eye: Vector3, look: Vector3, reach: number, player: Player?): boolean
+		if not alive or cellKey == 0 then
+			return false
+		end
+		local key = cellKey
+		local c = LevelBuilder.cellCenter(key // 1000, key % 1000, ctx.origin)
+		local fitting = Vector3.new(c.X, c.Y + LevelBuilder.HEIGHT - 0.45, c.Z)
+		local to = fitting - eye
+		if to.Magnitude > reach + SMASH_REACH_BONUS or to.Unit:Dot(look.Unit) < SMASH_ARC then
+			return false
+		end
+		local l = ctx.layout
+		l.cells[key // 1000][key % 1000].light = "dead"
+		LevelBuilder.applyLights(l, ctx.model)
+		setCell(0)
+		nextPossess = os.clock() + SMASH_REST
+		local who = if player then player.DisplayName else "Someone"
+		ctx.notify(`{who} smashed the light. Lampjaw's out of it.`, "money")
+		print(`[Lampjaw] crew {ctx.crew}: light at {key // 1000},{key % 1000} smashed`)
+		return true
+	end
+
 	return {
 		destroy = function()
 			alive = false
@@ -186,6 +219,7 @@ function Lampjaw.create(ctx: any): Lampjaw
 			state:SetAttribute("LampjawCell", 0)
 			body:Destroy()
 		end,
+		strike = strike,
 	}
 end
 

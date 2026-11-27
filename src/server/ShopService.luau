@@ -4,8 +4,10 @@
 -- can read them:
 --   Own_<id>  number  level of a permanent item (0 = not owned)
 --   Run_<id>  bool    a one-run item waiting for (or in use on) a run
+--   Melee     string  the melee weapon in your hand (ShopItems id), MeleeUses = hits left
 --   CarryBonus, Battery (0-100), FlashlightOn
--- Purchases only work in the safehouse, and the server checks the price.
+-- Safehouse items only sell at the safehouse counter, melee weapons only
+-- at the armoury in your crew's exit lift. The server checks the price.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,6 +25,20 @@ for _, item in ShopItems do
 end
 
 local inUse: { [Player]: { string } } = {} -- one-run items active this run
+local inLift: (Player) -> boolean = function()
+	return false
+end
+
+-- Sublevels tells the shop how to check "standing in your crew's lift".
+function ShopService.setLiftCheck(check: (Player) -> boolean)
+	inLift = check
+end
+
+-- Take the melee weapon out of a player's hand (broken, died, wiped).
+function ShopService.clearMelee(player: Player)
+	player:SetAttribute("Melee", nil)
+	player:SetAttribute("MeleeUses", nil)
+end
 
 local function inSafehouse(player: Player): boolean
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -66,12 +82,24 @@ local function buy(player: Player, id: unknown)
 	if not item then
 		return
 	end
-	if not inSafehouse(player) then
+	if (item.where or "safehouse") == "lift" then
+		if not inLift(player) then
+			Remotes.Notify:FireClient(player, "The armoury is in the exit lift.", "warn")
+			return
+		end
+	elseif not inSafehouse(player) then
 		Remotes.Notify:FireClient(player, "The shop is in the safehouse.", "warn")
 		return
 	end
 	local price: number
-	if item.kind == "permanent" then
+	if item.kind == "melee" then
+		local spec = item.melee :: ShopItems.Melee
+		if player:GetAttribute("Melee") == item.id and ((player:GetAttribute("MeleeUses") or 0) :: number) >= spec.uses then
+			Remotes.Notify:FireClient(player, `You're already holding a {item.name}.`, "warn")
+			return
+		end
+		price = item.price[1]
+	elseif item.kind == "permanent" then
 		local level = (player:GetAttribute(`Own_{item.id}`) or 0) :: number
 		if level >= #item.price then
 			Remotes.Notify:FireClient(player, `You already have the best {item.name}.`, "warn")
@@ -91,7 +119,14 @@ local function buy(player: Player, id: unknown)
 		return
 	end
 	player:SetAttribute("Cash", cash - price)
-	if item.kind == "permanent" then
+	if item.kind == "melee" then
+		local held = player:GetAttribute("Melee")
+		local swapped = if typeof(held) == "string" and byId[held] and held ~= item.id then ` (left the {byId[held].name} behind)` else ""
+		player:SetAttribute("Melee", item.id)
+		player:SetAttribute("MeleeUses", (item.melee :: ShopItems.Melee).uses)
+		Remotes.Notify:FireClient(player, `Bought a {item.name} for ${price}{swapped}. Click to swing.`, "money")
+		return
+	elseif item.kind == "permanent" then
 		player:SetAttribute(`Own_{item.id}`, ((player:GetAttribute(`Own_{item.id}`) or 0) :: number) + 1)
 	else
 		player:SetAttribute(`Run_{item.id}`, true)
@@ -186,6 +221,7 @@ function ShopService.wipeKit(player: Player)
 		player:SetAttribute(`Run_{item.id}`, nil)
 	end
 	inUse[player] = nil
+	ShopService.clearMelee(player)
 	setFlashlight(player, false)
 	ShopService.apply(player)
 end

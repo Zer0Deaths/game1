@@ -29,6 +29,7 @@ local Safehouse = require(script.Parent:WaitForChild("Safehouse"))
 local ShopService = require(script.Parent:WaitForChild("ShopService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local MonetisationService = require(script.Parent:WaitForChild("MonetisationService"))
+local MeleeService = require(script.Parent:WaitForChild("MeleeService"))
 local Surfaces = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Surfaces"))
 
 -- Dark, hazy, sickly-yellow lighting. See Atmosphere.luau to tweak the look.
@@ -167,6 +168,8 @@ MonetisationService.init()
 ArtefactService.init()
 MapService.init()
 Sublevels.init(sendToHub) -- each crew's sublevels; back to the safehouse after a wipe or by choice
+ShopService.setLiftCheck(Sublevels.inOwnLift) -- the armoury sells only to a crew standing in its own lift
+MeleeService.init(Sublevels.ctxOf) -- the armoury's weapons
 
 -- The safehouse is built and lit: now let people spawn (in the safehouse).
 Players.CharacterAutoLoads = true

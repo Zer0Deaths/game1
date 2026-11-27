@@ -113,6 +113,11 @@ Fx.OnClientEvent:Connect(function(kind: string, position: Vector3)
 		dust(position - Vector3.new(0, 0.5, 0), Color3.fromRGB(150, 140, 110), 1.6, 10)
 	elseif kind == "death" then
 		dust(position, Color3.fromRGB(20, 18, 16), 3, 26)
+	elseif kind == "melee_hit" then
+		dust(position, Color3.fromRGB(30, 28, 26), 1.4, 12)
+	elseif kind == "melee_glass" then
+		glint(position, Color3.fromRGB(230, 240, 255), 10)
+		dust(position, Color3.fromRGB(210, 214, 220), 1.2, 14)
 	end
 end)
 

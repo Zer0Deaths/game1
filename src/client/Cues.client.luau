@@ -378,5 +378,14 @@ Fx.OnClientEvent:Connect(function(kind: string, position: Vector3)
 		Audio.at("DROP", position, { volume = 1, jitter = 0.08, maxDistance = 120 })
 	elseif kind == "death" then
 		Audio.at("DROP", position, { volume = 1.2, speed = 0.6, maxDistance = 140 })
+	-- Melee (stand-in sounds until real swing and impact sounds are
+	-- uploaded: audio uploads are paused).
+	elseif kind == "melee_swing" then
+		Audio.at("STEP_METAL", position, { volume = 0.35, speed = 0.55, jitter = 0.1, maxDistance = 40 })
+	elseif kind == "melee_hit" then
+		Audio.at("DROP", position, { volume = 1.3, speed = 0.8, jitter = 0.1, maxDistance = 140 })
+	elseif kind == "melee_glass" then
+		Audio.at("DROP", position, { volume = 1.1, speed = 1.7, jitter = 0.1, maxDistance = 120 })
+		Audio.at("LIGHTS_ON", position, { volume = 0.6, speed = 0.7, maxDistance = 80 })
 	end
 end)

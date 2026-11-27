@@ -67,6 +67,7 @@ type Ctx = {
 }
 
 local active: { [number]: Ctx } = {}
+local visited: { [number]: { string } } = {} -- level type ids this crew's run has been to, oldest first
 local sendToHub: (Player, number) -> () = function() end
 
 local function now(): number
@@ -113,6 +114,22 @@ end
 local function inLift(ctx: Ctx, root: BasePart): boolean
 	local offset = root.Position - ctx.lift
 	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= Config.LIFT_RADIUS and math.abs(offset.Y) < 8
+end
+
+-- The live level of this player's crew, if it's being played (melee hits).
+function Sublevels.ctxOf(player: Player): any
+	local ctx = active[(player:GetAttribute("Crew") or 0) :: number]
+	if ctx and ctx.alive and not ctx.leaving and ctx.state:GetAttribute("State") == "playing" then
+		return ctx
+	end
+	return nil
+end
+
+-- Is this player alive and standing in their crew's exit lift (the armoury)?
+function Sublevels.inOwnLift(player: Player): boolean
+	local ctx = Sublevels.ctxOf(player)
+	local r = ctx and inLevel(ctx, player)
+	return r ~= nil and inLift(ctx, r)
 end
 
 -- The level a player is standing in, if any (for loot drops).
@@ -183,6 +200,14 @@ local function hookLift(ctx: Ctx, model: Model)
 	deeper.Triggered:Connect(function(player)
 		choose(player, "deeper")
 	end)
+	local armoury = ExitLift.armouryPrompt(model)
+	if armoury then
+		armoury.Triggered:Connect(function(player)
+			if ctx.alive and player:GetAttribute("Crew") == ctx.crew then
+				Remotes.OpenShop:FireClient(player, "lift")
+			end
+		end)
+	end
 	surface.Triggered:Connect(function(player)
 		choose(player, "surface")
 	end)
@@ -193,7 +218,10 @@ local function placeLift(ctx: Ctx)
 		ctx.liftModel:Destroy()
 	end
 	local l = ctx.layout
-	local pos, model = ExitLift.build(LevelBuilder.cellCenter(l.exit.x, l.exit.z, ctx.origin), LevelBuilder.HEIGHT, ctx.model)
+	local easy = Config.LIFT_EASY[ctx.depth]
+	local pos, model = ExitLift.build(LevelBuilder.cellCenter(l.exit.x, l.exit.z, ctx.origin), LevelBuilder.HEIGHT, ctx.model, {
+		beacon = easy ~= nil and easy.beacon,
+	})
 	ctx.lift = pos
 	ctx.liftModel = model
 	ctx.state:SetAttribute("LiftPosition", pos)
@@ -258,10 +286,20 @@ local function start(crew: number, depth: number, seed: number?)
 		return
 	end
 	local started = os.clock()
-	local levelType = LevelTypes.pick(depth, math.random())
+	if depth == 1 then
+		visited[crew] = {}
+	end
+	local history = visited[crew] or {}
+	visited[crew] = history
+	local levelType = LevelTypes.pick(depth, math.random(), history)
+	table.insert(history, levelType.id)
 	local size = Crews.levelSize(#members, Config.LEVEL_SIZE_BY_CREW) + levelType.sizeBonus
 	local gen = table.clone(levelType.gen) :: any
 	gen.width, gen.depth = size, size
+	local easy = Config.LIFT_EASY[depth]
+	if easy then
+		gen.exitBand, gen.exitMin = easy.band, easy.min -- the lift starts closer on the first sublevels
+	end
 	local chosenSeed = seed or math.random(1, 999999)
 	local layout = LevelGen.generate(chosenSeed, gen)
 	local origin = Sublevels.origin(crew)
