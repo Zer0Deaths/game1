@@ -2,6 +2,10 @@
 
 Run on a PC with normal internet (the cloud build box can't reach these
 sites):   python tools/fetch_cc0.py          (needs Pillow and numpy)
+Only one half:  python tools/fetch_cc0.py sounds   (or: textures)
+If the sound download fails, download Impact Sounds by hand from
+kenney.nl into your Downloads folder and run the sounds line again; the
+script finds the zip there (or pass its path after "sounds").
 
 1. Sounds: downloads Kenney's "Impact Sounds" pack (CC0, kenney.nl) and
    copies the real recorded footsteps and impacts into assets/sounds/
@@ -77,28 +81,94 @@ def get(url):
         return r.read()
 
 
+# Pages that link the Impact Sounds zip (Kenney's own page first, then a mirror).
+SOUND_PAGES = (
+    "https://kenney.nl/assets/impact-sounds",
+    "https://opengameart.org/content/impact-sounds",
+)
+
+
+def zip_links(page, base):
+    """Every .zip URL on a page, wherever it sits (href, data-*, JSON, JS)."""
+    page = page.replace("\\/", "/").replace("&amp;", "&")
+    found = []
+    for m in re.finditer(r"""(https?://[^\s"'<>()]+?\.zip|/[^\s"'<>()]+?\.zip)""", page, re.I):
+        url = urllib.parse.urljoin(base, m.group(1))
+        if url not in found:
+            found.append(url)
+    # Prefer links that name the pack.
+    found.sort(key=lambda u: 0 if "impact" in u.lower() else 1)
+    return found
+
+
+def local_zip():
+    """A copy you downloaded by hand: a path given after 'sounds', or the usual places."""
+    for a in sys.argv[2:]:
+        if a.lower().endswith(".zip") and os.path.exists(a):
+            return a
+    home = os.path.expanduser("~")
+    for folder in (os.path.join(home, "Downloads"), ROOT, os.path.dirname(__file__)):
+        if os.path.isdir(folder):
+            for n in sorted(os.listdir(folder)):
+                low = n.lower()
+                if low.endswith(".zip") and "impact" in low:
+                    return os.path.join(folder, n)
+    return None
+
+
+def sound_zip():
+    path = local_zip()
+    if path:
+        print("using", path)
+        with open(path, "rb") as f:
+            return zipfile.ZipFile(io.BytesIO(f.read()))
+    for page_url in SOUND_PAGES:
+        try:
+            page = get(page_url).decode("utf-8", "ignore")
+        except Exception as e:
+            print(f"! {page_url}: {e}")
+            continue
+        links = zip_links(page, page_url)
+        if not links:
+            dump = os.path.join(os.path.dirname(__file__), "last_sound_page.html")
+            with open(dump, "w", encoding="utf-8") as f:
+                f.write(page)
+            hints = sorted(set(re.findall(r"""[^\s"'<>]*download[^\s"'<>]*""", page, re.I)))[:8]
+            print(f"! no .zip link on {page_url} (page saved to {dump}); download-ish bits: {hints}")
+            continue
+        for url in links:
+            try:
+                print("downloading", url)
+                return zipfile.ZipFile(io.BytesIO(get(url)))
+            except Exception as e:
+                print(f"! {url}: {e}")
+    return None
+
+
 def fetch_sounds():
-    page = get("https://kenney.nl/assets/impact-sounds").decode("utf-8", "ignore")
-    m = re.search(r'href="([^"]+impact-sounds[^"]*\.zip)"', page) or re.search(r'href="([^"]+\.zip)"', page)
-    if not m:
-        print("! couldn't find the Kenney download link; download Impact Sounds by hand from kenney.nl")
+    z = sound_zip()
+    if not z:
+        print("! couldn't get Impact Sounds. Download it by hand from https://kenney.nl/assets/impact-sounds")
+        print("  into your Downloads folder, then run: python tools/fetch_cc0.py sounds")
         return
-    url = m.group(1)
-    if url.startswith("/"):
-        url = "https://kenney.nl" + url
-    print("downloading", url)
-    z = zipfile.ZipFile(io.BytesIO(get(url)))
-    names = {os.path.splitext(os.path.basename(n))[0]: n for n in z.namelist() if n.endswith(".ogg")}
+    names = {os.path.splitext(os.path.basename(n))[0].lower(): n for n in z.namelist() if n.lower().endswith(".ogg")}
+    if not names:
+        print("! that zip has no .ogg files in it")
+        return
     os.makedirs(SND, exist_ok=True)
+    got = 0
     for key, want in SOUNDS.items():
-        src = names.get(want)
+        src = names.get(want.lower())
         if not src:
             print(f"! {want}.ogg not in the pack, {key} keeps its old file")
             continue
         with open(os.path.join(SND, f"{key}.ogg"), "wb") as f:
             f.write(z.read(src))
+        got += 1
         print(f"  {key} <- {want}.ogg")
-    credits.append("Sounds: Kenney 'Impact Sounds' (https://kenney.nl/assets/impact-sounds), CC0 1.0")
+    print(f"{got} of {len(SOUNDS)} sounds swapped in")
+    if got:
+        credits.append("Sounds: Kenney 'Impact Sounds' (https://kenney.nl/assets/impact-sounds), CC0 1.0")
 
 
 def regrade(scan, reference_path):
