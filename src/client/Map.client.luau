@@ -2,8 +2,11 @@
 -- The crew's shared map. Press M (or the Map button) to open it.
 -- Shows every corridor anyone on the server has seen, the exit lift, and
 -- where everyone is. Parts seen before the last Shift are faded: the maze
--- may have rebuilt there since.
+-- may have rebuilt there since. While the Foreman is switching the level
+-- off, every cell it has switched off is blacked out (seen or not), so you
+-- can watch the dark close in on the lift.
 
+local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -108,8 +111,51 @@ local function redrawAll()
 	end
 end
 
+-- The Foreman's darkness: one black square per switched-off cell, over
+-- the map (Switched is set on each light fitting it turns off).
+local DARK = Color3.fromRGB(4, 3, 3)
+local darkFrames: { [number]: Frame } = {}
+local function clearDark()
+	for _, f in darkFrames do
+		f:Destroy()
+	end
+	table.clear(darkFrames)
+end
+local function markDark(panel: BasePart)
+	local key = panel:GetAttribute("Cell")
+	if typeof(key) ~= "number" or panel:GetAttribute("Crew") ~= player:GetAttribute("Crew") then
+		return
+	end
+	local on = panel:GetAttribute("Switched") == true and panel:IsDescendantOf(workspace)
+	local f = darkFrames[key]
+	if on and not f then
+		f = box(grid, (key // 1000 - 1) * px, (key % 1000 - 1) * px, px, px, DARK, 0.12)
+		;(f :: Frame).ZIndex = 2
+		darkFrames[key] = f :: Frame
+	elseif not on and f then
+		f:Destroy()
+		darkFrames[key] = nil
+	end
+end
+local function watchDark(inst: Instance)
+	if inst:IsA("BasePart") then
+		inst:GetAttributeChangedSignal("Switched"):Connect(function()
+			markDark(inst)
+		end)
+		inst.AncestryChanged:Connect(function()
+			markDark(inst)
+		end)
+		markDark(inst)
+	end
+end
+CollectionService:GetInstanceAddedSignal("LightFitting"):Connect(watchDark)
+for _, inst in CollectionService:GetTagged("LightFitting") do
+	watchDark(inst)
+end
+
 MapSync.OnClientEvent:Connect(function(kind: string, a: any, b: any)
 	if kind == "reset" then
+		clearDark()
 		width, depth = a, b
 		px = math.floor(MAP_PX / math.max(width, depth))
 		for _, f in cellFrames do

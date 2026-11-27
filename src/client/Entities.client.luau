@@ -14,6 +14,7 @@
 --   Lampjaw:    a neck that sways under the light and a chattering jaw;
 --               a bite when it takes you. It's only visible in the red
 --               flashes of its light: glimpsed, never seen clearly.
+--   The Foreman: a stiff, heavy, straight-legged walk; the hat never turns.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -213,6 +214,34 @@ local function tenantPose(r: Rig, t: number, dt: number)
 	set(r, "Neck", CFrame.Angles(math.sin(t * 0.37) * 0.08 + jx + r.lift, math.sin(t * 0.23) * 0.45 * (1 - r.lift) + jy, math.sin(t * 0.61) * 0.1 + jz + r.roll))
 end
 
+-- The Foreman: bolt upright and stiff. Short, heavy, straight-legged
+-- steps with a slow side-to-side roll; the arms barely swing; the hat
+-- never turns. When it takes you, both arms come up and forward.
+local function foremanPose(r: Rig, t: number, dt: number)
+	local gait = r.model:GetAttribute("Gait")
+	local amp = if gait == "idle" then 0 else math.clamp(r.speed / 8, 0, 1.2)
+	r.phase += dt * (r.speed / 3.6) * math.pi
+	local s, c = math.sin(r.phase), math.cos(r.phase)
+	set(r, "LeftHip", CFrame.Angles(s * 0.34 * amp, 0, 0))
+	set(r, "RightHip", CFrame.Angles(-s * 0.34 * amp, 0, 0))
+	set(r, "LeftKnee", CFrame.Angles(-math.max(0, -c) * 0.25 * amp, 0, 0))
+	set(r, "RightKnee", CFrame.Angles(-math.max(0, c) * 0.25 * amp, 0, 0))
+	set(r, "LeftAnkle", CFrame.identity)
+	set(r, "RightAnkle", CFrame.identity)
+	set(r, "Root", CFrame.new(0, math.abs(c) * 0.08 * amp, 0) * CFrame.Angles(0, 0, s * 0.05 * amp))
+	set(r, "Waist", CFrame.Angles(math.sin(t * 0.9) * 0.015, 0, -s * 0.03 * amp))
+	local reach = 0
+	local att = attacking(r)
+	if att >= 0 then
+		reach = 1.4 * math.sin(att * math.pi)
+	end
+	set(r, "LeftShoulder", CFrame.Angles(reach - s * 0.12 * amp, 0, -0.05))
+	set(r, "RightShoulder", CFrame.Angles(reach + s * 0.12 * amp, 0, 0.05))
+	set(r, "LeftElbow", CFrame.Angles(-0.08, 0, 0))
+	set(r, "RightElbow", CFrame.Angles(-0.08, 0, 0))
+	set(r, "Neck", CFrame.identity)
+end
+
 local function lampjawPose(r: Rig, t: number)
 	local att = attacking(r)
 	local sway = math.sin(t * 0.9)
@@ -283,6 +312,8 @@ RunService.Stepped:Connect(function(_, dt)
 			tenantPose(r, t, dt)
 		elseif r.kind == "Lampjaw" then
 			lampjawPose(r, t)
+		elseif r.kind == "Foreman" then
+			foremanPose(r, t, dt)
 		end
 		if r.kind == "Lampjaw" then
 			local panel = lampjawPanel(r)

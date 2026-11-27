@@ -33,6 +33,7 @@ local ArtefactService = require(script.Parent:WaitForChild("ArtefactService"))
 local CrewService = require(script.Parent:WaitForChild("CrewService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local ExitLift = require(script.Parent:WaitForChild("ExitLift"))
+local Foreman = require(script.Parent:WaitForChild("Foreman"))
 local Lampjaw = require(script.Parent:WaitForChild("Lampjaw"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local Quiet = require(script.Parent:WaitForChild("Quiet"))
@@ -57,6 +58,7 @@ type Ctx = {
 	tenants: { Tenant.Tenant },
 	lampjaw: Lampjaw.Lampjaw?,
 	quiet: Quiet.Quiet?,
+	foreman: Foreman.Foreman?,
 	map: MapService.CrewMap?,
 	startedAt: number,
 	alive: boolean,
@@ -217,6 +219,9 @@ local function destroy(ctx: Ctx)
 	if ctx.quiet then
 		ctx.quiet.destroy()
 	end
+	if ctx.foreman then
+		ctx.foreman.destroy()
+	end
 	if ctx.map then
 		ctx.map.destroy()
 	end
@@ -290,6 +295,7 @@ local function start(crew: number, depth: number, seed: number?)
 		tenants = {},
 		lampjaw = nil,
 		quiet = nil,
+		foreman = nil,
 		map = nil,
 		startedAt = now(),
 		alive = true,
@@ -347,6 +353,9 @@ local function start(crew: number, depth: number, seed: number?)
 	if Config.QUIET.enabled then
 		ctx.quiet = Quiet.create(ctx) -- dormant above Config.QUIET.fromDepth unless forced
 	end
+	if Config.FOREMAN.enabled then
+		ctx.foreman = Foreman.create(ctx) -- only clocks on from Config.FOREMAN.fromDepth unless forced
+	end
 	ctx.map = MapService.create(ctx)
 	print(`[Level] crew {crew}, sublevel {depth}: {levelType.name} {layout.width}x{layout.depth}, seed {chosenSeed}, quota ${quota}, built in {math.round((os.clock() - started) * 1000)} ms`)
 
@@ -364,11 +373,20 @@ local function start(crew: number, depth: number, seed: number?)
 	st:SetAttribute("EndsAt", now() + Config.SUBLEVEL_SECONDS)
 	st:SetAttribute("State", "playing")
 	for _, p in members do
-		local extra = if depth >= Config.DEPTH.secondTenantFrom
-			then "  Two of them down here."
-			elseif depth == Config.DEPTH.lampjawFrom then "  Watch the lights."
-			elseif depth == Config.QUIET.fromDepth then "  If the hum stops, stop."
-			else ""
+		local notes = {}
+		if depth >= Config.DEPTH.secondTenantFrom then
+			table.insert(notes, "Two of them down here.")
+		end
+		if depth == Config.DEPTH.lampjawFrom then
+			table.insert(notes, "Watch the lights.")
+		end
+		if depth == Config.QUIET.fromDepth then
+			table.insert(notes, "If the hum stops, stop.")
+		end
+		if depth == Config.FOREMAN.fromDepth then
+			table.insert(notes, "Be back before closing.")
+		end
+		local extra = if #notes > 0 then "  " .. table.concat(notes, " ") else ""
 		Remotes.Notify:FireClient(p, `SUBLEVEL {depth}: {string.upper(levelType.name)}. Crew quota ${quota}.{extra}`, "banner")
 	end
 end
@@ -548,6 +566,21 @@ function Sublevels.forceQuiet()
 	end
 end
 
+-- Studio testing: jump every crew's timer to the Foreman's start and let
+-- it clock on (any depth).
+function Sublevels.forceForeman()
+	for _, ctx in active do
+		if ctx.foreman then
+			local st = ctx.state
+			local at = now() + Config.FOREMAN.startAt + 0.5
+			if ((st:GetAttribute("EndsAt") or math.huge) :: number) > at then
+				st:SetAttribute("EndsAt", at)
+			end
+			ctx.foreman.force()
+		end
+	end
+end
+
 function Sublevels.init(hubSend: (Player, number) -> ())
 	sendToHub = hubSend
 	ArtefactService.setFolderResolver(Sublevels.levelFor)
@@ -561,6 +594,7 @@ function Sublevels.init(hubSend: (Player, number) -> ())
 		st:SetAttribute("LampjawCell", 0)
 		st:SetAttribute("QuietState", "idle")
 		st:SetAttribute("QuietCell", 0)
+		st:SetAttribute("ForemanActive", false)
 	end
 	-- Leaving the server: a crew with nobody left in its level is wiped by
 	-- tick(); a crew with nobody left at all just closes.
