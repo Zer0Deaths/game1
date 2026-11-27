@@ -128,7 +128,7 @@ return {
 		shelf_rack = "88441912355429",
 		shop_counter = "115825023487166",
 		supply_locker = "133320952929604",
-		tenant = "138169398148337",
+		tenant = "113461080566482",
 		vent_grate = "114485442791130",
 		wall_clock = "123686291526985",
 		wall_doorway = "88980254974641",
