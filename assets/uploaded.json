@@ -59,15 +59,40 @@
   "id": "decal:137173839456064",
   "sha": "71112682ccb8deaa"
  },
+ "models/archive_box.fbx": {
+  "decal": null,
+  "id": "107804283830136",
+  "sha": "3c115ae32d84b40d"
+ },
+ "models/binders.fbx": {
+  "decal": null,
+  "id": "107023034539550",
+  "sha": "46287994789efd04"
+ },
+ "models/boiler.fbx": {
+  "decal": null,
+  "id": "123084438474535",
+  "sha": "603bdff646156efb"
+ },
  "models/cable_tray.fbx": {
   "decal": null,
   "id": "112152864410871",
   "sha": "f5e40eabc934429a"
  },
+ "models/carton.fbx": {
+  "decal": null,
+  "id": "81577308280796",
+  "sha": "03e1f6bf824a9220"
+ },
  "models/ceiling_tile.fbx": {
   "decal": null,
-  "id": "125060553832668",
-  "sha": "85ebbaa9c39aad96"
+  "id": "124375599158565",
+  "sha": "71fa5e580891e7a2"
+ },
+ "models/ceiling_tile_gap.fbx": {
+  "decal": null,
+  "id": "83662951695133",
+  "sha": "4bb0cb5d49b513ea"
  },
  "models/chair.fbx": {
   "decal": null,
@@ -89,6 +114,21 @@
   "id": "127517704617707",
   "sha": "7f56dae7edcb3c71"
  },
+ "models/crt_monitor.fbx": {
+  "decal": null,
+  "id": "120532077450903",
+  "sha": "b86632a9220a6b8a"
+ },
+ "models/curtain_rail.fbx": {
+  "decal": null,
+  "id": "133082559236137",
+  "sha": "879c127366160ba1"
+ },
+ "models/descent_lift.fbx": {
+  "decal": null,
+  "id": "81450128404307",
+  "sha": "f9b670b2bcac7e8f"
+ },
  "models/desk.fbx": {
   "decal": null,
   "id": "96353573353737",
@@ -104,10 +144,25 @@
   "id": "75874392216993",
   "sha": "aa7b501fc5ec9e1b"
  },
+ "models/exit_lift.fbx": {
+  "decal": null,
+  "id": "72628333839440",
+  "sha": "9028294235d92fe9"
+ },
  "models/exit_sign.fbx": {
   "decal": null,
   "id": "71677633644704",
   "sha": "90042f75c50398e2"
+ },
+ "models/fallen_tile.fbx": {
+  "decal": null,
+  "id": "130976766181992",
+  "sha": "09315c3bcd6f83d7"
+ },
+ "models/filing_cabinet.fbx": {
+  "decal": null,
+  "id": "121317053856561",
+  "sha": "f7d48ace05e51c09"
  },
  "models/fixture.fbx": {
   "decal": null,
@@ -116,13 +171,28 @@
  },
  "models/floor_panel.fbx": {
   "decal": null,
-  "id": "125173014271307",
-  "sha": "94c18e7d4351be1b"
+  "id": "104601260633927",
+  "sha": "f8895d3c58085959"
+ },
+ "models/floor_panel_damaged.fbx": {
+  "decal": null,
+  "id": "87642891667146",
+  "sha": "298eafd4624ca57b"
  },
  "models/foreman.fbx": {
   "decal": null,
   "id": "126029475831106",
   "sha": "8e36dd9a71d647a9"
+ },
+ "models/gurney.fbx": {
+  "decal": null,
+  "id": "74887379406938",
+  "sha": "8d9638a170538b92"
+ },
+ "models/handrail.fbx": {
+  "decal": null,
+  "id": "134378062856605",
+  "sha": "52b5b36896f3235b"
  },
  "models/item_cashbox.fbx": {
   "decal": null,
@@ -164,6 +234,21 @@
   "id": "71498469164306",
   "sha": "c0711700928976c4"
  },
+ "models/iv_stand.fbx": {
+  "decal": null,
+  "id": "129972698813515",
+  "sha": "626ec513f98391e2"
+ },
+ "models/junction_box.fbx": {
+  "decal": null,
+  "id": "123925068124137",
+  "sha": "9acbbbf0e94afaeb"
+ },
+ "models/keyboard.fbx": {
+  "decal": null,
+  "id": "121039005920771",
+  "sha": "bd05f7f74e1a7bd4"
+ },
  "models/lift_doors.fbx": {
   "decal": null,
   "id": "71056251841426",
@@ -174,10 +259,20 @@
   "id": "110993509480079",
   "sha": "2abbf71a61134596"
  },
+ "models/med_cabinet.fbx": {
+  "decal": null,
+  "id": "86184338588945",
+  "sha": "a86937b46009241b"
+ },
  "models/notice_board.fbx": {
   "decal": null,
   "id": "123904071611087",
   "sha": "c75adeb344dd929a"
+ },
+ "models/oil_drum.fbx": {
+  "decal": null,
+  "id": "135492867949081",
+  "sha": "7869d70f66fa1e65"
  },
  "models/papers.fbx": {
   "decal": null,
@@ -189,10 +284,35 @@
   "id": "76094106286614",
   "sha": "51549d3a40f9813b"
  },
+ "models/pipe_drop.fbx": {
+  "decal": null,
+  "id": "81216644106404",
+  "sha": "cc1c825dfcdecae2"
+ },
  "models/pipe_run.fbx": {
   "decal": null,
   "id": "83293614508356",
   "sha": "f3c6395e6b020db6"
+ },
+ "models/pump.fbx": {
+  "decal": null,
+  "id": "76885603256723",
+  "sha": "28bca806016fa0ef"
+ },
+ "models/shelf_rack.fbx": {
+  "decal": null,
+  "id": "88441912355429",
+  "sha": "b8dabc188c296059"
+ },
+ "models/shop_counter.fbx": {
+  "decal": null,
+  "id": "115825023487166",
+  "sha": "36dd8a206f064c73"
+ },
+ "models/supply_locker.fbx": {
+  "decal": null,
+  "id": "133320952929604",
+  "sha": "070d51f5f842d51b"
  },
  "models/tenant.fbx": {
   "decal": null,
@@ -208,6 +328,16 @@
   "decal": null,
   "id": "123686291526985",
   "sha": "18ed2efb4c6a9f3f"
+ },
+ "models/wall_doorway.fbx": {
+  "decal": null,
+  "id": "88980254974641",
+  "sha": "73baaef53c2be97e"
+ },
+ "models/wall_outlet.fbx": {
+  "decal": null,
+  "id": "97257859307149",
+  "sha": "20f003ada3277c40"
  },
  "models/wall_panel.fbx": {
   "decal": null,
@@ -228,6 +358,31 @@
   "decal": null,
   "id": "87148696527804",
   "sha": "ac0907b0ba0ab503"
+ },
+ "models/wardrobe.fbx": {
+  "decal": null,
+  "id": "109431388388135",
+  "sha": "ac6a8f33c456c07f"
+ },
+ "models/wastebin.fbx": {
+  "decal": null,
+  "id": "91553503234906",
+  "sha": "baaa6f037da15d23"
+ },
+ "models/wastebin_tipped.fbx": {
+  "decal": null,
+  "id": "113489640351462",
+  "sha": "53ea8bb8a4b21ec0"
+ },
+ "models/water_cooler.fbx": {
+  "decal": null,
+  "id": "134976875250614",
+  "sha": "6ead3ef47019e5d4"
+ },
+ "models/wheelchair.fbx": {
+  "decal": null,
+  "id": "96403471829486",
+  "sha": "3cd8f1a789045b6f"
  },
  "sounds/BLACKOUT.ogg": {
   "decal": null,
