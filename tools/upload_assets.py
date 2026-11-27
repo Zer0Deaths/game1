@@ -37,6 +37,24 @@ API = "https://apis.roblox.com/assets/v1"
 
 TEXTURE_MAPS = ("colour", "normal", "roughness", "metalness")
 
+# Audio uploads are capped per month (lower on accounts that aren't
+# ID-verified), so the sounds that matter most go first. Anything not
+# uploaded keeps its in-game fallback until the next run.
+SOUND_PRIORITY = [
+    "DRONE", "HEARTBEAT", "TENANT_CUE", "STING_REVEAL", "WHISPERS", "STING_DEATH",
+    "BLACKOUT", "SHIFT_WARN", "STEP_CARPET", "STEP_TILE", "STEP_METAL", "TENANT_STEP",
+    "LAMPJAW_CUE", "LIFT_DING", "QUOTA_MET", "PICKUP", "DEPOSIT", "LIGHTS_ON",
+    "LIFT_MOTOR", "STING_GLIMPSE", "STING_WIPE", "DROP", "COUNTDOWN", "FLASHLIGHT",
+]
+
+
+def sound_rank(rel):
+    stem = os.path.splitext(os.path.basename(rel))[0]
+    base = re.sub(r"_\d+$", "", stem)
+    variant = 0 if base == stem else 1  # every first take before any _2/_3
+    rank = SOUND_PRIORITY.index(base) if base in SOUND_PRIORITY else len(SOUND_PRIORITY)
+    return (variant, rank, stem)
+
 
 def sha(path):
     with open(path, "rb") as f:
@@ -113,13 +131,18 @@ def main():
             for f in sorted(os.listdir(d)):
                 if f.lower().endswith((".png", ".ogg", ".mp3", ".wav")):
                     jobs.append((f"{folder}/{f}", kind))
+    jobs.sort(key=lambda j: (j[1] == "Audio", sound_rank(j[0]) if j[1] == "Audio" else j[0]))
 
     failed = 0
+    audio_capped = False
     for rel, kind in jobs:
         full = os.path.join(ASSETS, rel)
         digest = sha(full)
         entry = ledger.get(rel)
         if entry and entry.get("sha") == digest:
+            continue
+        if kind == "Audio" and audio_capped:
+            failed += 1
             continue
         try:
             asset_id = upload(full, kind, key, user_id)
@@ -132,6 +155,9 @@ def main():
         except Exception as e:
             failed += 1
             print(f"! {rel}: {e}")
+            if kind == "Audio" and re.search(r"quota|limit|429|too many", str(e), re.I):
+                audio_capped = True
+                print("! audio upload limit reached: the rest of the sounds wait for the next run (fallbacks play meanwhile)")
         with open(LEDGER, "w") as f:
             json.dump(ledger, f, indent=1, sort_keys=True)
 
