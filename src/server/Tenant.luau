@@ -20,6 +20,7 @@
 -- Built from basic shapes. A modelled creature would need an asset.
 -- Its sounds are played on each player's device (TenantSounds.client).
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -399,6 +400,9 @@ function Tenant.create(ctx: any): Tenant
 				-- First it stops and shrieks. That's the warning to run.
 				print(`[Tenant] crew {ctx.crew}: spotted {seen.Name}`)
 				target = seen
+				if model then
+					model:SetAttribute("TargetId", seen.UserId) -- that player gets the reveal stinger
+				end
 				setState("notice")
 				noticeUntil = now + T.noticeSeconds
 				lastNoticed = now
@@ -501,6 +505,8 @@ function Tenant.create(ctx: any): Tenant
 
 	model = buildBody()
 	root = (model :: Model).PrimaryPart
+	CollectionService:AddTag(model :: Model, "SHIFT_Tenant") -- clients hang its sounds on this
+	;(model :: Model):SetAttribute("Crew", ctx.crew)
 	hide()
 	setState("dormant")
 

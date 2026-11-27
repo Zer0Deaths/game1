@@ -12,6 +12,7 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local OpenShop = Remotes:WaitForChild("OpenShop") :: RemoteEvent
 local BuyItem = Remotes:WaitForChild("BuyItem") :: RemoteEvent
 local ToggleFlashlight = Remotes:WaitForChild("ToggleFlashlight") :: RemoteEvent
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local player = Players.LocalPlayer
 local AMBER = Color3.fromRGB(255, 196, 110)
@@ -64,6 +65,7 @@ close.TextColor3 = PALE
 close.Text = "Close"
 close.Parent = panel
 close.Activated:Connect(function()
+	Audio.ui("UI_CLOSE")
 	gui.Enabled = false
 end)
 
@@ -91,6 +93,7 @@ for i, item in ShopItems do
 	button.TextColor3 = PALE
 	button.Parent = row
 	button.Activated:Connect(function()
+		Audio.ui("UI_CLICK")
 		BuyItem:FireServer(item.id)
 	end)
 	table.insert(rows, { item = item, button = button, status = status })
@@ -121,7 +124,15 @@ local function refresh()
 	end
 end
 
-player.AttributeChanged:Connect(function()
+local lastCash = (player:GetAttribute("Cash") or 0) :: number
+player.AttributeChanged:Connect(function(name)
+	if name == "Cash" then
+		local cash = (player:GetAttribute("Cash") or 0) :: number
+		if gui.Enabled and cash < lastCash then
+			Audio.ui("PURCHASE") -- the server took the money: it went through
+		end
+		lastCash = cash
+	end
 	if gui.Enabled then
 		refresh()
 	end
@@ -129,12 +140,18 @@ end)
 
 OpenShop.OnClientEvent:Connect(function()
 	refresh()
+	if not gui.Enabled then
+		Audio.ui("UI_OPEN")
+	end
 	gui.Enabled = true
 end)
 
 -- Flashlight: F (or gamepad D-pad up, or the on-screen button once owned).
 ContextActionService:BindAction("Flashlight", function(_, state: Enum.UserInputState)
 	if state == Enum.UserInputState.Begin then
+		if (player:GetAttribute("Own_flashlight") or 0) > 0 then
+			Audio.play("FLASHLIGHT", { volume = 0.6, jitter = 0.05 })
+		end
 		ToggleFlashlight:FireServer()
 	end
 	return Enum.ContextActionResult.Sink

@@ -1,5 +1,7 @@
--- Footsteps that match the floor: muffled thuds on carpet, clicks on hard
--- floors, clanks on the metal lift plate. Heavier and slower when a
+-- Footsteps that match the floor: muffled thuds on carpet, sharper taps
+-- on tile and concrete, clanks on metal plate. Each floor has up to three
+-- recorded variants (STEP_CARPET, STEP_CARPET_2, STEP_CARPET_3...), picked
+-- at random so steps never sound copy-pasted. Heavier and slower when a
 -- player is loaded, quicker when sprinting.
 --
 -- Runs for EVERY character on this device (yours and other players'),
@@ -14,10 +16,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local SoundIds = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SoundIds"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local STRIDE = 4.2 -- studs between steps at a walk
 local SPRINT_STRIDE = 5.6
 
+-- Floor material -> footstep sound. Textured floors report their base
+-- material (Surfaces.luau), so the Ward's vinyl is Slate -> tile.
 local SURFACE: { [Enum.Material]: string } = {
 	[Enum.Material.Carpet] = "STEP_CARPET",
 	[Enum.Material.Fabric] = "STEP_CARPET",
@@ -25,7 +30,15 @@ local SURFACE: { [Enum.Material]: string } = {
 	[Enum.Material.Metal] = "STEP_METAL",
 	[Enum.Material.CorrodedMetal] = "STEP_METAL",
 	[Enum.Material.Foil] = "STEP_METAL",
+	[Enum.Material.Slate] = "STEP_TILE",
+	[Enum.Material.Marble] = "STEP_TILE",
+	[Enum.Material.Granite] = "STEP_TILE",
+	[Enum.Material.Concrete] = "STEP_TILE",
+	[Enum.Material.Pavement] = "STEP_TILE",
+	[Enum.Material.Plastic] = "STEP_TILE",
 }
+-- Until a floor's own recording is uploaded, the nearest one stands in.
+local FALLBACK: { [string]: string } = { STEP_TILE = "STEP_HARD", STEP_METAL = "STEP_HARD" }
 
 type Walker = { distance: number, sounds: { [string]: Sound } }
 local walkers: { [Model]: Walker } = {}
@@ -34,7 +47,7 @@ local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
 
 local function soundFor(walker: Walker, root: BasePart, key: string): Sound?
-	local id = SoundIds.get(key)
+	local id = Audio.variant(key) or (FALLBACK[key] and Audio.variant(FALLBACK[key]))
 	if not id then
 		return nil
 	end
@@ -44,6 +57,7 @@ local function soundFor(walker: Walker, root: BasePart, key: string): Sound?
 		sound.Name = key
 		sound.RollOffMinDistance = 6
 		sound.RollOffMaxDistance = 70 -- hear crewmates a corridor or two away
+		sound.SoundGroup = Audio.group("Sfx")
 		sound.Parent = root
 		walker.sounds[key] = sound
 	end

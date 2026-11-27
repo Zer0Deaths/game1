@@ -145,6 +145,7 @@ local function pickUp(player: Player, tool: Tool)
 	handle.Massless = true
 	tool.Parent = player:FindFirstChildOfClass("Backpack")
 	ArtefactService.refreshCarry(player)
+	Remotes.Fx:FireAllClients("pickup", handle.Position)
 	Remotes.Notify:FireClient(player, `Picked up {tool.Name} (${tool:GetAttribute("Value")})`, "info")
 end
 
@@ -248,6 +249,7 @@ local function dropHeld(player: Player)
 	local _, yaw, _ = root.CFrame:ToOrientation()
 	placeInWorld(tool, pos, yaw, folder)
 	ArtefactService.refreshCarry(player)
+	Remotes.Fx:FireAllClients("drop", pos)
 	-- Loot hitting the floor is loud.
 	NoiseService.emit(pos, Config.TENANT.hearDrop, player)
 end
@@ -269,6 +271,9 @@ local function onCharacter(player: Player, character: Model)
 	humanoid.Died:Connect(function()
 		-- Your loot spills on the floor where you die. Someone can come back for it.
 		local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			Remotes.Fx:FireAllClients("death", root.Position)
+		end
 		local folder = folderFor(player)
 		if not root or not folder then
 			return
