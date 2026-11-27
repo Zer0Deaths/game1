@@ -61,73 +61,163 @@
  },
  "models/cable_tray.fbx": {
   "decal": null,
-  "id": "81125467599741",
-  "sha": "f5354afacc9cb810"
+  "id": "112152864410871",
+  "sha": "f5e40eabc934429a"
  },
  "models/ceiling_tile.fbx": {
   "decal": null,
-  "id": "81150220783996",
-  "sha": "d6758376a48b3b1e"
+  "id": "125060553832668",
+  "sha": "85ebbaa9c39aad96"
+ },
+ "models/chair.fbx": {
+  "decal": null,
+  "id": "116527188298974",
+  "sha": "ae03c20e9bb11918"
+ },
+ "models/clipboard.fbx": {
+  "decal": null,
+  "id": "78618141468517",
+  "sha": "73bc1768ac8b6d61"
+ },
+ "models/crate_large.fbx": {
+  "decal": null,
+  "id": "77334042408309",
+  "sha": "532fec1162ca5a1b"
+ },
+ "models/crate_small.fbx": {
+  "decal": null,
+  "id": "127517704617707",
+  "sha": "7f56dae7edcb3c71"
+ },
+ "models/desk.fbx": {
+  "decal": null,
+  "id": "96353573353737",
+  "sha": "79e2c7adbdcd1242"
  },
  "models/door.fbx": {
   "decal": null,
-  "id": "71439856647296",
-  "sha": "069d026897dbdc98"
+  "id": "98217342135568",
+  "sha": "839c6980f3ff527e"
+ },
+ "models/duty_roster.fbx": {
+  "decal": null,
+  "id": "75874392216993",
+  "sha": "aa7b501fc5ec9e1b"
  },
  "models/exit_sign.fbx": {
   "decal": null,
-  "id": "137308820317495",
-  "sha": "6a7ac9f38716967c"
+  "id": "71677633644704",
+  "sha": "90042f75c50398e2"
  },
  "models/fixture.fbx": {
   "decal": null,
-  "id": "135658509650574",
-  "sha": "2d0c7aa99a5c3020"
+  "id": "140354874015167",
+  "sha": "a6c476321e90f500"
  },
  "models/floor_panel.fbx": {
   "decal": null,
-  "id": "129978361308772",
-  "sha": "65e9cc3ffcfece7e"
+  "id": "125173014271307",
+  "sha": "94c18e7d4351be1b"
+ },
+ "models/item_cashbox.fbx": {
+  "decal": null,
+  "id": "82208533660291",
+  "sha": "21930875c80d6ee8"
+ },
+ "models/item_fan.fbx": {
+  "decal": null,
+  "id": "136256999645838",
+  "sha": "7b0eed45bef1d713"
+ },
+ "models/item_idol.fbx": {
+  "decal": null,
+  "id": "101977574780548",
+  "sha": "b43e2090e3975d83"
+ },
+ "models/item_pager.fbx": {
+  "decal": null,
+  "id": "118149951750261",
+  "sha": "1eb883f967ed0b37"
+ },
+ "models/item_phone.fbx": {
+  "decal": null,
+  "id": "93956333984888",
+  "sha": "201c449d03ce54a2"
+ },
+ "models/item_reel.fbx": {
+  "decal": null,
+  "id": "117679137378241",
+  "sha": "37a3d31d5c20fa40"
+ },
+ "models/item_stapler.fbx": {
+  "decal": null,
+  "id": "89668382494382",
+  "sha": "9b9758730b5126db"
+ },
+ "models/item_typewriter.fbx": {
+  "decal": null,
+  "id": "71498469164306",
+  "sha": "c0711700928976c4"
  },
  "models/lift_doors.fbx": {
   "decal": null,
-  "id": "131155358307242",
-  "sha": "7f72dd0768d028eb"
+  "id": "71056251841426",
+  "sha": "8e663fd721ce8ed2"
+ },
+ "models/locker.fbx": {
+  "decal": null,
+  "id": "110993509480079",
+  "sha": "2abbf71a61134596"
+ },
+ "models/notice_board.fbx": {
+  "decal": null,
+  "id": "123904071611087",
+  "sha": "c75adeb344dd929a"
+ },
+ "models/papers.fbx": {
+  "decal": null,
+  "id": "86664935679077",
+  "sha": "fc1394d7130430bc"
  },
  "models/pillar.fbx": {
   "decal": null,
-  "id": "79869651852649",
-  "sha": "6070b7a7bcc86228"
+  "id": "76094106286614",
+  "sha": "51549d3a40f9813b"
  },
  "models/pipe_run.fbx": {
   "decal": null,
-  "id": "83573041997146",
-  "sha": "5c85ef72e857d236"
+  "id": "83293614508356",
+  "sha": "f3c6395e6b020db6"
  },
  "models/vent_grate.fbx": {
   "decal": null,
-  "id": "71320897570939",
-  "sha": "3846f405b74eeae5"
+  "id": "114485442791130",
+  "sha": "e95b51de9ee48e36"
+ },
+ "models/wall_clock.fbx": {
+  "decal": null,
+  "id": "123686291526985",
+  "sha": "18ed2efb4c6a9f3f"
  },
  "models/wall_panel.fbx": {
   "decal": null,
-  "id": "89560833621178",
-  "sha": "68539a1417628456"
+  "id": "71181270836528",
+  "sha": "d281acf35abe4d25"
  },
  "models/wall_panel_peeling.fbx": {
   "decal": null,
-  "id": "107572745907404",
-  "sha": "06c07804ea857a09"
+  "id": "73184218472938",
+  "sha": "b1f8c788338298e9"
  },
  "models/wall_panel_skirting.fbx": {
   "decal": null,
-  "id": "79499493950353",
-  "sha": "41a3d0cb1be6f079"
+  "id": "110181245404433",
+  "sha": "6024df533c7473ee"
  },
  "models/wall_post.fbx": {
   "decal": null,
-  "id": "111257870945800",
-  "sha": "de31719d60a7f50b"
+  "id": "87148696527804",
+  "sha": "ac0907b0ba0ab503"
  },
  "sounds/BLACKOUT.ogg": {
   "decal": null,
